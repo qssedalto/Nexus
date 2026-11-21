@@ -206,6 +206,21 @@ public final class ClipboardCloudJournal: @unchecked Sendable {
         return sqlite3_changes(database) > 0
     }
 
+    /// Explicit recovery for an expired or invalid server change token.
+    /// This never erases cached content or staged local mutations. The next
+    /// download starts from the beginning and deterministic merges dedupe it.
+    public func resetChangeToken(forZone zoneID: String) throws {
+        guard !zoneID.isEmpty else { throw JournalError.invalidToken }
+        lock.lock()
+        defer { lock.unlock() }
+        let stmt = try prepare(
+            "DELETE FROM cloud_change_tokens WHERE zone_id=?"
+        )
+        defer { sqlite3_finalize(stmt) }
+        bind(zoneID, to: 1, in: stmt)
+        guard sqlite3_step(stmt) == SQLITE_DONE else { throw JournalError.write }
+    }
+
     /// Opaque CKServerChangeToken data, never user-facing or loggable.
     public func token(forZone zoneID: String) throws -> Data? {
         lock.lock()
