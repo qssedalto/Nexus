@@ -567,7 +567,8 @@ public final class InputStatisticsStore: @unchecked Sendable {
 
         var cursor: OpaquePointer?
         let sql = """
-            SELECT id,time_ms,category,name,source,count
+            SELECT id,time_ms,category,name,source,count,
+                   remote_device_id,remote_event_id
             FROM input_events ORDER BY id
             """
         guard sqlite3_prepare_v2(sourceDB, sql, -1, &cursor, nil) == SQLITE_OK,
@@ -591,10 +592,16 @@ public final class InputStatisticsStore: @unchecked Sendable {
                 category: String(cString: category),
                 name: String(cString: name),
                 source: String(cString: source),
-                count: sqlite3_column_int64(cursor, 5)
+                count: sqlite3_column_int64(cursor, 5),
+                originDeviceID: sqlite3_column_text(cursor, 6).map { String(cString: $0) },
+                originEventID: sqlite3_column_type(cursor, 7) == SQLITE_NULL
+                    ? nil : sqlite3_column_int64(cursor, 7)
             )
             guard row.id >= 0, row.timeMS >= 0, row.count > 0,
                   row.name.count <= 80, row.source.count <= 512,
+                  (row.originDeviceID == nil) == (row.originEventID == nil),
+                  (row.originDeviceID?.count ?? 0) <= 80,
+                  (row.originEventID ?? 0) >= 0,
                   ["ordinary", "keyboard", "modifier", "shortcut", "mouse", "scroll", "system"].contains(row.category) else {
                 throw InputStoreError.read
             }
@@ -615,6 +622,8 @@ public final class InputStatisticsStore: @unchecked Sendable {
         let name: String
         let source: String
         let count: Int64
+        let originDeviceID: String?
+        let originEventID: Int64?
     }
 
     private func mergeBackupBatch(_ batch: [BackupInputEvent], deviceID: String) throws -> Int {
@@ -651,9 +660,14 @@ public final class InputStatisticsStore: @unchecked Sendable {
                 let now = Int64(Date().timeIntervalSince1970 * 1000)
                 var inserted = 0
                 for row in batch {
+                    // Preserve the original source device across A -> B -> A
+                    // iCloud file sync cycles. Never re-tag an imported row
+                    // as originating from the intermediate backup machine.
+                    let originDeviceID = row.originDeviceID ?? deviceID
+                    let originEventID = row.originEventID ?? row.id
                     sqlite3_reset(existing)
                     sqlite3_clear_bindings(existing)
-                    sqlite3_bind_int64(existing, 1, row.id)
+                    sqlite3_bind_int64(existing, 1, originEventID)
                     sqlite3_bind_int64(existing, 2, row.timeMS)
                     bind(row.category, to: 3, in: existing)
                     bind(row.name, to: 4, in: existing)
@@ -669,8 +683,8 @@ public final class InputStatisticsStore: @unchecked Sendable {
                     bind(row.source, to: 4, in: insert)
                     sqlite3_bind_int64(insert, 5, row.count)
                     sqlite3_bind_int64(insert, 6, now)
-                    bind(deviceID, to: 7, in: insert)
-                    sqlite3_bind_int64(insert, 8, row.id)
+                    bind(originDeviceID, to: 7, in: insert)
+                    sqlite3_bind_int64(insert, 8, originEventID)
                     guard sqlite3_step(insert) == SQLITE_DONE else {
                         throw InputStoreError.write
                     }
