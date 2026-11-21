@@ -14,6 +14,12 @@ struct ClipboardShelfView: View {
     @State private var filter: Category = .all
     @State private var message: String?
     @State private var confirmClear = false
+    @State private var collections: [ClipboardCollection] = []
+    @State private var selectedCollectionID = ""
+    @State private var collectionMemberIDs: [String] = []
+    @State private var newCollectionName = ""
+    @State private var showingCreateCollection = false
+    @State private var showingDeleteCollection = false
     @AppStorage("nexusPinnedClipboardOperationIDs") private var pinnedRaw = ""
 
     private enum Category: String, CaseIterable, Identifiable {
@@ -38,6 +44,7 @@ struct ClipboardShelfView: View {
         let pins = pinned
         let matches = appState.operations.filter { operation in
             guard ["copy", "path_copy", "text_copy", "image_copy"].contains(operation.type) else { return false }
+            if !selectedCollectionID.isEmpty && !collectionMemberIDs.contains(operation.id) { return false }
             let kind = operation.items.first?.kind
             switch filter {
             case .all: break
@@ -53,8 +60,14 @@ struct ClipboardShelfView: View {
                     || ($0.source?.localizedCaseInsensitiveContains(search) ?? false)
                 }
         }
-        // Pinned cards stay above recent entries; leave the chronological
-        // order returned by SQLite untouched within each group.
+        if !selectedCollectionID.isEmpty {
+            let positions = Dictionary(uniqueKeysWithValues: collectionMemberIDs.enumerated()
+                .map { ($0.element, $0.offset) })
+            return Array(matches.sorted {
+                (positions[$0.id] ?? Int.max) < (positions[$1.id] ?? Int.max)
+            }.prefix(100))
+        }
+        // Pinned cards stay above recent entries in the default history.
         return Array((matches.filter { pins.contains($0.id) }
                     + matches.filter { !pins.contains($0.id) }).prefix(100))
     }
@@ -101,6 +114,30 @@ struct ClipboardShelfView: View {
             .padding(10)
             .background(.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 10))
 
+            HStack {
+                Picker(localized("Permanent collection"), selection: $selectedCollectionID) {
+                    Text(localized("All collections")).tag("")
+                    ForEach(collections) { collection in
+                        Text(collection.name).tag(collection.id)
+                    }
+                }
+                .frame(maxWidth: 240)
+                Button {
+                    newCollectionName = ""
+                    showingCreateCollection = true
+                } label: { Image(systemName: "plus.circle") }
+                    .help(localized("Create collection"))
+                if !selectedCollectionID.isEmpty {
+                    Button {
+                        showingDeleteCollection = true
+                    } label: { Image(systemName: "trash") }
+                        .help(localized("Delete collection only"))
+                }
+                Spacer()
+                Text(localized("Collections protect their entries from history cleanup."))
+                    .font(.caption2).foregroundStyle(.secondary)
+            }
+
             if operations.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "tray")
@@ -143,6 +180,7 @@ struct ClipboardShelfView: View {
         .focused($shelfFocused)
         .onAppear {
             appState.refreshOperations()
+            loadCollections()
             shelfFocused = true
         }
         .onChange(of: appState.operations.map(\.id)) { _ in
@@ -164,6 +202,20 @@ struct ClipboardShelfView: View {
             }
         }
         .onExitCommand(perform: onCloseRequested)
+        .onChange(of: selectedCollectionID) { _ in loadCollectionMembers() }
+        .alert(localized("Create permanent collection"), isPresented: $showingCreateCollection) {
+            TextField(localized("Collection name"), text: $newCollectionName)
+            Button(localized("Cancel"), role: .cancel) {}
+            Button(localized("Create")) { createCollection() }
+        }
+        .alert(localized("Delete this collection?"), isPresented: $showingDeleteCollection) {
+            Button(localized("Cancel"), role: .cancel) {}
+            Button(localized("Delete collection"), role: .destructive) {
+                deleteSelectedCollection()
+            }
+        } message: {
+            Text(localized("The collection is removed; its saved clipboard operations remain in history."))
+        }
         .confirmationDialog(localized("Delete all unpinned local copy history?"),
                             isPresented: $confirmClear) {
             Button(localized("Delete unpinned local history"), role: .destructive) {
@@ -258,9 +310,140 @@ struct ClipboardShelfView: View {
             Button(localized("Paste into previous app")) { requestPaste(operation, plainText: false) }
             Button(localized("Paste as plain text")) { requestPaste(operation, plainText: true) }
             Button(localized(isPinned ? "Unpin" : "Pin")) { togglePin(operation.id) }
+            if !collections.isEmpty {
+                Menu(localized("Add to collection")) {
+                    ForEach(collections) { collection in
+                        Button(collection.name) {
+                            addToCollection(operation.id, collectionID: collection.id)
+                        }
+                    }
+                }
+            }
+            if !selectedCollectionID.isEmpty {
+                Button(localized("Remove from collection")) {
+                    removeFromCurrentCollection(operation.id)
+                }
+                Button(localized("Move toward beginning")) {
+                    moveInCurrentCollection(operation.id, earlier: true)
+                }
+                Button(localized("Move toward end")) {
+                    moveInCurrentCollection(operation.id, earlier: false)
+                }
+            }
             Button(localized("Delete from local history"), role: .destructive) {
                 deleteLocally(operation.id)
             }
+        }
+    }
+
+    private func loadCollections() {
+        let store = OperationStore.shared()
+        Task {
+            let records = await Task.detached(priority: .utility) {
+                (try? store?.listCollections()) ?? []
+            }.value
+            collections = records
+            if !selectedCollectionID.isEmpty &&
+               !collections.contains(where: { $0.id == selectedCollectionID }) {
+                selectedCollectionID = ""
+            }
+            loadCollectionMembers()
+        }
+    }
+
+    private func loadCollectionMembers() {
+        let current = selectedCollectionID
+        guard !current.isEmpty else {
+            collectionMemberIDs = []
+            return
+        }
+        let store = OperationStore.shared()
+        Task {
+            let ids = await Task.detached(priority: .utility) {
+                (try? store?.collectionOperationIDs(collectionID: current)) ?? []
+            }.value
+            guard selectedCollectionID == current else { return }
+            collectionMemberIDs = ids
+        }
+    }
+
+    private func createCollection() {
+        let store = OperationStore.shared()
+        let name = newCollectionName
+        Task {
+            let created = await Task.detached(priority: .utility) {
+                try? store?.createCollection(named: name)
+            }.value
+            guard let created else {
+                message = localized("Collection name is empty or already used")
+                return
+            }
+            selectedCollectionID = created.id
+            loadCollections()
+        }
+    }
+
+    private func deleteSelectedCollection() {
+        let id = selectedCollectionID
+        guard !id.isEmpty else { return }
+        let store = OperationStore.shared()
+        Task {
+            let result = await Task.detached(priority: .utility) {
+                (try? store?.deleteCollection(id: id)) ?? false
+            }.value
+            if result {
+                selectedCollectionID = ""
+                loadCollections()
+                message = localized("Collection removed; clipboard history preserved")
+            } else {
+                message = localized("Unable to delete collection")
+            }
+        }
+    }
+
+    private func addToCollection(_ operationID: String, collectionID: String) {
+        let store = OperationStore.shared()
+        Task {
+            let success = await Task.detached(priority: .utility) {
+                (try? store?.addOperation(id: operationID, toCollection: collectionID)) ?? false
+            }.value
+            if success {
+                loadCollectionMembers()
+                message = localized("Added to permanent collection")
+            }
+        }
+    }
+
+    private func removeFromCurrentCollection(_ operationID: String) {
+        let collectionID = selectedCollectionID
+        let store = OperationStore.shared()
+        Task {
+            _ = await Task.detached(priority: .utility) {
+                try? store?.removeOperation(id: operationID, fromCollection: collectionID)
+            }.value
+            loadCollectionMembers()
+        }
+    }
+
+    private func moveInCurrentCollection(_ operationID: String, earlier: Bool) {
+        let collectionID = selectedCollectionID
+        guard let position = collectionMemberIDs.firstIndex(of: operationID) else { return }
+        let beforeID: String?
+        if earlier {
+            guard position > 0 else { return }
+            beforeID = collectionMemberIDs[position - 1]
+        } else {
+            guard position < collectionMemberIDs.count - 1 else { return }
+            // Moving before the entry after next moves the current one right.
+            beforeID = position + 2 < collectionMemberIDs.count
+                ? collectionMemberIDs[position + 2] : nil
+        }
+        let store = OperationStore.shared()
+        Task {
+            _ = await Task.detached(priority: .utility) {
+                try? store?.moveOperation(id: operationID, before: beforeID, inCollection: collectionID)
+            }.value
+            loadCollectionMembers()
         }
     }
 

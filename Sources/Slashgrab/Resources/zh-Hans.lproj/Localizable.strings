@@ -227,3 +227,23 @@
 "Shortcuts are off by default. If the shortcut is occupied, the previous setting is kept." = "快捷键默认关闭；若组合键被其他应用占用，将保留原来的设置。";
 "Paste into previous app" = "粘贴到此前使用的应用";
 "Paste as plain text" = "以纯文本粘贴";
+
+"Permanent collection" = "永久剪贴板集合";
+"All collections" = "全部记录";
+"Create collection" = "新建集合";
+"Delete collection only" = "仅删除集合";
+"Collections protect their entries from history cleanup." = "集合内的记录不会被历史自动清理。";
+"Create permanent collection" = "新建永久剪贴板集合";
+"Collection name" = "集合名称";
+"Create" = "创建";
+"Delete this collection?" = "确定删除这个集合吗？";
+"Delete collection" = "删除集合";
+"The collection is removed; its saved clipboard operations remain in history." = "仅删除集合，已保存的剪贴板历史仍然保留。";
+"Add to collection" = "添加到集合";
+"Remove from collection" = "从集合中移除";
+"Move toward beginning" = "向前移动";
+"Move toward end" = "向后移动";
+"Collection name is empty or already used" = "集合名称为空或已存在";
+"Collection removed; clipboard history preserved" = "已删除集合，剪贴板历史未删除";
+"Unable to delete collection" = "无法删除集合";
+"Added to permanent collection" = "已添加到永久剪贴板集合";
