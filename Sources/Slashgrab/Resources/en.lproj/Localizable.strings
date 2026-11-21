@@ -400,3 +400,6 @@
 "Pinned clipboard" = "Pinned clipboard";
 "No recorded clipboard entries" = "No recorded clipboard entries";
 "Open clipboard shelf" = "Open clipboard shelf";
+
+"Resume clipboard history" = "Resume clipboard history";
+"Pause clipboard history" = "Pause clipboard history";

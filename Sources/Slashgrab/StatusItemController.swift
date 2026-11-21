@@ -143,7 +143,7 @@ final class StatusItemController {
     }
 
     private var menuPopoverHeight: CGFloat {
-        appState.lastCopiedOutput == nil ? 324 : 386
+        appState.lastCopiedOutput == nil ? 355 : 417
     }
 
     private func toggleClipboardShelf() {
