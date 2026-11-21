@@ -256,7 +256,7 @@ struct MobileHomeView: View {
         }
         .fileExporter(
             isPresented: $showFileExporter,
-            document: $fileExport,
+            document: fileExport,
             contentType: .data,
             defaultFilename: fileExportName
         ) { _ in
