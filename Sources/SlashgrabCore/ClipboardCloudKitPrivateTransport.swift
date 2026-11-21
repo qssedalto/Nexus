@@ -10,12 +10,19 @@ public actor ClipboardCloudKitPrivateTransport: ClipboardCloudTransport, Clipboa
         case privateDatabaseRequired, invalidZone, oversizedBatch
         case unexpectedPhysicalDeletion, malformedChangeToken, returnedRecordMismatch
         case remoteRevisionRequiresReconciliation
+        case missingOrCorruptImageAsset
     }
 
     private let database: CKDatabase
     private let zoneID: CKRecordZone.ID
+    private let imageProvider: @Sendable (String) async throws -> ClipboardCloudImageAsset?
+    private let mayDownloadImages: @Sendable () async -> Bool
 
-    public init(database: CKDatabase, zoneID: CKRecordZone.ID) throws {
+    public init(
+        database: CKDatabase, zoneID: CKRecordZone.ID,
+        imageProvider: @escaping @Sendable (String) async throws -> ClipboardCloudImageAsset? = { _ in nil },
+        mayDownloadImages: @escaping @Sendable () async -> Bool = { false }
+    ) throws {
         guard database.databaseScope == .private else {
             throw TransportError.privateDatabaseRequired
         }
@@ -24,6 +31,8 @@ public actor ClipboardCloudKitPrivateTransport: ClipboardCloudTransport, Clipboa
         }
         self.database = database
         self.zoneID = zoneID
+        self.imageProvider = imageProvider
+        self.mayDownloadImages = mayDownloadImages
     }
 
     /// Explicit setup step; never run on app launch. Apple requires a saved
@@ -108,9 +117,10 @@ public actor ClipboardCloudKitPrivateTransport: ClipboardCloudTransport, Clipboa
                 case .uploadNewVersion:
                     break
                 }
-                let encoded = try ClipboardCloudKitCodec.encode(change, zoneID: zoneID)
+                let (encoded, assetFile) = try await encodeWithImageAsset(change)
+                defer { if let assetFile { try? FileManager.default.removeItem(at: assetFile) } }
                 for key in ["schemaVersion", "kind", "counter", "deviceID",
-                            "mutationID", "isDeleted", "document"] {
+                            "mutationID", "isDeleted", "document", "imageAsset"] {
                     existing[key] = encoded[key]
                 }
                 // The server version lookup is itself an awaited network
@@ -127,7 +137,8 @@ public actor ClipboardCloudKitPrivateTransport: ClipboardCloudTransport, Clipboa
                     throw TransportError.returnedRecordMismatch
                 }
             } else {
-                let candidate = try ClipboardCloudKitCodec.encode(change, zoneID: zoneID)
+                let (candidate, assetFile) = try await encodeWithImageAsset(change)
+                defer { if let assetFile { try? FileManager.default.removeItem(at: assetFile) } }
                 guard await permissionCheck(change) else {
                     throw ClipboardCloudSyncError.consentRequired
                 }
@@ -145,6 +156,26 @@ public actor ClipboardCloudKitPrivateTransport: ClipboardCloudTransport, Clipboa
             ))
         }
         return acknowledged
+    }
+
+    /// Create temporary CKAsset content only after an authorized image upload
+    /// is selected. The file exists until CKDatabase.save completes and is
+    /// removed whether the network succeeds or fails.
+    private func encodeWithImageAsset(
+        _ change: ClipboardCloudRecord
+    ) async throws -> (CKRecord, URL?) {
+        let record = try ClipboardCloudKitCodec.encode(change, zoneID: zoneID)
+        guard case .operation(let info)? = change.payload,
+              let reference = info.image else { return (record, nil) }
+        guard let image = try await imageProvider(change.id),
+              image.matches(reference) else {
+            throw TransportError.missingOrCorruptImageAsset
+        }
+        let destination = FileManager.default.temporaryDirectory
+            .appendingPathComponent("nexus-cloud-" + UUID().uuidString)
+        try image.bytes.write(to: destination, options: .atomic)
+        record["imageAsset"] = CKAsset(fileURL: destination)
+        return (record, destination)
     }
 
     /// Incremental download of one server page. Physically removed CKRecords
@@ -166,20 +197,51 @@ public actor ClipboardCloudKitPrivateTransport: ClipboardCloudTransport, Clipboa
         } else {
             previous = nil
         }
+        let imageDownloadAllowed = await mayDownloadImages()
+        let baseKeys = ["schemaVersion", "kind", "counter", "deviceID",
+                        "mutationID", "isDeleted", "document"]
         let page = try await database.recordZoneChanges(
             inZoneWith: zoneID, since: previous,
-            desiredKeys: nil, resultsLimit: 200
+            desiredKeys: imageDownloadAllowed ? nil : baseKeys, resultsLimit: 200
         )
         guard page.deletions.isEmpty else {
             throw TransportError.unexpectedPhysicalDeletion
         }
         var changes: [ClipboardCloudRecord] = []
+        var images: [String: ClipboardCloudImageAsset] = [:]
         for result in page.modificationResultsByID.values {
             switch result {
             case .success(let modification):
-                changes.append(try ClipboardCloudKitCodec.decode(
-                    modification.record, expectedZoneID: zoneID
-                ))
+                let cloudRecord = modification.record
+                let decoded = try ClipboardCloudKitCodec.decode(
+                    cloudRecord, expectedZoneID: zoneID
+                )
+                if case .operation(let operation)? = decoded.payload,
+                   let reference = operation.image {
+                    // Never load image bytes after the user revoked consent,
+                    // even if an in-flight server response carries an asset.
+                    guard imageDownloadAllowed, await mayDownloadImages(),
+                          let asset = cloudRecord["imageAsset"] as? CKAsset,
+                          let source = asset.fileURL, source.isFileURL else {
+                        throw ClipboardCloudSyncError.consentRequired
+                    }
+                    let values = try source.resourceValues(forKeys: [
+                        .fileSizeKey, .isRegularFileKey, .isSymbolicLinkKey
+                    ])
+                    guard values.isRegularFile == true,
+                          values.isSymbolicLink != true,
+                          let size = values.fileSize, size == reference.byteCount,
+                          size > 0, size <= ClipboardCloudImageReference.maximumBytes,
+                          let image = ClipboardCloudImageAsset(
+                            bytes: try Data(contentsOf: source, options: .mappedIfSafe),
+                            pasteboardType: reference.pasteboardType
+                          ),
+                          image.matches(reference) else {
+                        throw TransportError.missingOrCorruptImageAsset
+                    }
+                    images[decoded.id] = image
+                }
+                changes.append(decoded)
             case .failure(let error):
                 throw error
             }
@@ -188,7 +250,8 @@ public actor ClipboardCloudKitPrivateTransport: ClipboardCloudTransport, Clipboa
             withRootObject: page.changeToken, requiringSecureCoding: true
         )
         return ClipboardCloudDownloadPage(
-            changes: changes, token: checkpoint, moreComing: page.moreComing
+            changes: changes, token: checkpoint,
+            moreComing: page.moreComing, imageAssets: images
         )
     }
 }
