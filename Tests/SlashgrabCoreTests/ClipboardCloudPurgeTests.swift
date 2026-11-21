@@ -52,6 +52,15 @@ final class ClipboardCloudPurgeTests: XCTestCase {
             XCTAssertEqual(try journal.pendingCount(), 1)
             XCTAssertNotNil(try journal.token(forZone: "NexusClipboard"))
         }
+        for invalid in ["delete", " DELETE", "DELETE ", "CONFIRM", ""] {
+            do {
+                try await purge.purgeCloudZoneAndLocalCache(confirmation: invalid)
+                XCTFail("Invalid text must not delete the private zone")
+            } catch ClipboardCloudPurgeError.explicitConfirmationRequired {
+                let calls = await remote.callCount()
+                XCTAssertEqual(calls, 0)
+            }
+        }
     }
 
     func testFailedRemotePurgeDoesNotClearLocalRecoveryData() async throws {
@@ -63,7 +72,7 @@ final class ClipboardCloudPurgeTests: XCTestCase {
             transport: remote, journal: journal
         )
         do {
-            try await purge.purgeCloudZoneAndLocalCache(explicitlyConfirmed: true)
+            try await purge.purgeCloudZoneAndLocalCache(confirmation: "DELETE")
             XCTFail("Expected a network failure")
         } catch MockZoneDeletion.Failure.network {
             XCTAssertEqual(try journal.pendingCount(), 1)
@@ -82,7 +91,7 @@ final class ClipboardCloudPurgeTests: XCTestCase {
         let purge = ClipboardCloudPurgeCoordinator(
             transport: remote, journal: journal
         )
-        try await purge.purgeCloudZoneAndLocalCache(explicitlyConfirmed: true)
+        try await purge.purgeCloudZoneAndLocalCache(confirmation: "DELETE")
         let calls = await remote.callCount()
         XCTAssertEqual(calls, 1)
         XCTAssertEqual(try journal.pendingCount(), 0)
