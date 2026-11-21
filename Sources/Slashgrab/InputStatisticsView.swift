@@ -154,6 +154,7 @@ struct InputStatisticsView: View {
     @State private var endMS = 999
     @State private var deleteConfirmation = 0
     @State private var showingDeleteAlert = false
+    @State private var deleteAllRequested = false
     @State private var selectedPreset = "today"
 
     var body: some View {
@@ -300,6 +301,12 @@ struct InputStatisticsView: View {
                 Button(localized("Check database")) { controller.checkIntegrity() }
                 Button(localized("Backup database")) { controller.backup() }
                 Button(localized("Delete selected range")) {
+                    deleteAllRequested = false
+                    deleteConfirmation = 1
+                    showingDeleteAlert = true
+                }
+                Button(localized("Delete all statistics"), role: .destructive) {
+                    deleteAllRequested = true
                     deleteConfirmation = 1
                     showingDeleteAlert = true
                 }
@@ -326,19 +333,25 @@ struct InputStatisticsView: View {
         .onAppear { controller.startIfPermitted(); applyPreset() }
         .onDisappear { controller.diagnosticsEnabled = false }
         .alert("\(localized("Confirm deletion")) \(deleteConfirmation)/5", isPresented: $showingDeleteAlert) {
-            Button(localized("Cancel"), role: .cancel) { deleteConfirmation = 0 }
+            Button(localized("Cancel"), role: .cancel) {
+                deleteConfirmation = 0
+                deleteAllRequested = false
+            }
             Button(localized("Confirm"), role: .destructive) {
                 if deleteConfirmation == 5 {
-                    let (lower, upper) = bounds
+                    let (lower, upper) = deleteAllRequested ? (Int64(0), Int64.max) : bounds
                     controller.delete(from: lower, to: upper)
                     deleteConfirmation = 0
+                    deleteAllRequested = false
                 } else {
                     deleteConfirmation += 1
                     DispatchQueue.main.async { showingDeleteAlert = true }
                 }
             }
         } message: {
-            Text(localized("This deletes statistics in the selected time range."))
+            Text(localized(deleteAllRequested
+                ? "This deletes every locally stored input statistic. Existing cloud backups and uploads are not deleted."
+                : "This deletes statistics in the selected time range."))
         }
     }
 

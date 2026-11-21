@@ -7,6 +7,7 @@ final class AppState: ObservableObject {
     @Published private(set) var feedback: DropFeedback?
     @Published var selectedFormat: PathFormat
     @Published private(set) var launchAtLoginEnabled: Bool
+    private(set) var shouldEnableDefaultLoginOnFirstLaunch = false
     @Published private(set) var finderExtensionEnabled: Bool
     @Published private(set) var useFinderSubmenu: Bool
     @Published private(set) var feedbackDuration: Double
@@ -59,11 +60,18 @@ final class AppState: ObservableObject {
     }
 
     static func production() -> AppState {
-        return AppState(
-            settings: AppSettingsStore(defaults: .standard),
+        let settings = AppSettingsStore(defaults: .standard)
+        // The initializer persists the current state; remember whether a
+        // preference existed BEFORE it runs. Never re-enable launch at login
+        // for an existing user who disabled it intentionally.
+        let firstLaunch = !settings.hasStoredLaunchAtLoginPreference
+        let state = AppState(
+            settings: settings,
             sharedSettings: SharedSettings.makeStore(),
             operationStore: OperationStore.shared()
         )
+        state.shouldEnableDefaultLoginOnFirstLaunch = firstLaunch
+        return state
     }
 
     var lastCopiedOutput: String? {

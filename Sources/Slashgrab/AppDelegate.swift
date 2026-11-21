@@ -18,6 +18,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         NSApp.servicesProvider = serviceProvider
+        if appState.shouldEnableDefaultLoginOnFirstLaunch {
+            // Product default for a new installation only. Existing users'
+            // disabled preference is respected across every upgrade.
+            appState.setLaunchAtLoginEnabled(true)
+        }
         // Observed paste shortcuts are NOT proof of a successful paste.
         // Show the same neutral, non-focus-stealing popover used for passive
         // clipboard observations, only after the separate consent is enabled.
