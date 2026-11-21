@@ -107,7 +107,14 @@ class NexusAPI(BaseHTTPRequestHandler):
             return
         path = urlsplit(self.path)
         if path.path == "/api/nexus/v1/me":
-            self.respond(200, {"authenticated": True})
+            self.respond(200, {
+                "authenticated": True,
+                "schema_version": 1,
+                "capabilities": [
+                    "statistics.events", "statistics.summary",
+                    "operations.events", "operations.restore"
+                ],
+            })
         elif path.path == "/api/nexus/v1/statistics/summary":
             bounds = self.bounds(path.query)
             if bounds is None:
