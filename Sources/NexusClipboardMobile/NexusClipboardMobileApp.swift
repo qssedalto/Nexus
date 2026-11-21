@@ -130,7 +130,10 @@ struct MobileHomeView: View {
                             .disabled(!cloud.cloudEnabled)
                         Toggle("Include file paths", isOn: $cloud.includePaths)
                             .disabled(!cloud.cloudEnabled)
-                        Text("All consent is off by default. Your clipboard is never inspected in the background, and no image or file bytes are uploaded.")
+                        Toggle("Include original clipboard images (up to 8 MB)",
+                               isOn: $cloud.includeImages)
+                            .disabled(!cloud.cloudEnabled)
+                        Text("Image originals are downloaded from your private CloudKit zone only after this separate permission is enabled. File originals are not synchronized. Your clipboard is never inspected in the background.")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     Section("Manual synchronization") {
@@ -302,6 +305,9 @@ struct MobileHomeView: View {
                     .buttonStyle(.borderless)
             }
             if case .operation(let info)? = record.payload {
+                if info.image != nil && cloud.includeImages {
+                    MobileCloudImagePreview(cloud: cloud, recordID: record.id)
+                }
                 Text(
                     cloud.includeText
                         ? (info.text ?? String(localized: "Metadata only"))
@@ -318,6 +324,11 @@ struct MobileHomeView: View {
                         cloud.copyText(record)
                     }
                     .disabled(!cloud.includeText || info.text == nil)
+                    if info.image != nil && cloud.includeImages {
+                        Button("Copy image") {
+                            cloud.copyRemoteImage(recordID: record.id)
+                        }
+                    }
                     if !collections.isEmpty {
                         Menu("Add to collection") {
                             ForEach(collections, id: \.id) { collection in
@@ -344,6 +355,36 @@ struct MobileHomeView: View {
         .overlay {
             RoundedRectangle(cornerRadius: 15)
                 .strokeBorder(.secondary.opacity(0.2))
+        }
+    }
+}
+
+/// Loads only the already-authorized local CloudKit cache, never the
+/// system pasteboard. The CKAsset is validated before being committed.
+private struct MobileCloudImagePreview: View {
+    @ObservedObject var cloud: MobileClipboardController
+    let recordID: String
+    @State private var preview: UIImage?
+
+    var body: some View {
+        Group {
+            if let preview {
+                Image(uiImage: preview)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: 280, maxHeight: 180)
+                    .accessibilityLabel("Cloud clipboard image")
+            } else {
+                Label("Image preview unavailable", systemImage: "photo")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .task(id: recordID) {
+            if let bytes = cloud.cachedRemoteImage(recordID: recordID) {
+                preview = UIImage(data: bytes)
+            } else {
+                preview = nil
+            }
         }
     }
 }
