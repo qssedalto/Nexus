@@ -23,6 +23,13 @@ final class ClipboardMonitor: ObservableObject {
 
     /// Opt-in storage of screenshot/image bytes is independent from
     /// file URL observations and text capture. Default is off.
+    /// Separately opted-in sanitized RTF formatting; requires text capture.
+    @Published var richTextEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(richTextEnabled, forKey: "nexusClipboardRichTextCapture")
+        }
+    }
+
     @Published var imageEnabled: Bool {
         didSet {
             UserDefaults.standard.set(imageEnabled, forKey: "nexusClipboardImageCapture")
@@ -69,6 +76,7 @@ final class ClipboardMonitor: ObservableObject {
         enabled = UserDefaults.standard.bool(forKey: "nexusMonitorFileCopies")
         textEnabled = UserDefaults.standard.bool(forKey: "nexusMonitorTextCopies")
         imageEnabled = UserDefaults.standard.bool(forKey: "nexusClipboardImageCapture")
+        richTextEnabled = UserDefaults.standard.bool(forKey: "nexusClipboardRichTextCapture")
         paused = UserDefaults.standard.bool(forKey: "nexusClipboardHistoryPaused")
         retentionDays = max(0, UserDefaults.standard.integer(forKey: "nexusClipboardRetentionDays"))
         maximumHistoryRecords = max(0, UserDefaults.standard.integer(forKey: "nexusClipboardHistoryMaximum"))
@@ -232,10 +240,20 @@ final class ClipboardMonitor: ObservableObject {
               !text.isEmpty,
               text.utf8.count <= maximumTextBytes else { return }
         onDetected?("Clipboard text detected")
+        // Read RTF only when the user authorized both plain-text history and
+        // additional formatting, independently of image and file capture.
+        // The parser runs on the utility queue and never retains raw RTF.
+        let richRTF = richTextEnabled ? pasteboard.data(forType: .rtf) : nil
         persist {
-            try store.record(type: "text_copy", urls: [], sourceApplication: nil,
-                             detectionMethod: "clipboard", detectedTimeMS: detected,
-                             clipboardText: text)
+            if let richRTF,
+               let sanitized = ClipboardRTFParser.sanitizedPreview(from: richRTF) {
+                try store.recordRichText(sanitized, detectedTimeMS: detected)
+            } else {
+                try store.record(type: "text_copy", urls: [],
+                                 sourceApplication: nil,
+                                 detectionMethod: "clipboard", detectedTimeMS: detected,
+                                 clipboardText: text)
+            }
         }
     }
 }

@@ -357,3 +357,6 @@
 "Metadata only" = "Metadata only";
 "Copy text" = "Copy text";
 "Enable iCloud clipboard consent to inspect its local cache" = "Enable iCloud clipboard consent to inspect its local cache";
+
+"Save safe RTF typography (opt-in)" = "Save safe RTF typography (opt-in)";
+"RTF formatting keeps only bold, italic and underline flags. Attachments, remote resources, fonts and original RTF data are never saved." = "RTF formatting keeps only bold, italic and underline flags. Attachments, remote resources, fonts and original RTF data are never saved.";
