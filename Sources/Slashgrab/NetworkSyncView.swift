@@ -27,6 +27,18 @@ final class NetworkSyncController: ObservableObject {
             cancelInFlightUploads()
         }
     }
+    /// Independent permission for uploading input statistics (including
+    /// manual uploads). Defaults off: an old automatic-sync preference never
+    /// silently grants network access to detailed input history.
+    @Published var statisticsUploadEnabled: Bool {
+        didSet {
+            defaults.set(statisticsUploadEnabled, forKey: "nexusStatisticsUploadEnabled")
+            if !statisticsUploadEnabled {
+                statisticsTransferRevision &+= 1
+                statisticsUploadTask?.cancel()
+            }
+        }
+    }
     @Published var automatic: Bool {
         didSet {
             defaults.set(automatic, forKey: "nexusSyncAutomatic")
@@ -111,6 +123,7 @@ final class NetworkSyncController: ObservableObject {
     private init() {
         defaults = .standard
         serverAddress = defaults.string(forKey: "nexusSyncServer") ?? "https://qsseda.com"
+        statisticsUploadEnabled = defaults.bool(forKey: "nexusStatisticsUploadEnabled")
         automatic = defaults.bool(forKey: "nexusSyncAutomatic")
         operationSyncEnabled = defaults.bool(forKey: "nexusOperationSyncEnabled")
         operationSyncPaths = defaults.bool(forKey: "nexusOperationSyncPaths")
@@ -173,6 +186,10 @@ final class NetworkSyncController: ObservableObject {
     }
 
     func syncNow(automaticRun: Bool = false) async {
+        guard statisticsUploadEnabled else {
+            status = localized("Statistics upload is disabled; local data is preserved")
+            return
+        }
         guard !statisticsDeletionInProgress else {
             status = "Statistics deletion in progress; upload blocked"
             return
@@ -216,7 +233,8 @@ final class NetworkSyncController: ObservableObject {
             }
             var request = try makeRequest(path: "/api/nexus/v1/statistics/events", method: "POST")
             request.httpBody = try JSONEncoder().encode(UploadBatch(schemaVersion: 1, deviceID: deviceID, events: events))
-            guard transferRevision == statisticsTransferRevision,
+            guard statisticsUploadEnabled,
+                  transferRevision == statisticsTransferRevision,
                   (!automaticRun || automatic) else {
                 status = "Statistics upload cancelled because settings changed"
                 return
@@ -234,7 +252,8 @@ final class NetworkSyncController: ObservableObject {
             status = "Uploading"
             let confirmation = try await uploadTask.value
             // Revocation must not mark a stale request as successfully synced.
-            guard transferRevision == statisticsTransferRevision,
+            guard statisticsUploadEnabled,
+                  transferRevision == statisticsTransferRevision,
                   !uploadTask.isCancelled, (!automaticRun || automatic) else {
                 status = "Statistics request cancelled; check server before retrying"
                 return
@@ -472,6 +491,7 @@ final class NetworkSyncController: ObservableObject {
 
     func deleteRemoteDevice() async {
         automatic = false
+        statisticsUploadEnabled = false
         guard statisticsUploadTask == nil && !statisticsSyncPreparationInProgress
                 && !statisticsDeletionInProgress else {
             status = "A statistics upload is still running; retry deletion once it completes"
@@ -623,8 +643,10 @@ struct NetworkSyncView: View {
                 Button(localized("Save token")) { if controller.saveToken(token) { token = "" } }
                 Button(localized("Remove token")) { controller.removeToken() }
             }
+            Toggle(localized("Allow statistics upload to configured server"), isOn: $controller.statisticsUploadEnabled)
             Toggle(localized("Automatic sync"), isOn: $controller.automatic)
             Toggle(localized("Precise non-text events"), isOn: $controller.preciseEvents)
+                .disabled(!controller.statisticsUploadEnabled)
 
             DisclosureGroup(localized("Copy history cloud sync (separate consent)"), isExpanded: $showOperationSync) {
                 Toggle(localized("Allow operation metadata sync"), isOn: $controller.operationSyncEnabled)
@@ -658,6 +680,7 @@ struct NetworkSyncView: View {
             HStack {
                 Button(localized("Test connection")) { Task { await controller.testConnection() } }
                 Button(localized("Upload now")) { Task { await controller.syncNow() } }
+                    .disabled(!controller.statisticsUploadEnabled)
                 Button(localized("Preview upload")) { controller.preview() }
             }
             Text(controller.uploadPreview).font(.caption)
