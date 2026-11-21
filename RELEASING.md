@@ -1,4 +1,4 @@
-# Releasing Slashgrab
+# Releasing Nexus
 
 ## One-Time Setup
 
@@ -14,8 +14,8 @@
 
 Every public release ships two artifacts:
 
-- `Slashgrab.dmg` for manual user installation and the stable website download URL.
-- `Slashgrab-X.Y.Z.zip` for Sparkle automatic updates and `appcast.xml`.
+- `Nexus.dmg` for manual user installation and the stable website download URL.
+- `Nexus-X.Y.Z.zip` for Sparkle automatic updates and `appcast.xml`.
 
 1. Update `version.env`.
 2. Add release notes to `CHANGELOG.md` under the exact version.
@@ -23,28 +23,28 @@ Every public release ships two artifacts:
 4. Run `./Scripts/build_and_run.sh --production --release --verify`.
 5. Run `./Scripts/sign-and-notarize.sh` to create the notarized Sparkle zip.
 6. Run `./Scripts/make_dmg.sh --notarize` to create the notarized manual-install DMG.
-7. Create the GitHub release and upload both `Slashgrab.dmg` and `Slashgrab-X.Y.Z.zip`.
-8. Run `./Scripts/make_appcast.sh Slashgrab-X.Y.Z.zip`.
-9. Confirm `appcast.xml` contains an enclosure for `Slashgrab-X.Y.Z.zip` with `sparkle:edSignature`.
+7. Create the GitHub release and upload both `Nexus.dmg` and `Nexus-X.Y.Z.zip`.
+8. Run `./Scripts/make_appcast.sh Nexus-X.Y.Z.zip`.
+9. Confirm `appcast.xml` contains an enclosure for `Nexus-X.Y.Z.zip` with `sparkle:edSignature`.
 10. Commit and push `appcast.xml`.
 
-The Finder Sync extension is embedded at `Slashgrab.app/Contents/PlugIns/SlashgrabFinderSync.appex`. It is sandboxed, signed before the containing app, and uses the bundle identifier `com.prof18.slashgrab.findersync`. The app and extension share the selected **Copy As** format through the team-scoped App Group `<signing team>.com.prof18.slashgrab.shared`. This macOS-specific App Group form does not require registration or a provisioning profile. Do not use a `group.*` override with this profile-free manual signing flow; those identifiers require a provisioning profile and are rejected by the packaging script.
+The Finder Sync extension is embedded at `Nexus.app/Contents/PlugIns/NexusFinderSync.appex`. It is sandboxed, signed before the containing app, and uses the bundle identifier `com.qssedalto.nexus.findersync`. The app and extension share the selected **Copy As** format through the team-scoped App Group `<signing team>.com.qssedalto.nexus.shared`. This macOS-specific App Group form does not require registration or a provisioning profile. Do not use a `group.*` override with this profile-free manual signing flow; those identifiers require a provisioning profile and are rejected by the packaging script.
 
 ## Validation
 
 Run these against the final app:
 
 ```bash
-codesign -dvvv --entitlements - Slashgrab.app
-codesign -dvvv --entitlements - Slashgrab.app/Contents/PlugIns/SlashgrabFinderSync.appex
-codesign --verify --deep --strict --verbose=2 Slashgrab.app
-codesign --verify --strict --verbose=2 Slashgrab.app/Contents/PlugIns/SlashgrabFinderSync.appex
-spctl -a -t exec -vv Slashgrab.app
-xcrun stapler validate Slashgrab.app
-spctl -a -t open --context context:primary-signature -vv Slashgrab.dmg
-xcrun stapler validate Slashgrab.dmg
-plutil -p Slashgrab.app/Contents/Info.plist
-plutil -p Slashgrab.app/Contents/PlugIns/SlashgrabFinderSync.appex/Contents/Info.plist
+codesign -dvvv --entitlements - Nexus.app
+codesign -dvvv --entitlements - Nexus.app/Contents/PlugIns/NexusFinderSync.appex
+codesign --verify --deep --strict --verbose=2 Nexus.app
+codesign --verify --strict --verbose=2 Nexus.app/Contents/PlugIns/NexusFinderSync.appex
+spctl -a -t exec -vv Nexus.app
+xcrun stapler validate Nexus.app
+spctl -a -t open --context context:primary-signature -vv Nexus.dmg
+xcrun stapler validate Nexus.dmg
+plutil -p Nexus.app/Contents/Info.plist
+plutil -p Nexus.app/Contents/PlugIns/NexusFinderSync.appex/Contents/Info.plist
 ```
 
-Dev builds default to `Slashgrab Dev.app` with `com.prof18.slashgrab.dev`, disabled Sparkle checks, separate settings/history, a `DEV` menu bar label, and a dev-badged app icon. Production package verification is explicit with `./Scripts/build_and_run.sh --production --release --verify`; release notarization uses `Slashgrab.app` with `com.prof18.slashgrab`.
+Dev builds default to `Nexus Dev.app` with `com.qssedalto.nexus.dev`, disabled Sparkle checks, separate settings/history, a `DEV` menu bar label, and a dev-badged app icon. Production package verification is explicit with `./Scripts/build_and_run.sh --production --release --verify`; release notarization uses `Nexus.app` with `com.qssedalto.nexus`.

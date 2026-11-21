@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://slashgrab.app/sitemap.xml
+Sitemap: https://github.com/qssedalto/Nexus/sitemap.xml

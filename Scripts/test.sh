@@ -19,8 +19,8 @@ fi
 swift test -q
 
 xcodebuild \
-  -project "$ROOT_DIR/Slashgrab.xcodeproj" \
-  -scheme Slashgrab \
+  -project "$ROOT_DIR/Nexus.xcodeproj" \
+  -scheme Nexus \
   -configuration Debug \
   -derivedDataPath "$ROOT_DIR/.build/xcode-derived-tests" \
   -clonedSourcePackagesDirPath "$ROOT_DIR/.build/xcode-packages" \
@@ -28,9 +28,9 @@ xcodebuild \
   CODE_SIGNING_ALLOWED=NO \
   ENABLE_DEBUG_DYLIB=NO \
   APP_DISPLAY_NAME="Nexus Dev" \
-  APP_BUNDLE_ID=com.prof18.slashgrab.dev \
+  APP_BUNDLE_ID=com.qssedalto.nexus.dev \
   APP_ICON_NAME=AppIconDev \
-  FINDER_EXTENSION_BUNDLE_ID=com.prof18.slashgrab.dev.findersync \
+  FINDER_EXTENSION_BUNDLE_ID=com.qssedalto.nexus.dev.findersync \
   FINDER_EXTENSION_DISPLAY_NAME="Nexus Dev Finder Extension" \
   MARKETING_VERSION="$MARKETING_VERSION" \
   CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \

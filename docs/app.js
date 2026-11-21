@@ -1,11 +1,11 @@
-/* Slashgrab landing page — interactive widgets, vanilla JS, no dependencies.
+/* Nexus landing page — interactive widgets, vanilla JS, no dependencies.
    Powers (1) the menu-bar drag demo and (2) the path-format switcher.
    Everything else on the page is static HTML; if this script fails the page
    still reads fine. */
 (function () {
   'use strict';
 
-  /* ---- the Slashgrab "token" glyph, three states (viewBox 0 0 22 22) ---- */
+  /* ---- the Nexus "token" glyph, three states (viewBox 0 0 22 22) ---- */
   var GLYPH = {
     idle: '<rect x="2.6" y="5.6" width="16.8" height="10.8" rx="2.6" fill="none" stroke="currentColor" stroke-width="1.7"/><line x1="8.9" y1="13.9" x2="13.1" y2="8.1" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>',
     active: '<rect x="2.6" y="5.6" width="16.8" height="10.8" rx="2.6" fill="none" stroke="currentColor" stroke-width="1.9"/><line x1="8.9" y1="13.9" x2="13.1" y2="8.1" stroke="currentColor" stroke-width="2.7" stroke-linecap="round"/>',

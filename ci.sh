@@ -13,7 +13,7 @@ git --no-pager diff --check
 
 "$ROOT_DIR/Scripts/build_and_run.sh" --verify
 
-DEV_APP_INFO="$ROOT_DIR/Slashgrab Dev.app/Contents/Info.plist"
+DEV_APP_INFO="$ROOT_DIR/Nexus Dev.app/Contents/Info.plist"
 if [[ "$(/usr/bin/plutil -extract SUEnableAutomaticChecks raw "$DEV_APP_INFO")" != "false" ||
       -n "$(/usr/bin/plutil -extract SUFeedURL raw "$DEV_APP_INFO")" ||
       -n "$(/usr/bin/plutil -extract SUPublicEDKey raw "$DEV_APP_INFO")" ]]; then

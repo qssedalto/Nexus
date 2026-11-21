@@ -1,62 +1,9 @@
 <?xml version="1.0" standalone="yes"?>
 <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
-    <channel>
-        <title>Slashgrab Updates</title>
-        <link>https://raw.githubusercontent.com/prof18/slashgrab/main/appcast.xml</link>
-        <description>Appcast for Slashgrab.</description>
-        <language>en</language>
-        <item>
-            <title>0.0.5</title>
-            <pubDate>Tue, 01 Sep 2026 22:19:25 +0200</pubDate>
-            <link>https://raw.githubusercontent.com/prof18/slashgrab/main/appcast.xml</link>
-            <sparkle:version>5</sparkle:version>
-            <sparkle:shortVersionString>0.0.5</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<h2>Slashgrab 0.0.5</h2>
-<ul>
-<li>Restore Finder <strong>Copy Path</strong> after updating from 0.0.4.</li>
-<li>Prevent stale Finder extension versions from adding duplicate <strong>Copy Path</strong> entries after future updates.</li>
-<li>Add <strong>Copy Path</strong> to Finder’s contextual menu, using the <strong>Copy As</strong> format selected in Slashgrab.</li>
-<li>Record Finder <strong>Copy Path</strong> actions in <strong>Recently grabbed</strong>, keeping copy history consistent with menu-bar drops.</li>
-<li>Add a dedicated Settings window for launch at login, Finder extension setup, updates, and app information.</li>
-</ul>
-<p><a href="https://github.com/prof18/slashgrab/blob/main/CHANGELOG.md">View full changelog</a></p>
-]]></description>
-            <enclosure url="https://github.com/prof18/slashgrab/releases/download/v0.0.5/Slashgrab-0.0.5.zip" length="3523744" type="application/octet-stream" sparkle:edSignature="yAlYdL/censjpb8HIpGa/9jc3SDaveHs9eEariTYBU/is7vqhO+4eJMnuiDUMoOfz6W701l9nTHgwJxXAlh7Dg=="/>
-        </item>
-        <item>
-            <title>0.0.3</title>
-            <pubDate>Tue, 01 Sep 2026 21:22:06 +0200</pubDate>
-            <link>https://raw.githubusercontent.com/prof18/slashgrab/main/appcast.xml</link>
-            <sparkle:version>3</sparkle:version>
-            <sparkle:shortVersionString>0.0.3</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<h2>Slashgrab 0.0.3</h2>
-<ul>
-<li>Add <strong>Copy Path</strong> to Finder’s contextual menu, using the <strong>Copy As</strong> format selected in Slashgrab.</li>
-<li>Record Finder <strong>Copy Path</strong> actions in <strong>Recently grabbed</strong>, keeping copy history consistent with menu-bar drops.</li>
-<li>Add a dedicated Settings window for launch at login, Finder extension setup, updates, and app information.</li>
-</ul>
-<p><a href="https://github.com/prof18/slashgrab/blob/main/CHANGELOG.md">View full changelog</a></p>
-]]></description>
-            <enclosure url="https://github.com/prof18/slashgrab/releases/download/v0.0.3/Slashgrab-0.0.3.zip" length="3509105" type="application/octet-stream" sparkle:edSignature="J12Shof/NpNlNi0/PVkgH9iI71grV3bq3PHobjDEIV/W7QXW58tUXZgVZFCmBWBmwbTbsdgEOIQABzcH3zthAg=="/>
-        </item>
-        <item>
-            <title>0.0.2</title>
-            <pubDate>Tue, 01 Sep 2026 13:19:54 +0200</pubDate>
-            <link>https://raw.githubusercontent.com/prof18/slashgrab/main/appcast.xml</link>
-            <sparkle:version>2</sparkle:version>
-            <sparkle:shortVersionString>0.0.2</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<h2>Slashgrab 0.0.2</h2>
-<ul>
-<li>Add <strong>Copy Path</strong> to Finder’s contextual menu, using the <strong>Copy As</strong> format selected in Slashgrab.</li>
-<li>Add a dedicated Settings window for launch at login, Finder integration, updates, and app information.</li>
-<li>Improve Finder extension setup, development-build isolation, and signed release packaging.</li>
-</ul>
-<p><a href="https://github.com/prof18/slashgrab/blob/main/CHANGELOG.md">View full changelog</a></p>
-]]></description>
-            <enclosure url="https://github.com/prof18/slashgrab/releases/download/v0.0.2/Slashgrab-0.0.2.zip" length="3504411" type="application/octet-stream" sparkle:edSignature="BYuRBV987FyRdy+nz5TJX7ykYAwl4X6umgu3Otoveb5dpKIGK36GG1qZDudZgxu6g55fh844Ns4J2z7cHuBiDA=="/>
-        </item>
-    </channel>
+  <channel>
+    <title>Nexus Updates</title>
+    <link>https://raw.githubusercontent.com/qssedalto/Nexus/main/appcast.xml</link>
+    <description>Official release feed for Nexus. No signed Nexus releases have been published yet.</description>
+    <language>en</language>
+  </channel>
 </rss>

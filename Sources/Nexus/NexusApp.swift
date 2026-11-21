@@ -1,0 +1,16 @@
+import SwiftUI
+
+@main
+struct NexusApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+
+    var body: some Scene {
+        Settings {
+            SettingsView(
+                appState: appDelegate.appState,
+                buildInfo: .current(),
+                updater: appDelegate.updater
+            )
+        }
+    }
+}

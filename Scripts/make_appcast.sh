@@ -10,8 +10,8 @@ if [[ -f "$ROOT_DIR/.env" ]]; then
   set +a
 fi
 
-ZIP=${1:?"Usage: Scripts/make_appcast.sh Slashgrab-<version>.zip"}
-FEED_URL=${2:-${SPARKLE_FEED_URL:-"https://raw.githubusercontent.com/prof18/slashgrab/main/appcast.xml"}}
+ZIP=${1:?"Usage: Scripts/make_appcast.sh Nexus-<version>.zip"}
+FEED_URL=${2:-${SPARKLE_FEED_URL:-"https://raw.githubusercontent.com/qssedalto/Nexus/main/appcast.xml"}}
 PRIVATE_KEY_FILE=${SPARKLE_PRIVATE_KEY_FILE:-}
 GENERATE_APPCAST=${GENERATE_APPCAST:-}
 
@@ -25,7 +25,7 @@ ZIP_NAME="$(basename "$ZIP")"
 ZIP_BASE="${ZIP_NAME%.zip}"
 VERSION=${SPARKLE_RELEASE_VERSION:-}
 if [[ -z "$VERSION" ]]; then
-  if [[ "$ZIP_NAME" =~ ^Slashgrab-([0-9]+(\.[0-9]+){1,2}([-.][^.]*)?)\.zip$ ]]; then
+  if [[ "$ZIP_NAME" =~ ^Nexus-([0-9]+(\.[0-9]+){1,2}([-.][^.]*)?)\.zip$ ]]; then
     VERSION="${BASH_REMATCH[1]}"
   else
     echo "Could not infer version from $ZIP_NAME; set SPARKLE_RELEASE_VERSION." >&2
@@ -45,7 +45,7 @@ if [[ -z "$GENERATE_APPCAST" ]]; then
 fi
 
 NOTES_HTML="$ZIP_DIR/$ZIP_BASE.html"
-WORK_DIR="$(mktemp -d /tmp/slashgrab-appcast.XXXXXX)"
+WORK_DIR="$(mktemp -d /tmp/nexus-appcast.XXXXXX)"
 KEEP_NOTES=${KEEP_SPARKLE_NOTES:-0}
 
 cleanup() {
@@ -62,7 +62,7 @@ cp "$ROOT_DIR/appcast.xml" "$WORK_DIR/appcast.xml"
 cp "$ZIP" "$WORK_DIR/$ZIP_NAME"
 cp "$NOTES_HTML" "$WORK_DIR/$ZIP_BASE.html"
 
-DOWNLOAD_URL_PREFIX=${SPARKLE_DOWNLOAD_URL_PREFIX:-"https://github.com/prof18/slashgrab/releases/download/v${VERSION}/"}
+DOWNLOAD_URL_PREFIX=${SPARKLE_DOWNLOAD_URL_PREFIX:-"https://github.com/qssedalto/Nexus/releases/download/v${VERSION}/"}
 APPCAST_CMD=("$GENERATE_APPCAST")
 if [[ -n "$PRIVATE_KEY_FILE" ]]; then
   APPCAST_CMD+=(--ed-key-file "$PRIVATE_KEY_FILE")

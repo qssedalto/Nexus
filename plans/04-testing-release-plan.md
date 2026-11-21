@@ -2,7 +2,7 @@
 
 ## TDD Policy
 
-Slashgrab is built test-first.
+Nexus is built test-first.
 
 - Add the failing unit/integration test before production code.
 - For platform behavior that cannot be unit-tested cleanly, write the acceptance checklist or script first.
@@ -114,11 +114,11 @@ Cons:
 
 Production bundle identifier:
 
-- `com.prof18.slashgrab`
+- `com.qssedalto.nexus`
 
 Development bundle identifier:
 
-- `com.prof18.slashgrab.dev`
+- `com.qssedalto.nexus.dev`
 
 Release package requirements:
 
@@ -131,20 +131,20 @@ Release package requirements:
 - [ ] Signed app.
 - [ ] Notarized app.
 - [ ] Stapled notarization ticket.
-- [ ] Zip artifact named `Slashgrab-X.Y.Z.zip`.
+- [ ] Zip artifact named `Nexus-X.Y.Z.zip`.
 - [ ] GitHub release contains the zip artifact.
 - [ ] `appcast.xml` updated with `edSignature`.
-- [ ] Production app name: `Slashgrab`.
-- [ ] Dev app name: `Slashgrab Dev`.
+- [ ] Production app name: `Nexus`.
+- [ ] Dev app name: `Nexus Dev`.
 - [ ] Dev and production builds can run alongside each other.
 - [ ] Dev and production builds keep preferences/history separate.
 
 Validation commands to use on release artifacts:
 
-- `codesign -dvvv --entitlements :- Slashgrab.app`
-- `codesign --verify --verbose=2 Slashgrab.app`
-- `spctl -a -t exec -vv Slashgrab.app`
-- `xcrun stapler validate Slashgrab.app`
-- `plutil -p Slashgrab.app/Contents/Info.plist`
+- `codesign -dvvv --entitlements :- Nexus.app`
+- `codesign --verify --verbose=2 Nexus.app`
+- `spctl -a -t exec -vv Nexus.app`
+- `xcrun stapler validate Nexus.app`
+- `plutil -p Nexus.app/Contents/Info.plist`
 
 Keep architecture App Store-compatible where practical, but do not let App Store constraints drive the MVP.

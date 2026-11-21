@@ -18,18 +18,18 @@
 
 Production:
 
-- `com.prof18.slashgrab`
+- `com.qssedalto.nexus`
 
 Development:
 
-- `com.prof18.slashgrab.dev`
+- `com.qssedalto.nexus.dev`
 
 The dev build should be a separate app identity so it can run alongside the notarized production build. It should also use separate settings/history storage to avoid contaminating production preferences during testing.
 
 Recommended dev differences:
 
-- App name: `Slashgrab Dev`
-- Bundle identifier: `com.prof18.slashgrab.dev`
+- App name: `Nexus Dev`
+- Bundle identifier: `com.qssedalto.nexus.dev`
 - Menu bar icon variant or debug indicator.
 - Separate `UserDefaults` suite if shared code would otherwise collide.
 
@@ -39,8 +39,8 @@ Use `asc` CLI when app identifiers or signing assets are needed.
 
 Planned identifiers:
 
-- Production App ID / bundle ID: `com.prof18.slashgrab`
-- Development App ID / bundle ID: `com.prof18.slashgrab.dev`
+- Production App ID / bundle ID: `com.qssedalto.nexus`
+- Development App ID / bundle ID: `com.qssedalto.nexus.dev`
 
 Assumption:
 
@@ -94,7 +94,7 @@ Smallest bridge:
 
 ## Proposed Modules
 
-- `App/SlashgrabApp.swift`
+- `App/NexusApp.swift`
 - `App/AppDelegate.swift`
 - `StatusItem/StatusItemController.swift`
 - `StatusItem/DropTargetStatusView.swift`
