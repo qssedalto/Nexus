@@ -50,13 +50,13 @@ esac
 case "$APP_VARIANT" in
   dev)
     DEFAULT_APP_NAME="Nexus Dev"
-    DEFAULT_BUNDLE_ID="com.prof18.slashgrab.dev"
+    DEFAULT_BUNDLE_ID="com.qssedalto.nexus.dev"
     APP_ICON_NAME=AppIconDev
     DEFAULT_ENABLE_SPARKLE_AUTOMATIC_CHECKS=false
     ;;
   production)
     DEFAULT_APP_NAME="Nexus"
-    DEFAULT_BUNDLE_ID="com.prof18.slashgrab"
+    DEFAULT_BUNDLE_ID="com.qssedalto.nexus"
     APP_ICON_NAME=AppIcon
     DEFAULT_ENABLE_SPARKLE_AUTOMATIC_CHECKS=true
     ;;
@@ -81,7 +81,13 @@ MACOS_MIN_VERSION=${MACOS_MIN_VERSION:-13.0}
 SIGNING_MODE=${EXPLICIT_SIGNING_MODE:-${SIGNING_MODE:-adhoc}}
 APP_IDENTITY=${EXPLICIT_APP_IDENTITY:-${APP_IDENTITY:-}}
 ARCHES_VALUE=${EXPLICIT_ARCHES:-${ARCHES:-}}
-SPARKLE_FEED_URL=${EXPLICIT_SPARKLE_FEED_URL:-${SPARKLE_FEED_URL:-"https://raw.githubusercontent.com/prof18/slashgrab/main/appcast.xml"}}
+SPARKLE_FEED_URL=${EXPLICIT_SPARKLE_FEED_URL:-${SPARKLE_FEED_URL:-"https://raw.githubusercontent.com/qssedalto/Nexus/main/appcast.xml"}}
+# Do not install an updater that silently fetches releases from the upstream app.
+if [[ "$APP_VARIANT" == "production" ]] &&
+   [[ "$SPARKLE_FEED_URL" == *"prof18/slashgrab"* || "$SPARKLE_FEED_URL" == *"slashgrab.app"* ]]; then
+  echo "ERROR: Legacy SPARKLE_FEED_URL detected in .env; configure a Nexus-owned update feed." >&2
+  exit 1
+fi
 SPARKLE_PRIVATE_KEY_FILE=${EXPLICIT_SPARKLE_PRIVATE_KEY_FILE:-${SPARKLE_PRIVATE_KEY_FILE:-}}
 SPARKLE_PUBLIC_ED_KEY=${EXPLICIT_SPARKLE_PUBLIC_ED_KEY:-${SPARKLE_PUBLIC_ED_KEY:-}}
 ENABLE_SPARKLE_AUTOMATIC_CHECKS=${EXPLICIT_ENABLE_SPARKLE_AUTOMATIC_CHECKS:-${ENABLE_SPARKLE_AUTOMATIC_CHECKS:-$DEFAULT_ENABLE_SPARKLE_AUTOMATIC_CHECKS}}
@@ -89,7 +95,7 @@ ALLOW_MISSING_SPARKLE_FOR_LOCAL_RUN=${EXPLICIT_ALLOW_MISSING_SPARKLE_FOR_LOCAL_R
 
 derive_signing_team_identifier() {
   (
-    probe_dir=$(/usr/bin/mktemp -d "/tmp/slashgrab-signing-team.XXXXXX")
+    probe_dir=$(/usr/bin/mktemp -d "/tmp/nexus-signing-team.XXXXXX")
     trap '/bin/rm -rf "$probe_dir"' EXIT
     /bin/cp /usr/bin/true "$probe_dir/probe"
     /usr/bin/codesign --force --sign "$APP_IDENTITY" "$probe_dir/probe" >/dev/null 2>&1
@@ -116,6 +122,7 @@ else
   APP_GROUP_VARIABLE=APP_GROUP_ID
 fi
 APP_GROUP_ID=${CONFIGURED_APP_GROUP_ID:-"$SIGNING_TEAM_ID.$BUNDLE_ID.shared"}
+LEGACY_APP_GROUP_ID="$SIGNING_TEAM_ID.${BUNDLE_ID/com.qssedalto.nexus/com.prof18.slashgrab}.shared"
 
 if [[ "$APP_GROUP_ID" == group.* ]]; then
   echo "ERROR: $APP_GROUP_VARIABLE cannot use a group.* identifier with profile-free manual signing." >&2
@@ -187,8 +194,8 @@ BUILD_TIMESTAMP="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 GIT_COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
 
 XCODEBUILD_ARGS=(
-  -project "$ROOT_DIR/Slashgrab.xcodeproj"
-  -scheme Slashgrab
+  -project "$ROOT_DIR/Nexus.xcodeproj"
+  -scheme Nexus
   -configuration "$XCODE_CONFIGURATION"
   -derivedDataPath "$DERIVED_DATA"
   -clonedSourcePackagesDirPath "$PACKAGE_CACHE"
@@ -199,6 +206,7 @@ XCODEBUILD_ARGS=(
   "APP_BUNDLE_ID=$BUNDLE_ID"
   "APP_ICON_NAME=$APP_ICON_NAME"
   "APP_GROUP_ID=$APP_GROUP_ID"
+  "LEGACY_APP_GROUP_ID=$LEGACY_APP_GROUP_ID"
   "FINDER_EXTENSION_BUNDLE_ID=$FINDER_EXTENSION_BUNDLE_ID"
   "FINDER_EXTENSION_DISPLAY_NAME=$FINDER_EXTENSION_DISPLAY_NAME"
   "MACOSX_DEPLOYMENT_TARGET=$MACOS_MIN_VERSION"
@@ -235,7 +243,7 @@ if [[ "$CONFIGURATION" == "release" ]]; then
 fi
 
 APP_INFO="$APP_BUNDLE/Contents/Info.plist"
-EXTENSION_BUNDLE="$APP_BUNDLE/Contents/PlugIns/SlashgrabFinderSync.appex"
+EXTENSION_BUNDLE="$APP_BUNDLE/Contents/PlugIns/NexusFinderSync.appex"
 EXTENSION_INFO="$EXTENSION_BUNDLE/Contents/Info.plist"
 if [[ ! -f "$EXTENSION_INFO" ]]; then
   echo "ERROR: Finder Sync extension was not embedded at $EXTENSION_BUNDLE" >&2
@@ -244,25 +252,27 @@ fi
 
 /usr/bin/plutil -insert BuildTimestamp -string "$BUILD_TIMESTAMP" "$APP_INFO"
 /usr/bin/plutil -insert GitCommit -string "$GIT_COMMIT" "$APP_INFO"
-/usr/bin/plutil -insert SlashgrabBuildVariant -string "$APP_VARIANT" "$APP_INFO"
+/usr/bin/plutil -insert NexusBuildVariant -string "$APP_VARIANT" "$APP_INFO"
 /usr/bin/plutil -insert SUFeedURL -string "$SPARKLE_FEED_URL" "$APP_INFO"
 /usr/bin/plutil -insert SUPublicEDKey -string "$SPARKLE_PUBLIC_ED_KEY" "$APP_INFO"
 /usr/bin/plutil -insert SUEnableAutomaticChecks -bool "$ENABLE_SPARKLE_AUTOMATIC_CHECKS" "$APP_INFO"
-/usr/bin/plutil -replace SlashgrabAppGroupIdentifier -string "$APP_GROUP_ID" "$APP_INFO"
-/usr/bin/plutil -replace SlashgrabAppGroupIdentifier -string "$APP_GROUP_ID" "$EXTENSION_INFO"
+/usr/bin/plutil -replace NexusAppGroupIdentifier -string "$APP_GROUP_ID" "$APP_INFO"
+/usr/bin/plutil -replace NexusAppGroupIdentifier -string "$APP_GROUP_ID" "$EXTENSION_INFO"
 
 /usr/bin/plutil -lint "$APP_INFO" "$EXTENSION_INFO" >/dev/null
 /usr/bin/xattr -cr "$APP_BUNDLE"
 
 ENTITLEMENTS_DIR="$ROOT_DIR/.build/entitlements/$APP_VARIANT-$CONFIGURATION"
-APP_ENTITLEMENTS="$ENTITLEMENTS_DIR/Slashgrab.entitlements"
-EXTENSION_ENTITLEMENTS="$ENTITLEMENTS_DIR/SlashgrabFinderSync.entitlements"
+APP_ENTITLEMENTS="$ENTITLEMENTS_DIR/Nexus.entitlements"
+EXTENSION_ENTITLEMENTS="$ENTITLEMENTS_DIR/NexusFinderSync.entitlements"
 /bin/rm -rf "$ENTITLEMENTS_DIR"
 /bin/mkdir -p "$ENTITLEMENTS_DIR"
-/bin/cp "$ROOT_DIR/Config/Slashgrab.entitlements" "$APP_ENTITLEMENTS"
-/bin/cp "$ROOT_DIR/Config/SlashgrabFinderSync.entitlements" "$EXTENSION_ENTITLEMENTS"
+/bin/cp "$ROOT_DIR/Config/Nexus.entitlements" "$APP_ENTITLEMENTS"
+/bin/cp "$ROOT_DIR/Config/NexusFinderSync.entitlements" "$EXTENSION_ENTITLEMENTS"
 /usr/libexec/PlistBuddy -c "Set :com.apple.security.application-groups:0 $APP_GROUP_ID" "$APP_ENTITLEMENTS"
 /usr/libexec/PlistBuddy -c "Set :com.apple.security.application-groups:0 $APP_GROUP_ID" "$EXTENSION_ENTITLEMENTS"
+/usr/libexec/PlistBuddy -c "Set :com.apple.security.application-groups:1 $LEGACY_APP_GROUP_ID" "$APP_ENTITLEMENTS"
+/usr/libexec/PlistBuddy -c "Set :com.apple.security.application-groups:1 $LEGACY_APP_GROUP_ID" "$EXTENSION_ENTITLEMENTS"
 /usr/bin/plutil -lint "$APP_ENTITLEMENTS" "$EXTENSION_ENTITLEMENTS" >/dev/null
 
 if [[ "$SIGNING_MODE" == "adhoc" || -z "$APP_IDENTITY" ]]; then

@@ -2,18 +2,18 @@
 
 ## Product
 
-Slashgrab is a tiny macOS utility that turns a dropped file or folder into copied path text.
+Nexus is a tiny macOS utility that turns a dropped file or folder into copied path text.
 
 Primary interaction:
 
 1. User drags one or more files/folders.
-2. User drops them onto the Slashgrab menu bar icon.
-3. Slashgrab copies the path output to the clipboard.
-4. Slashgrab shows confirmation and stores recent output.
+2. User drops them onto the Nexus menu bar icon.
+3. Nexus copies the path output to the clipboard.
+4. Nexus shows confirmation and stores recent output.
 
 ## Positioning
 
-Slashgrab should feel like a focused Mac utility, not a broad automation platform.
+Nexus should feel like a focused Mac utility, not a broad automation platform.
 
 It competes against:
 
@@ -55,7 +55,7 @@ Default behavior should be:
 
 ## Naming
 
-Chosen name: **Slashgrab**
+Chosen name: **Nexus**
 
 Rationale:
 
@@ -66,5 +66,5 @@ Rationale:
 
 Known caveat:
 
-- `slashgrab.com` appears occupied by a GoDaddy landing page.
+- `nexus.com` appears occupied by a GoDaddy landing page.
 

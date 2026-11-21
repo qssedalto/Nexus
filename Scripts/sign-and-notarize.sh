@@ -12,9 +12,13 @@ fi
 
 source "$ROOT_DIR/version.env"
 
-PRODUCT_NAME=${PRODUCT_NAME:-Slashgrab}
-APP_NAME=${APP_NAME:-Slashgrab}
-BUNDLE_ID=${BUNDLE_ID:-com.prof18.slashgrab}
+PRODUCT_NAME=${PRODUCT_NAME:-Nexus}
+APP_NAME=${APP_NAME:-Nexus}
+BUNDLE_ID=${BUNDLE_ID:-com.qssedalto.nexus}
+if [[ "$APP_NAME" != "Nexus" || "$BUNDLE_ID" != "com.qssedalto.nexus" ]]; then
+  echo "ERROR: Release identity must be Nexus / com.qssedalto.nexus. Update legacy values in .env." >&2
+  exit 1
+fi
 APP_IDENTITY=${APP_IDENTITY:?"Set APP_IDENTITY in .env, for example Developer ID Application: Name (TEAMID)"}
 KEYCHAIN_PROFILE=${KEYCHAIN_PROFILE:-NOTARIZATION_PASSWORD}
 ARCHES_VALUE=${ARCHES:-"arm64 x86_64"}

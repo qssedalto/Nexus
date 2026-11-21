@@ -18,11 +18,11 @@ Usage: Scripts/build_and_run.sh [--debug] [--release] [--dev] [--production] [--
 Options:
   --debug       Build a debug app bundle. Default.
   --release     Build a release app bundle.
-  --dev         Run Nexus Dev.app with com.prof18.slashgrab.dev. Default.
-  --production  Run Slashgrab.app with com.prof18.slashgrab.
+  --dev         Run Nexus Dev.app with com.qssedalto.nexus.dev. Default.
+  --production  Run Nexus.app with com.qssedalto.nexus.
   --verify      Build and validate the app bundle without launching it.
   --test        Run unit tests before packaging.
-  --logs        Tail recent Slashgrab log lines after launch.
+  --logs        Tail recent Nexus log lines after launch.
   --telemetry   Reserved for future telemetry smoke checks.
 USAGE
 }
@@ -55,11 +55,11 @@ fi
 case "$APP_VARIANT" in
   dev)
     DEFAULT_APP_NAME="Nexus Dev"
-    DEFAULT_BUNDLE_ID="com.prof18.slashgrab.dev"
+    DEFAULT_BUNDLE_ID="com.qssedalto.nexus.dev"
     ;;
   production)
     DEFAULT_APP_NAME="Nexus"
-    DEFAULT_BUNDLE_ID="com.prof18.slashgrab"
+    DEFAULT_BUNDLE_ID="com.qssedalto.nexus"
     ;;
   *)
     echo "Unknown APP_VARIANT: $APP_VARIANT" >&2
@@ -144,7 +144,7 @@ ALLOW_MISSING_SPARKLE_FOR_LOCAL_RUN="$ALLOW_MISSING_SPARKLE_FOR_LOCAL_RUN" \
 /usr/bin/plutil -lint "$APP_BUNDLE/Contents/Info.plist" >/dev/null
 /usr/bin/codesign --verify --deep --strict --verbose=2 "$APP_BUNDLE" >/dev/null
 
-EXTENSION_BUNDLE="$APP_BUNDLE/Contents/PlugIns/SlashgrabFinderSync.appex"
+EXTENSION_BUNDLE="$APP_BUNDLE/Contents/PlugIns/NexusFinderSync.appex"
 if [[ ! -d "$EXTENSION_BUNDLE" ]]; then
   echo "ERROR: Finder Sync extension is missing from $APP_BUNDLE" >&2
   exit 1
@@ -176,7 +176,7 @@ if [[ "$APP_VARIANT" == "dev" ]]; then
 
   DEV_INSTALL_DIR=$CANONICAL_DEV_INSTALL_DIR
   INSTALLED_APP_BUNDLE="$DEV_INSTALL_DIR/$APP_NAME.app"
-  INSTALLED_EXTENSION_BUNDLE="$INSTALLED_APP_BUNDLE/Contents/PlugIns/SlashgrabFinderSync.appex"
+  INSTALLED_EXTENSION_BUNDLE="$INSTALLED_APP_BUNDLE/Contents/PlugIns/NexusFinderSync.appex"
   if [[ "$(/usr/bin/dirname "$INSTALLED_APP_BUNDLE")" != "$DEV_INSTALL_DIR" ]]; then
     echo "ERROR: Installed app must be a direct child of DEV_INSTALL_DIR." >&2
     exit 1
@@ -203,7 +203,7 @@ for _ in {1..20}; do
   if /usr/bin/pgrep -f "$RUN_APP_BUNDLE/Contents/MacOS/$APP_NAME" >/dev/null 2>&1; then
     echo "OK: $APP_NAME is running from $RUN_APP_BUNDLE."
     if [[ "$SHOW_LOGS" == "1" ]]; then
-      /usr/bin/log show --style compact --last 2m --predicate 'process == "Slashgrab"' || true
+      /usr/bin/log show --style compact --last 2m --predicate 'process == "Nexus"' || true
     fi
     exit 0
   fi

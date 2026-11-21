@@ -2,7 +2,7 @@
 
 ## Product Feel
 
-Slashgrab should feel fast, quiet, and specific.
+Nexus should feel fast, quiet, and specific.
 
 Avoid:
 

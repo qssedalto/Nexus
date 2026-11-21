@@ -1,6 +1,6 @@
 # Packaging and Updates
 
-Slashgrab should use the same release model as Shellporter:
+Nexus should use the same release model as Shellporter:
 
 - Direct distribution, not Mac App Store for the first release.
 - Signed, notarized, stapled `.app`.
@@ -22,20 +22,20 @@ Observed Shellporter pieces to mirror:
 - `RELEASING.md` documents the release checklist.
 - `version.env` stores `MARKETING_VERSION` and `BUILD_NUMBER`.
 
-## Slashgrab Release Identity
+## Nexus Release Identity
 
 Production:
 
-- App name: `Slashgrab`
-- Bundle ID: `com.prof18.slashgrab`
-- Zip artifact: `Slashgrab-X.Y.Z.zip`
+- App name: `Nexus`
+- Bundle ID: `com.qssedalto.nexus`
+- Zip artifact: `Nexus-X.Y.Z.zip`
 - GitHub release tag: `vX.Y.Z`
 - Appcast: `appcast.xml`
 
 Development:
 
-- App name: `Slashgrab Dev`
-- Bundle ID: `com.prof18.slashgrab.dev`
+- App name: `Nexus Dev`
+- Bundle ID: `com.qssedalto.nexus.dev`
 - Must run alongside production.
 - Must not consume the production update feed by accident.
 - Must keep settings/history separate from production.
@@ -60,7 +60,7 @@ App integration:
 
 Recommended production feed URL:
 
-- `https://raw.githubusercontent.com/prof18/slashgrab/main/appcast.xml`
+- `https://raw.githubusercontent.com/qssedalto/Nexus/main/appcast.xml`
 
 Dev feed behavior:
 
@@ -69,7 +69,7 @@ Dev feed behavior:
 
 ## Scripts To Create
 
-Mirror Shellporter's script shape, adjusted for Slashgrab:
+Mirror Shellporter's script shape, adjusted for Nexus:
 
 - `Scripts/compile_and_run.sh`, optional compatibility wrapper after the canonical local run script exists.
 - `Scripts/package_app.sh`
@@ -106,11 +106,11 @@ Expected `.env` values:
 
 Defaults:
 
-- `APP_NAME=Slashgrab`
-- `BUNDLE_ID=com.prof18.slashgrab`
+- `APP_NAME=Nexus`
+- `BUNDLE_ID=com.qssedalto.nexus`
 - `MACOS_MIN_VERSION=13.0`
-- `SPARKLE_FEED_URL=https://raw.githubusercontent.com/prof18/slashgrab/main/appcast.xml`
-- `SPARKLE_DOWNLOAD_URL_PREFIX=https://github.com/prof18/slashgrab/releases/download/v${VERSION}/`
+- `SPARKLE_FEED_URL=https://raw.githubusercontent.com/qssedalto/Nexus/main/appcast.xml`
+- `SPARKLE_DOWNLOAD_URL_PREFIX=https://github.com/qssedalto/Nexus/releases/download/v${VERSION}/`
 
 ## ASC CLI Usage
 
@@ -129,7 +129,7 @@ Assumptions:
 3. Run tests.
 4. Build universal app.
 5. Sign and notarize with `Scripts/sign-and-notarize.sh`.
-6. Create GitHub release and upload `Slashgrab-X.Y.Z.zip`.
+6. Create GitHub release and upload `Nexus-X.Y.Z.zip`.
 7. Generate `appcast.xml` with `Scripts/make_appcast.sh`.
 8. Commit and push `appcast.xml`.
 9. Verify update feed and manual update check.
@@ -158,6 +158,6 @@ All scripts stay under `Scripts/` to match Shellporter.
 - [ ] Installed older production build detects the update.
 - [ ] Dev build does not update itself from the production feed.
 - [x] Dev and production apps can run side by side.
-- [x] `codesign --verify --verbose=2 Slashgrab.app` passes.
-- [ ] `spctl -a -t exec -vv Slashgrab.app` accepts the app.
-- [ ] `xcrun stapler validate Slashgrab.app` passes.
+- [x] `codesign --verify --verbose=2 Nexus.app` passes.
+- [ ] `spctl -a -t exec -vv Nexus.app` accepts the app.
+- [ ] `xcrun stapler validate Nexus.app` passes.

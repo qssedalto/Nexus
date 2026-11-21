@@ -1,0 +1,9 @@
+# Nexus identity migration
+
+Nexus uses new product/module names and `com.qssedalto.nexus` identifiers for fresh builds. The previous production/dev/local identifiers used `com.prof18.slashgrab`. Those old identifiers are retained **only** as legacy migration references; do not silently replace them in migration code.
+
+The startup migration copies recognized App Group and app-specific preferences, and atomically imports verified SQLite snapshots from the legacy group when the new destination is missing. A temporary database is validated with SQLite quick_check before it is moved into place. It does not delete, modify or uninstall the old app or old data. A newly signed application must have entitlements for both the new and legacy groups and be signed by an identity with access to the prior group. Existing Keychain access can depend on the signing access group and must be tested on the user's Mac before removing any old app. The network token service intentionally keeps its legacy service string; changing the Bundle ID alone does not guarantee Keychain accessibility.
+
+To verify on macOS, run `./Scripts/test.sh` and `./Scripts/build_and_run.sh --verify` against the working checkout, then inspect `codesign -d --entitlements :- Nexus.app`, `plutil -p Nexus.app/Contents/Info.plist`, Finder registration, login items and database integrity before installation. A build from this branch must not replace the installed app automatically. Do not release updates until new Sparkle signing keys and release archives have been configured.
+
+The Finder extension ID also changes. macOS may require you to explicitly enable **Nexus Finder Extension** in System Settings, even when the old extension was enabled. Do not forcibly remove or disable the old installed app during migration. Existing `.env` files may still contain old product/update-feed values; release scripts now reject those instead of publishing an old-branded artifact.

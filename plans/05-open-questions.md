@@ -52,8 +52,8 @@ Resolve these before or during Phase 0.
 ## Release
 
 14. Bundle identifier?
-   - Decision: production uses `com.prof18.slashgrab`.
-   - Decision: development uses `com.prof18.slashgrab.dev`.
+   - Decision: production uses `com.qssedalto.nexus`.
+   - Decision: development uses `com.qssedalto.nexus.dev`.
    - Dev/prod should be installable and runnable side by side.
 
 15. Distribution first?

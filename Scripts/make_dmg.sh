@@ -12,8 +12,12 @@ fi
 
 source "$ROOT_DIR/version.env"
 
-PRODUCT_NAME=${PRODUCT_NAME:-Slashgrab}
-APP_NAME=${APP_NAME:-Slashgrab}
+PRODUCT_NAME=${PRODUCT_NAME:-Nexus}
+APP_NAME=${APP_NAME:-Nexus}
+if [[ "$APP_NAME" != "Nexus" ]]; then
+  echo "ERROR: Release APP_NAME must be Nexus. Update the legacy value in .env." >&2
+  exit 1
+fi
 APP_BUNDLE=${APP_BUNDLE:-"$ROOT_DIR/${APP_NAME}.app"}
 APP_IDENTITY=${APP_IDENTITY:-}
 KEYCHAIN_PROFILE=${KEYCHAIN_PROFILE:-NOTARIZATION_PASSWORD}

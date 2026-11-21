@@ -2,47 +2,47 @@
 import PackageDescription
 
 let package = Package(
-    name: "Slashgrab",
+    name: "Nexus",
     defaultLocalization: "en",
     platforms: [
         .macOS(.v13),
     ],
     products: [
-        .executable(name: "Slashgrab", targets: ["Slashgrab"]),
-        .library(name: "SlashgrabCore", targets: ["SlashgrabCore"]),
+        .executable(name: "Nexus", targets: ["Nexus"]),
+        .library(name: "NexusCore", targets: ["NexusCore"]),
     ],
     dependencies: [
         .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.8.1"),
     ],
     targets: [
         .executableTarget(
-            name: "Slashgrab",
+            name: "Nexus",
             dependencies: [
-                "SlashgrabCore",
+                "NexusCore",
                 .product(name: "Sparkle", package: "Sparkle"),
             ],
-            path: "Sources/Slashgrab",
+            path: "Sources/Nexus",
             resources: [
                 .process("Resources"),
             ]
         ),
         .target(
-            name: "SlashgrabCore",
-            path: "Sources/SlashgrabCore",
+            name: "NexusCore",
+            path: "Sources/NexusCore",
             linkerSettings: [.linkedLibrary("sqlite3")]
         ),
         .testTarget(
-            name: "SlashgrabCoreTests",
-            dependencies: ["SlashgrabCore"],
-            path: "Tests/SlashgrabCoreTests"
+            name: "NexusCoreTests",
+            dependencies: ["NexusCore"],
+            path: "Tests/NexusCoreTests"
         ),
         .testTarget(
-            name: "SlashgrabTests",
+            name: "NexusTests",
             dependencies: [
-                "Slashgrab",
-                "SlashgrabCore",
+                "Nexus",
+                "NexusCore",
             ],
-            path: "Tests/SlashgrabTests"
+            path: "Tests/NexusTests"
         ),
     ]
 )

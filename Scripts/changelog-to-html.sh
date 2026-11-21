@@ -25,14 +25,14 @@ section="$(awk -v version="$VERSION" '
 
 if [[ -z "$section" ]]; then
   cat <<HTML
-<h2>Slashgrab $VERSION</h2>
-<p>Latest Slashgrab update.</p>
-<p><a href="https://github.com/prof18/slashgrab/blob/main/CHANGELOG.md">View full changelog</a></p>
+<h2>Nexus $VERSION</h2>
+<p>Latest Nexus update.</p>
+<p><a href="https://github.com/qssedalto/Nexus/blob/main/CHANGELOG.md">View full changelog</a></p>
 HTML
   exit 0
 fi
 
-echo "<h2>Slashgrab $VERSION</h2>"
+echo "<h2>Nexus $VERSION</h2>"
 
 render_inline_markdown() {
   local text=$1
@@ -69,4 +69,4 @@ if [[ "$in_list" == true ]]; then
   echo "</ul>"
 fi
 
-echo '<p><a href="https://github.com/prof18/slashgrab/blob/main/CHANGELOG.md">View full changelog</a></p>'
+echo '<p><a href="https://github.com/qssedalto/Nexus/blob/main/CHANGELOG.md">View full changelog</a></p>'

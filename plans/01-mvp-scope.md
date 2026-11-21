@@ -2,7 +2,7 @@
 
 ## MVP Promise
 
-Slashgrab copies file paths from a menu bar drop with no extra click.
+Nexus copies file paths from a menu bar drop with no extra click.
 
 ## Development Rule
 

@@ -1,10 +1,10 @@
-# Slashgrab Plan Index
+# Nexus Plan Index
 
 This is the source of truth for planning and future goal-driven development. Start here before changing scope or writing code.
 
 ## Product Decision
 
-Name: **Slashgrab**
+Name: **Nexus**
 
 Tagline:
 
@@ -12,17 +12,17 @@ Tagline:
 
 One-sentence product:
 
-> Slashgrab is a macOS menu bar utility that lets users drop files or folders onto a menu bar icon and instantly copies their filesystem paths to the clipboard.
+> Nexus is a macOS menu bar utility that lets users drop files or folders onto a menu bar icon and instantly copies their filesystem paths to the clipboard.
 
 ## Current Status
 
 - [x] App idea selected: menu bar file path copier.
-- [x] Name selected: Slashgrab.
+- [x] Name selected: Nexus.
 - [x] Initial market research reviewed.
-- [x] Repository folder created at `/Users/mg/Workspace/Slashgrab`.
+- [x] Repository folder created at `/Users/mg/Workspace/Nexus`.
 - [x] Planning docs created.
 - [x] Product scope locked.
-- [x] Bundle identifier decided: `com.prof18.slashgrab`.
+- [x] Bundle identifier decided: `com.qssedalto.nexus`.
 - [x] Distribution decided: direct notarized build, no Mac App Store for first release.
 - [x] Dev/prod side-by-side strategy decided.
 - [x] Phase 0 scope decisions locked.
@@ -46,7 +46,7 @@ One-sentence product:
 ### Phase 0: Scope Lock
 
 - [x] Decide minimum macOS version: macOS 13+.
-- [x] Decide whether Slashgrab is menu-bar-only or also has a Dock/window presence: menu-bar-only accessory app.
+- [x] Decide whether Nexus is menu-bar-only or also has a Dock/window presence: menu-bar-only accessory app.
 - [x] Decide exact default path format: terminal-safe shell escaped.
 - [x] Decide history size: 10 recent copied outputs.
 - [x] Decide duplicate behavior: move duplicate output to top.
@@ -95,8 +95,8 @@ One-sentence product:
 
 ### Phase 5: Release
 
-- [x] Production bundle identifier: `com.prof18.slashgrab`.
-- [x] Development bundle identifier: `com.prof18.slashgrab.dev`.
+- [x] Production bundle identifier: `com.qssedalto.nexus`.
+- [x] Development bundle identifier: `com.qssedalto.nexus.dev`.
 - [x] App IDs/signing setup source: ASC CLI when needed.
 - [x] Packaging/update model: Shellporter-style zip releases + Sparkle appcast.
 - [ ] Create app icon.
