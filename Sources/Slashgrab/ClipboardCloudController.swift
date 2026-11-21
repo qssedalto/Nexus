@@ -35,6 +35,10 @@ final class ClipboardCloudController: ObservableObject {
     @Published var includePaths: Bool {
         didSet { defaults.set(includePaths, forKey: "nexusCloudClipboardPaths") }
     }
+    /// Independent, revocable permission for image CKAsset transfer.
+    @Published var includeImages: Bool {
+        didSet { defaults.set(includeImages, forKey: "nexusCloudClipboardImages") }
+    }
     @Published private(set) var status = "iCloud clipboard sync is off"
     @Published private(set) var nextHistoryOffset: Int
     @Published private(set) var pendingCount = 0
@@ -64,6 +68,7 @@ final class ClipboardCloudController: ObservableObject {
         includeNames = defaults.bool(forKey: "nexusCloudClipboardNames")
         includeText = defaults.bool(forKey: "nexusCloudClipboardText")
         includePaths = defaults.bool(forKey: "nexusCloudClipboardPaths")
+        includeImages = defaults.bool(forKey: "nexusCloudClipboardImages")
         nextHistoryOffset = max(0, defaults.integer(forKey: "nexusCloudClipboardHistoryOffset"))
         if let saved = defaults.string(forKey: "nexusCloudClipboardDeviceID"),
            UUID(uuidString: saved) != nil {
@@ -144,7 +149,8 @@ final class ClipboardCloudController: ObservableObject {
     var currentConsent: ClipboardCloudConsent {
         ClipboardCloudConsent(
             enabled: enabled, includeText: includeText,
-            includeNames: includeNames, includePaths: includePaths
+            includeNames: includeNames, includePaths: includePaths,
+            includeImages: includeImages
         )
     }
 
@@ -281,7 +287,9 @@ final class ClipboardCloudController: ObservableObject {
             let result = try await Task.detached(priority: .utility) {
                 let cached = try journal.cachedRecords(limit: 100)
                 let operations = try store.importCloudHistory(
-                    cached, consent: consent
+                    cached, consent: consent, cloudImageProvider: { id in
+                        try journal.cachedImage(recordID: id)
+                    }
                 )
                 let collections = try store.importCloudCollections(
                     cached, consent: consent
@@ -403,6 +411,7 @@ final class ClipboardCloudController: ObservableObject {
         includeText = false
         includeNames = false
         includePaths = false
+        includeImages = false
         nextHistoryOffset = 0
         defaults.removeObject(forKey: "nexusCloudClipboardHistoryOffset")
         lastSuccessfulSync = nil
@@ -416,8 +425,23 @@ final class ClipboardCloudController: ObservableObject {
         guard try await container.accountStatus() == .available else {
             throw Availability.unavailableAccount
         }
+        let store = store
         return try ClipboardCloudKitPrivateTransport(
-            database: container.privateCloudDatabase, zoneID: zoneID
+            database: container.privateCloudDatabase, zoneID: zoneID,
+            imageProvider: { id in
+                guard id.hasPrefix("operation:"),
+                      let store, let image = try store.imageContent(
+                        operationID: String(id.dropFirst("operation:".count))
+                      ) else { return nil }
+                return ClipboardCloudImageAsset(
+                    bytes: image.data, pasteboardType: image.pasteboardType
+                )
+            },
+            mayDownloadImages: { [weak self] in
+                await MainActor.run {
+                    self?.currentConsent.includeImages == true
+                }
+            }
         )
     }
 }

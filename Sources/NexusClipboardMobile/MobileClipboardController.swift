@@ -26,6 +26,9 @@ final class MobileClipboardController: ObservableObject {
     @Published var includePaths: Bool {
         didSet { defaults.set(includePaths, forKey: "nexusMobileCloudPaths") }
     }
+    @Published var includeImages: Bool {
+        didSet { defaults.set(includeImages, forKey: "nexusMobileCloudImages") }
+    }
     @Published private(set) var records: [ClipboardCloudRecord] = []
     @Published private(set) var localEntries: [MobileLocalClipboardEntry] = []
     @Published private(set) var pendingCount = 0
@@ -51,6 +54,7 @@ final class MobileClipboardController: ObservableObject {
         includeText = defaults.bool(forKey: "nexusMobileCloudText")
         includeNames = defaults.bool(forKey: "nexusMobileCloudNames")
         includePaths = defaults.bool(forKey: "nexusMobileCloudPaths")
+        includeImages = defaults.bool(forKey: "nexusMobileCloudImages")
         if let existing = defaults.string(forKey: "nexusMobileCloudDeviceID"),
            UUID(uuidString: existing) != nil {
             deviceID = existing
@@ -88,7 +92,8 @@ final class MobileClipboardController: ObservableObject {
     private var consent: ClipboardCloudConsent {
         ClipboardCloudConsent(
             enabled: cloudEnabled, includeText: includeText,
-            includeNames: includeNames, includePaths: includePaths
+            includeNames: includeNames, includePaths: includePaths,
+            includeImages: includeImages
         )
     }
 
@@ -327,6 +332,27 @@ final class MobileClipboardController: ObservableObject {
         }
     }
 
+    /// Read only a previously downloaded, verified image from the private
+    /// CloudKit cache. No remote network or system pasteboard read occurs.
+    func cachedRemoteImage(recordID: String) -> Data? {
+        guard cloudEnabled, includeImages,
+              let journal,
+              let asset = try? journal.cachedImage(recordID: recordID) else {
+            return nil
+        }
+        return asset.bytes
+    }
+
+    func copyRemoteImage(recordID: String) {
+        guard let bytes = cachedRemoteImage(recordID: recordID),
+              let image = UIImage(data: bytes) else {
+            status = NSLocalizedString("Cloud image unavailable", comment: "")
+            return
+        }
+        UIPasteboard.general.image = image
+        status = NSLocalizedString("Cloud image copied to clipboard", comment: "")
+    }
+
     func refresh() {
         if let localStore {
             do {
@@ -399,6 +425,7 @@ final class MobileClipboardController: ObservableObject {
         includeText = false
         includeNames = false
         includePaths = false
+        includeImages = false
         lastSuccessfulSync = nil
         defaults.removeObject(forKey: "nexusMobileCloudLastSuccess")
     }
@@ -411,7 +438,12 @@ final class MobileClipboardController: ObservableObject {
             throw Unavailable.signedOut
         }
         return try ClipboardCloudKitPrivateTransport(
-            database: container.privateCloudDatabase, zoneID: zoneID
+            database: container.privateCloudDatabase, zoneID: zoneID,
+            mayDownloadImages: { [weak self] in
+                await MainActor.run {
+                    self?.consent.includeImages == true
+                }
+            }
         )
     }
 }

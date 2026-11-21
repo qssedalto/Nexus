@@ -39,6 +39,13 @@ public final class ClipboardCloudJournal: @unchecked Sendable {
                 """)
             try execute("CREATE INDEX IF NOT EXISTS cloud_pending ON cloud_records(dirty,counter,record_id)")
             try execute("""
+                CREATE TABLE IF NOT EXISTS cloud_image_assets (
+                    record_id TEXT PRIMARY KEY,
+                    pasteboard_type TEXT NOT NULL,
+                    payload BLOB NOT NULL
+                )
+                """)
+            try execute("""
                 CREATE TABLE IF NOT EXISTS cloud_change_tokens (
                     zone_id TEXT PRIMARY KEY, token BLOB NOT NULL
                 )
@@ -69,6 +76,11 @@ public final class ClipboardCloudJournal: @unchecked Sendable {
                 }
             }
             try storeLocked(record, dirty: true)
+            // Local deletion and metadata-only replacement must not retain
+            // a previously downloaded image body in the CloudKit cache.
+            if record.isDeleted || !Self.containsImageReference(record) {
+                try removeImageLocked(id: record.id)
+            }
             try execute("COMMIT")
             return true
         } catch {
@@ -84,7 +96,8 @@ public final class ClipboardCloudJournal: @unchecked Sendable {
     public func applyRemote(
         _ changes: [ClipboardCloudRecord],
         zoneID: String? = nil,
-        changeToken: Data? = nil
+        changeToken: Data? = nil,
+        imageAssets: [String: ClipboardCloudImageAsset] = [:]
     ) throws -> Int {
         guard changes.count <= 200 else { throw ClipboardCloudModelError.oversizedBatch }
         // Coalesce retry/duplicate versions within this page before writing.
@@ -92,6 +105,17 @@ public final class ClipboardCloudJournal: @unchecked Sendable {
         let uniqueChanges = try ClipboardCloudMerge.merged(
             existing: [], incoming: changes
         )
+        guard imageAssets.count <= 200 else { throw JournalError.recordTooLarge }
+        // Validate every provided binary asset before opening a transaction.
+        // Rejected bytes must NEVER be paired with an advanced change token.
+        for (id, asset) in imageAssets {
+            guard let record = uniqueChanges.first(where: { $0.id == id }),
+                  case .operation(let content)? = record.payload,
+                  let reference = content.image,
+                  asset.matches(reference) else {
+                throw JournalError.recordTooLarge
+            }
+        }
         if changeToken != nil {
             guard let zoneID, !zoneID.isEmpty, zoneID.utf8.count <= 180,
                   let changeToken, !changeToken.isEmpty,
@@ -106,6 +130,16 @@ public final class ClipboardCloudJournal: @unchecked Sendable {
                 if let existing = try recordLocked(id: incoming.id) {
                     let winner = try ClipboardCloudMerge.winner(existing, incoming)
                     if winner == existing { continue }
+                }
+                if case .operation(let content)? = incoming.payload,
+                   let image = content.image {
+                    guard let asset = imageAssets[incoming.id],
+                          asset.matches(image) else {
+                        throw JournalError.recordTooLarge
+                    }
+                    try storeImageLocked(asset, id: incoming.id)
+                } else {
+                    try removeImageLocked(id: incoming.id)
                 }
                 try storeLocked(incoming, dirty: false)
                 changed += 1
@@ -128,6 +162,62 @@ public final class ClipboardCloudJournal: @unchecked Sendable {
             try? execute("ROLLBACK")
             throw error
         }
+    }
+
+    private static func containsImageReference(_ record: ClipboardCloudRecord) -> Bool {
+        guard case .operation(let content)? = record.payload else { return false }
+        return content.image != nil
+    }
+
+    private func removeImageLocked(id: String) throws {
+        let stmt = try prepare("DELETE FROM cloud_image_assets WHERE record_id=?")
+        defer { sqlite3_finalize(stmt) }
+        bind(id, to: 1, in: stmt)
+        guard sqlite3_step(stmt) == SQLITE_DONE else { throw JournalError.write }
+    }
+
+    private func storeImageLocked(_ image: ClipboardCloudImageAsset, id: String) throws {
+        let stmt = try prepare("""
+            INSERT INTO cloud_image_assets(record_id,pasteboard_type,payload)
+            VALUES(?,?,?)
+            ON CONFLICT(record_id) DO UPDATE SET
+                pasteboard_type=excluded.pasteboard_type,
+                payload=excluded.payload
+            """)
+        defer { sqlite3_finalize(stmt) }
+        bind(id, to: 1, in: stmt)
+        bind(image.reference.pasteboardType, to: 2, in: stmt)
+        bind(image.bytes, to: 3, in: stmt)
+        guard sqlite3_step(stmt) == SQLITE_DONE else { throw JournalError.write }
+    }
+
+    /// Load a verified, previously downloaded CloudKit image body. There is
+    /// no network or iOS pasteboard access in this method.
+    public func cachedImage(recordID: String) throws -> ClipboardCloudImageAsset? {
+        lock.lock()
+        defer { lock.unlock() }
+        let stmt = try prepare(
+            "SELECT pasteboard_type,payload FROM cloud_image_assets WHERE record_id=?"
+        )
+        defer { sqlite3_finalize(stmt) }
+        bind(recordID, to: 1, in: stmt)
+        guard sqlite3_step(stmt) == SQLITE_ROW else { return nil }
+        guard let typePointer = sqlite3_column_text(stmt, 0) else {
+            throw JournalError.read
+        }
+        let type = String(cString: typePointer)
+        let count = Int(sqlite3_column_bytes(stmt, 1))
+        guard count > 0, count <= ClipboardCloudImageReference.maximumBytes,
+              let pointer = sqlite3_column_blob(stmt, 1),
+              let asset = ClipboardCloudImageAsset(
+                bytes: Data(bytes: pointer, count: count),
+                pasteboardType: type
+              ),
+              let current = try recordLocked(id: recordID),
+              case .operation(let content)? = current.payload,
+              let metadata = content.image,
+              asset.matches(metadata) else { throw JournalError.read }
+        return asset
     }
 
     public func record(id: String) throws -> ClipboardCloudRecord? {
@@ -218,6 +308,7 @@ public final class ClipboardCloudJournal: @unchecked Sendable {
         do {
             try execute("DELETE FROM cloud_records")
             try execute("DELETE FROM cloud_change_tokens")
+            try execute("DELETE FROM cloud_image_assets")
             try execute("COMMIT")
         } catch {
             try? execute("ROLLBACK")

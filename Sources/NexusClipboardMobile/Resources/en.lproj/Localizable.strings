@@ -75,3 +75,12 @@
 "Foreground sync is optional and checks at most once every 5 minutes. It uses your selected iCloud permissions and never reads another app's clipboard. Create the private iCloud zone manually before enabling." = "Foreground sync is optional and checks at most once every 5 minutes. It uses your selected iCloud permissions and never reads another app's clipboard. Create the private iCloud zone manually before enabling.";
 "Last successful sync" = "Last successful sync";
 "iCloud clipboard sync is idle" = "iCloud clipboard sync is idle";
+"Include original clipboard images in iCloud (up to 8 MB)" = "Include original clipboard images in iCloud (up to 8 MB)";
+"Image transfer is off by default. Enabling it uploads original image copies as private CloudKit assets. File originals are not included; disabling permission stops future transfers but does not erase cloud copies already uploaded." = "Image transfer is off by default. Enabling it uploads original image copies as private CloudKit assets. File originals are not included; disabling permission stops future transfers but does not erase cloud copies already uploaded.";
+"Include original clipboard images (up to 8 MB)" = "Include original clipboard images (up to 8 MB)";
+"Image originals are downloaded from your private CloudKit zone only after this separate permission is enabled. File originals are not synchronized. Your clipboard is never inspected in the background." = "Image originals are downloaded from your private CloudKit zone only after this separate permission is enabled. File originals are not synchronized. Your clipboard is never inspected in the background.";
+"Copy image" = "Copy image";
+"Cloud clipboard image" = "Cloud clipboard image";
+"Image preview unavailable" = "Image preview unavailable";
+"Cloud image unavailable" = "Cloud image unavailable";
+"Cloud image copied to clipboard" = "Cloud image copied to clipboard";

@@ -1408,7 +1408,8 @@ public final class OperationStore: @unchecked Sendable {
     /// queues; tombstones remove only mirrors, never original local copies.
     @discardableResult
     public func importCloudHistory(
-        _ records: [ClipboardCloudRecord], consent: ClipboardCloudConsent
+        _ records: [ClipboardCloudRecord], consent: ClipboardCloudConsent,
+        cloudImageProvider: ((String) throws -> ClipboardCloudImageAsset?)? = nil
     ) throws -> Int {
         guard consent.enabled else { return 0 }
         guard records.count <= 200 else { throw StoreError.write }
@@ -1434,6 +1435,58 @@ public final class OperationStore: @unchecked Sendable {
                 VALUES(?,?,?,NULL,NULL,?,?)
                 """)
             defer { sqlite3_finalize(items) }
+            let imageBlob = try prepare("""
+                INSERT OR IGNORE INTO clipboard_image_blobs
+                (hash,pasteboard_type,byte_count,payload,thumbnail)
+                VALUES(?,?,?,?,?)
+                """)
+            defer { sqlite3_finalize(imageBlob) }
+            let imageLink = try prepare("""
+                INSERT OR IGNORE INTO clipboard_image_records(operation_id,blob_hash)
+                VALUES(?,?)
+                """)
+            defer { sqlite3_finalize(imageLink) }
+            let isMirror = try prepare("""
+                SELECT 1 FROM operations
+                WHERE id=? AND detection_method='cloudkit_remote_restore' LIMIT 1
+                """)
+            defer { sqlite3_finalize(isMirror) }
+
+            // Restore only an authenticated, separately authorized original
+            // whose digest matches the CKRecord metadata. This method never
+            // materializes a remote path as a local filesystem reference.
+            func attachImage(_ change: ClipboardCloudRecord,
+                             _ operation: ClipboardCloudOperation,
+                             localID: String) throws {
+                guard consent.includeImages, operation.type == "image_copy",
+                      let reference = operation.image,
+                      let asset = try cloudImageProvider?(change.id),
+                      asset.matches(reference),
+                      let thumbnail = ClipboardCloudImagePreview.thumbnail(asset.bytes)
+                else { return }
+                sqlite3_reset(isMirror)
+                sqlite3_clear_bindings(isMirror)
+                bind(localID, to: 1, in: isMirror)
+                guard sqlite3_step(isMirror) == SQLITE_ROW else { return }
+                sqlite3_reset(imageBlob)
+                sqlite3_clear_bindings(imageBlob)
+                bind(reference.digest, to: 1, in: imageBlob)
+                bind(reference.pasteboardType, to: 2, in: imageBlob)
+                bind(Int64(asset.bytes.count), to: 3, in: imageBlob)
+                bindBlob(asset.bytes, to: 4, in: imageBlob)
+                bindBlob(thumbnail, to: 5, in: imageBlob)
+                guard sqlite3_step(imageBlob) == SQLITE_DONE else {
+                    throw StoreError.write
+                }
+                sqlite3_reset(imageLink)
+                sqlite3_clear_bindings(imageLink)
+                bind(localID, to: 1, in: imageLink)
+                bind(reference.digest, to: 2, in: imageLink)
+                guard sqlite3_step(imageLink) == SQLITE_DONE else {
+                    throw StoreError.write
+                }
+            }
+
             let remove = try prepare("""
                 DELETE FROM operations
                 WHERE id=? AND detection_method='cloudkit_remote_restore'
@@ -1462,7 +1515,12 @@ public final class OperationStore: @unchecked Sendable {
                 bind(localID, to: 2, in: exists)
                 let found = sqlite3_step(exists)
                 guard found == SQLITE_ROW || found == SQLITE_DONE else { throw StoreError.write }
-                if found == SQLITE_ROW { continue }
+                if found == SQLITE_ROW {
+                    // An older metadata-only mirror may be upgraded with a
+                    // newly authorized image without duplicating its history.
+                    try attachImage(change, operation, localID: localID)
+                    continue
+                }
                 sqlite3_reset(insert)
                 sqlite3_clear_bindings(insert)
                 bind(localID, to: 1, in: insert)
@@ -1480,6 +1538,7 @@ public final class OperationStore: @unchecked Sendable {
                     bind(item.size, to: 5, in: items)
                     guard sqlite3_step(items) == SQLITE_DONE else { throw StoreError.write }
                 }
+                try attachImage(change, operation, localID: localID)
                 inserted += 1
             }
             try execute("COMMIT")

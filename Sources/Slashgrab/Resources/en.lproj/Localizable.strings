@@ -456,3 +456,12 @@
 "Automatic sync is off by default. If enabled, Nexus prepares at most 200 local history records per cycle and synchronizes only the CloudKit categories you have authorized. The private zone must first be created manually; turning off automatic sync stops future scheduled cycles." = "Automatic sync is off by default. If enabled, Nexus prepares at most 200 local history records per cycle and synchronizes only the CloudKit categories you have authorized. The private zone must first be created manually; turning off automatic sync stops future scheduled cycles.";
 "CloudKit requires a signed container and the selected data permissions. Manual sync works independently of the automatic schedule. Disabling either sync switch prevents future scheduled CloudKit requests." = "CloudKit requires a signed container and the selected data permissions. Manual sync works independently of the automatic schedule. Disabling either sync switch prevents future scheduled CloudKit requests.";
 "Last successful sync:" = "Last successful sync:";
+"Include original clipboard images in iCloud (up to 8 MB)" = "Include original clipboard images in iCloud (up to 8 MB)";
+"Image transfer is off by default. Enabling it uploads original image copies as private CloudKit assets. File originals are not included; disabling permission stops future transfers but does not erase cloud copies already uploaded." = "Image transfer is off by default. Enabling it uploads original image copies as private CloudKit assets. File originals are not included; disabling permission stops future transfers but does not erase cloud copies already uploaded.";
+"Include original clipboard images (up to 8 MB)" = "Include original clipboard images (up to 8 MB)";
+"Image originals are downloaded from your private CloudKit zone only after this separate permission is enabled. File originals are not synchronized. Your clipboard is never inspected in the background." = "Image originals are downloaded from your private CloudKit zone only after this separate permission is enabled. File originals are not synchronized. Your clipboard is never inspected in the background.";
+"Copy image" = "Copy image";
+"Cloud clipboard image" = "Cloud clipboard image";
+"Image preview unavailable" = "Image preview unavailable";
+"Cloud image unavailable" = "Cloud image unavailable";
+"Cloud image copied to clipboard" = "Cloud image copied to clipboard";

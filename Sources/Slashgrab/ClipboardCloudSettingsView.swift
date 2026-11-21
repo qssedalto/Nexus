@@ -38,7 +38,9 @@ struct ClipboardCloudSettingsView: View {
                        isOn: $cloud.includeNames).disabled(!cloud.enabled)
                 Toggle(localized("Include full source file paths"),
                        isOn: $cloud.includePaths).disabled(!cloud.enabled)
-                Text(localized("Image pixels are never uploaded. Cloud copies of deleted or previously shared data require separate deletion; disabling consent prevents new uploads but cannot recall existing Apple iCloud copies."))
+                Toggle(localized("Include original clipboard images in iCloud (up to 8 MB)"),
+                       isOn: $cloud.includeImages).disabled(!cloud.enabled)
+                Text(localized("Image transfer is off by default. Enabling it uploads original image copies as private CloudKit assets. File originals are not included; disabling permission stops future transfers but does not erase cloud copies already uploaded."))
                     .font(.caption).foregroundStyle(.secondary)
             }
 
