@@ -655,7 +655,7 @@ public final class InputStatisticsStore: @unchecked Sendable {
             do {
                 let checkSQL = """
                     SELECT 1 FROM input_events
-                    WHERE id = ? AND time_ms = ? AND category = ?
+                    WHERE time_ms = ? AND category = ?
                       AND name = ? AND source = ? AND count = ?
                       AND remote_device_id IS NULL
                     LIMIT 1
@@ -681,12 +681,14 @@ public final class InputStatisticsStore: @unchecked Sendable {
                     let originEventID = row.originEventID ?? row.id
                     sqlite3_reset(existing)
                     sqlite3_clear_bindings(existing)
-                    sqlite3_bind_int64(existing, 1, originEventID)
-                    sqlite3_bind_int64(existing, 2, row.timeMS)
-                    bind(row.category, to: 3, in: existing)
-                    bind(row.name, to: 4, in: existing)
-                    bind(row.source, to: 5, in: existing)
-                    sqlite3_bind_int64(existing, 6, row.count)
+                    // Local database integer IDs are assigned in buffered
+                    // flush order, so another Mac's identical local event may
+                    // have a different ID. Compare its event fingerprint.
+                    sqlite3_bind_int64(existing, 1, row.timeMS)
+                    bind(row.category, to: 2, in: existing)
+                    bind(row.name, to: 3, in: existing)
+                    bind(row.source, to: 4, in: existing)
+                    sqlite3_bind_int64(existing, 5, row.count)
                     if sqlite3_step(existing) == SQLITE_ROW { continue }
 
                     sqlite3_reset(insert)
@@ -725,8 +727,15 @@ public final class InputStatisticsStore: @unchecked Sendable {
             defer { sqlite3_close(target) }
             guard let backup = sqlite3_backup_init(target, "main", database, "main") else { throw InputStoreError.write }
             let result = sqlite3_backup_step(backup, -1)
-            sqlite3_backup_finish(backup)
-            guard result == SQLITE_DONE else { throw InputStoreError.write }
+            let finished = sqlite3_backup_finish(backup)
+            guard result == SQLITE_DONE, finished == SQLITE_OK else { throw InputStoreError.write }
+            // The source uses WAL journaling. A single-file iCloud backup
+            // cannot depend on external -wal/-shm sidecars; transition the
+            // completed destination to DELETE mode, forcing a checkpoint
+            // before the file is handed to File Provider or copied elsewhere.
+            guard sqlite3_exec(target, "PRAGMA wal_checkpoint(TRUNCATE); PRAGMA journal_mode=DELETE;", nil, nil, nil) == SQLITE_OK else {
+                throw InputStoreError.write
+            }
         }
     }
 
