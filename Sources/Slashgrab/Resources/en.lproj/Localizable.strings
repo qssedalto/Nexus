@@ -426,3 +426,8 @@
 
 "Save clipboard-provided link titles (opt-in)" = "Save clipboard-provided link titles (opt-in)";
 "Only a title already present in the copied link's pasteboard is retained locally. Nexus never fetches the webpage, and titles are removed when their history entry is deleted." = "Only a title already present in the copied link's pasteboard is retained locally. Nexus never fetches the webpage, and titles are removed when their history entry is deleted.";
+"Rename collection" = "Rename collection";
+"Rename permanent collection" = "Rename permanent collection";
+"Rename" = "Rename";
+"Collection renamed" = "Collection renamed";
+"Unable to rename collection" = "Unable to rename collection";
