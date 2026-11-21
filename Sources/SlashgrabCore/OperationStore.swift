@@ -101,7 +101,16 @@ public final class OperationStore: @unchecked Sendable {
                 }
             }
             try execute("CREATE INDEX IF NOT EXISTS operations_time ON operations(COALESCE(event_time_ms, detected_time_ms))")
+            // Composite order enables bounded recent/older search paging
+            // without building a temporary sort for clipboard-only results.
+            // Match the predicate and ordering used in searchClipboard.
+            try execute("""
+                CREATE INDEX IF NOT EXISTS operations_clipboard_time_id
+                ON operations(COALESCE(event_time_ms, detected_time_ms) DESC, id DESC)
+                WHERE type IN ('copy','path_copy','text_copy','image_copy','drop_copy')
+                """)
             try execute("CREATE TABLE IF NOT EXISTS operation_items (operation_id TEXT NOT NULL REFERENCES operations(id) ON DELETE CASCADE, position INTEGER NOT NULL, name TEXT NOT NULL, source TEXT, extension TEXT, kind TEXT NOT NULL, size INTEGER, PRIMARY KEY(operation_id, position))")
+            try execute("CREATE INDEX IF NOT EXISTS operation_items_kind_by_operation ON operation_items(operation_id, kind)")
             try execute("PRAGMA foreign_keys=ON")
             try execute("CREATE TABLE IF NOT EXISTS operation_sync_state (operation_id TEXT PRIMARY KEY REFERENCES operations(id) ON DELETE CASCADE, synced_at_ms INTEGER NOT NULL)")
             try execute("CREATE TABLE IF NOT EXISTS clipboard_collections (id TEXT PRIMARY KEY, name TEXT NOT NULL COLLATE NOCASE UNIQUE, created_time_ms INTEGER NOT NULL)")
