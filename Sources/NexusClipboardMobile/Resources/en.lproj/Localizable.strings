@@ -71,3 +71,7 @@
 "Erase iCloud Data" = "Erase iCloud Data";
 "Local cloud cache cleared; offline clipboard history preserved" = "Local cloud cache cleared; offline clipboard history preserved";
 "Nexus iCloud zone deleted. Disable syncing on other devices." = "Nexus iCloud zone deleted. Disable syncing on other devices.";
+"Sync iCloud clipboard when Nexus becomes active" = "Sync iCloud clipboard when Nexus becomes active";
+"Foreground sync is optional and checks at most once every 5 minutes. It uses your selected iCloud permissions and never reads another app's clipboard. Create the private iCloud zone manually before enabling." = "Foreground sync is optional and checks at most once every 5 minutes. It uses your selected iCloud permissions and never reads another app's clipboard. Create the private iCloud zone manually before enabling.";
+"Last successful sync" = "Last successful sync";
+"iCloud clipboard sync is idle" = "iCloud clipboard sync is idle";
