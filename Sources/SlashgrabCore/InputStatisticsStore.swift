@@ -7,6 +7,35 @@ public struct InputCount: Sendable, Identifiable {
     public var id: String { name }
 }
 
+public struct InputCategoryCount: Sendable, Identifiable, Equatable {
+    public let category: String
+    public let name: String
+    public let count: Int64
+    public var id: String { category + ":" + name }
+}
+
+public struct InputTrendBucket: Sendable, Identifiable, Equatable {
+    /// UTC start time in epoch milliseconds. The UI can display local time.
+    public let startMS: Int64
+    public let category: String
+    public let count: Int64
+    public var id: String { "\(startMS):\(category)" }
+}
+
+public enum InputTrendResolution: String, CaseIterable, Identifiable, Sendable {
+    case hour, day, week, month
+    public var id: String { rawValue }
+}
+
+public struct InputStatisticsOverview: Sendable, Equatable {
+    public let keyboard: Int64
+    public let mouse: Int64
+    public let specialKeys: Int64
+    public let shortcuts: Int64
+    public let scrolls: Int64
+    public let firstEventMS: Int64?
+}
+
 public struct ClassifiedInputEvent: Sendable, Hashable {
     public let timeMS: Int64
     public let category: String
@@ -138,6 +167,136 @@ public final class InputStatisticsStore: @unchecked Sendable {
                 result.append(InputCount(name: String(cString: rawName), count: sqlite3_column_int64(statement, 1)))
             }
             return result
+        }
+    }
+
+    /// Queries are half-open UTC [from,to), preserving millisecond bounds.
+    /// No inferred events or interpolation is used in summaries/trends.
+    public func categoryCounts(from startMS: Int64, to endMS: Int64) throws -> [InputCategoryCount] {
+        try queue.sync {
+            try flushOnQueue()
+            var statement: OpaquePointer?
+            let sql = """
+                SELECT category, name, SUM(count)
+                FROM input_events
+                WHERE time_ms >= ? AND time_ms < ?
+                GROUP BY category, name
+                ORDER BY SUM(count) DESC, category, name
+                """
+            guard sqlite3_prepare_v2(database, sql, -1, &statement, nil) == SQLITE_OK,
+                  let statement else { throw InputStoreError.read }
+            defer { sqlite3_finalize(statement) }
+            sqlite3_bind_int64(statement, 1, startMS)
+            sqlite3_bind_int64(statement, 2, endMS)
+            var records: [InputCategoryCount] = []
+            while sqlite3_step(statement) == SQLITE_ROW {
+                guard let category = sqlite3_column_text(statement, 0),
+                      let name = sqlite3_column_text(statement, 1) else { continue }
+                records.append(InputCategoryCount(
+                    category: String(cString: category), name: String(cString: name),
+                    count: sqlite3_column_int64(statement, 2)))
+            }
+            return records
+        }
+    }
+
+    public func overview(from startMS: Int64, to endMS: Int64) throws -> InputStatisticsOverview {
+        try queue.sync {
+            try flushOnQueue()
+            var statement: OpaquePointer?
+            let sql = """
+                SELECT category, SUM(count)
+                FROM input_events
+                WHERE time_ms >= ? AND time_ms < ?
+                GROUP BY category
+                """
+            guard sqlite3_prepare_v2(database, sql, -1, &statement, nil) == SQLITE_OK,
+                  let statement else { throw InputStoreError.read }
+            defer { sqlite3_finalize(statement) }
+            sqlite3_bind_int64(statement, 1, startMS)
+            sqlite3_bind_int64(statement, 2, endMS)
+            var categories: [String: Int64] = [:]
+            while sqlite3_step(statement) == SQLITE_ROW {
+                guard let raw = sqlite3_column_text(statement, 0) else { continue }
+                categories[String(cString: raw)] = sqlite3_column_int64(statement, 1)
+            }
+            var first: OpaquePointer?
+            guard sqlite3_prepare_v2(database, "SELECT MIN(time_ms) FROM input_events", -1, &first, nil) == SQLITE_OK,
+                  let first else { throw InputStoreError.read }
+            defer { sqlite3_finalize(first) }
+            let firstEvent: Int64? = sqlite3_step(first) == SQLITE_ROW &&
+                sqlite3_column_type(first, 0) != SQLITE_NULL
+                ? sqlite3_column_int64(first, 0) : nil
+            return InputStatisticsOverview(
+                keyboard: (categories["keyboard"] ?? 0) +
+                          (categories["ordinary"] ?? 0) +
+                          (categories["modifier"] ?? 0) +
+                          (categories["system"] ?? 0),
+                mouse: categories["mouse"] ?? 0,
+                specialKeys: (categories["keyboard"] ?? 0) +
+                             (categories["modifier"] ?? 0) +
+                             (categories["system"] ?? 0),
+                shortcuts: categories["shortcut"] ?? 0,
+                scrolls: categories["scroll"] ?? 0,
+                firstEventMS: firstEvent)
+        }
+    }
+
+    public func trend(from startMS: Int64, to endMS: Int64,
+                      resolution: InputTrendResolution,
+                      category: String? = nil) throws -> [InputTrendBucket] {
+        guard startMS >= 0, endMS >= startMS else { return [] }
+        try queue.sync {
+            try flushOnQueue()
+            // SQLite's UTC grouping avoids DST-dependent double counting.
+            // Long-term aggregate rows are already stored by event timestamps.
+            // To return a stable millisecond key for all resolutions, bucket
+            // in the Swift UTC calendar after selecting aggregate UTC times.
+            var statement: OpaquePointer?
+            let sql = """
+                SELECT time_ms, category, count FROM input_events
+                WHERE time_ms >= ? AND time_ms < ? AND (? IS NULL OR category = ?)
+                ORDER BY time_ms
+                """
+            guard sqlite3_prepare_v2(database, sql, -1, &statement, nil) == SQLITE_OK,
+                  let statement else { throw InputStoreError.read }
+            defer { sqlite3_finalize(statement) }
+            sqlite3_bind_int64(statement, 1, startMS)
+            sqlite3_bind_int64(statement, 2, endMS)
+            if let category {
+                bind(category, to: 3, in: statement)
+                bind(category, to: 4, in: statement)
+            } else {
+                sqlite3_bind_null(statement, 3)
+                sqlite3_bind_null(statement, 4)
+            }
+            var calendar = Calendar(identifier: .iso8601)
+            calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+            var counts: [String: (Int64, String, Int64)] = [:]
+            while sqlite3_step(statement) == SQLITE_ROW {
+                let eventMS = sqlite3_column_int64(statement, 0)
+                let raw = sqlite3_column_text(statement, 1)
+                guard let raw else { continue }
+                let group = String(cString: raw)
+                let date = Date(timeIntervalSince1970: TimeInterval(eventMS) / 1000)
+                let component: Calendar.Component
+                switch resolution {
+                case .hour: component = .hour
+                case .day: component = .day
+                case .week: component = .weekOfYear
+                case .month: component = .month
+                }
+                guard let interval = calendar.dateInterval(of: component, for: date) else { continue }
+                let bucket = Int64(interval.start.timeIntervalSince1970 * 1000)
+                let key = "\(bucket):\(group)"
+                let previous = counts[key]?.2 ?? 0
+                counts[key] = (bucket, group, previous + sqlite3_column_int64(statement, 2))
+            }
+            return counts.values.map {
+                InputTrendBucket(startMS: $0.0, category: $0.1, count: $0.2)
+            }.sorted {
+                $0.startMS == $1.startMS ? $0.category < $1.category : $0.startMS < $1.startMS
+            }
         }
     }
 
