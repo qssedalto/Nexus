@@ -2,6 +2,7 @@ import AppKit
 import ApplicationServices
 import Combine
 import SwiftUI
+import SlashgrabCore
 
 @MainActor
 final class StatusItemController {
