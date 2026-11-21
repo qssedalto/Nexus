@@ -65,7 +65,7 @@ struct ClipboardShelfView: View {
     }
 
     private var searchFingerprint: String {
-        "\(filterFingerprint)|\(searchGeneration)|\(searchPageCount)"
+        "\(filterFingerprint)|\(selectedCollectionID)|\(searchGeneration)|\(searchPageCount)"
     }
 
     private var searchKind: ClipboardHistoryKind {
@@ -90,7 +90,7 @@ struct ClipboardShelfView: View {
     private var operations: [RecordedOperation] {
         let pins = pinned
         let candidates: [RecordedOperation]
-        if shouldQueryDatabase && selectedCollectionID.isEmpty {
+        if shouldQueryDatabase {
             // Keep pinned cards discoverable even when they are older than
             // a capped query. The final local filter still applies to them.
             var byID = Dictionary(uniqueKeysWithValues:
@@ -138,7 +138,7 @@ struct ClipboardShelfView: View {
                 .map { ($0.element, $0.offset) })
             return Array(matches.sorted {
                 (positions[$0.id] ?? Int.max) < (positions[$1.id] ?? Int.max)
-            }.prefix(100))
+            }.prefix(shouldQueryDatabase ? min(5_000, searchPageCount * 200) : 100))
         }
         let ordered = matches.sorted {
             let lhs = $0.eventTimeMS ?? $0.detectedTimeMS
@@ -315,7 +315,7 @@ struct ClipboardShelfView: View {
                 .frame(height: 270)
             }
 
-            if shouldQueryDatabase && selectedCollectionID.isEmpty
+            if shouldQueryDatabase
                 && searchedOperations.count >= searchPageCount * 200 {
                 HStack {
                     Text("\(searchedOperations.count) " + localized("matching records loaded"))
@@ -372,6 +372,7 @@ struct ClipboardShelfView: View {
                 let query = search
                 let kind = searchKind
                 let source = sourceFilter
+                let collectionID = selectedCollectionID
                 let lower = searchStartMS
                 let upper = searchEndMS
                 let store = OperationStore.shared()
@@ -383,7 +384,7 @@ struct ClipboardShelfView: View {
                         let batch = (try? store?.searchClipboard(
                             query: query, kind: kind, sourceApplication: source,
                             from: lower, to: upper, limit: 200,
-                            offset: page * 200
+                            offset: page * 200, collectionID: collectionID
                         )) ?? []
                         accumulated.append(contentsOf: batch)
                         if batch.count < 200 { break }
@@ -425,7 +426,11 @@ struct ClipboardShelfView: View {
             }
         }
         .onExitCommand(perform: onCloseRequested)
-        .onChange(of: selectedCollectionID) { _ in loadCollectionMembers() }
+        .onChange(of: selectedCollectionID) { _ in
+            searchedOperations = []
+            searchPageCount = 1
+            loadCollectionMembers()
+        }
         .alert(localized("Create permanent collection"), isPresented: $showingCreateCollection) {
             TextField(localized("Collection name"), text: $newCollectionName)
             Button(localized("Cancel"), role: .cancel) {}
@@ -730,7 +735,11 @@ struct ClipboardShelfView: View {
     }
 
     private func refreshShelf() {
-        let requested = Array(pinned.union(collectionMemberIDs))
+        // Display at most 100 cards for an unfiltered collection, preserving
+        // their deliberate order even if many unrelated history rows exist.
+        let collectionIDs = selectedCollectionID.isEmpty
+            ? [] : Array(collectionMemberIDs.prefix(100))
+        let requested = collectionIDs + pinned.sorted()
         appState.refreshShelfOperations(protectedIDs: requested)
         searchGeneration += 1
     }
