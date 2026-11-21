@@ -118,6 +118,7 @@ class NexusAPI(BaseHTTPRequestHandler):
                 "schema_version": 1,
                 "capabilities": [
                     "statistics.events", "statistics.summary",
+                    "statistics.monotonic_aggregates",
                     "operations.events", "operations.restore"
                 ],
             })
