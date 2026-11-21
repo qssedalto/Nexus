@@ -353,14 +353,27 @@ struct InputStatisticsView: View {
             }
             DisclosureGroup(localized("iCloud Drive statistics backup")) {
                 Toggle(localized("Automatically back up statistics hourly"), isOn: $cloudBackup.enabled)
+                Toggle(localized("Automatically merge other Macs' iCloud backups"), isOn: $cloudBackup.importOtherMacBackups)
+                    .disabled(!cloudBackup.enabled)
                 Text(localized("Backups are optional and contain detailed timing data. Choose an iCloud Drive folder explicitly; no backup is uploaded without your choice."))
+                    .font(.caption).foregroundStyle(.secondary)
+                Text(localized("Cross-Mac import uses only the selected folder and separately named device snapshots, skips symlinks and backups over 100 MB, and preserves original event IDs across devices."))
                     .font(.caption).foregroundStyle(.secondary)
                 HStack {
                     Button(localized("Choose backup folder")) { cloudBackup.selectDestination() }
                     Button(localized("Back up now")) { cloudBackup.backupNow() }
+                    Button(localized("Restore backup…")) { cloudBackup.restoreSelectedBackup() }
+                        .disabled(cloudBackup.restoring)
+                    Button(localized("Import other Macs now")) {
+                        cloudBackup.importOtherMacSnapshotsNow()
+                    }
+                    if cloudBackup.restoring { ProgressView().controlSize(.small) }
                 }
+                Text(localized("Each Mac receives its own backup subfolder. Restoring merges and deduplicates recorded statistics without erasing current events."))
+                    .font(.caption).foregroundStyle(.secondary)
                 Text(cloudBackup.destinationSummary).font(.caption).textSelection(.enabled)
                 Text(cloudBackup.status).font(.caption).foregroundStyle(.secondary)
+                Text(cloudBackup.importStatus).font(.caption).foregroundStyle(.secondary)
                 if let last = cloudBackup.lastBackup {
                     Text("\(localized("Last backup")): \(last.formatted())")
                         .font(.caption).foregroundStyle(.secondary)

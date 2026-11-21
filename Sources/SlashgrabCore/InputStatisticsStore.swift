@@ -542,21 +542,205 @@ public final class InputStatisticsStore: @unchecked Sendable {
         }
     }
 
-    public func backup(to destination: URL) throws {
-        guard destination.standardizedFileURL != databaseURL.standardizedFileURL else { throw InputStoreError.write }
+    /// Safely merge a user-selected iCloud SQLite snapshot. This is never a
+    /// destructive database replacement: existing local rows remain untouched.
+    /// Imported rows use a stable namespaced source ID, making retries and
+    /// re-downloading the same backup idempotent.
+    public func restoreBackup(from source: URL, deviceID: String) throws -> Int {
+        guard source.standardizedFileURL != databaseURL.standardizedFileURL,
+              !deviceID.isEmpty, deviceID.count <= 80 else { throw InputStoreError.write }
+        // An iCloud file can be backed by File Provider, or by a SQLite
+        // online-backup snapshot whose header retains WAL mode without WAL
+        // sidecars. First copy it into a private writable staging directory,
+        // then open the *static snapshot* as immutable/read-only. This avoids
+        // SQLite trying to open nonexistent WAL/SHM files in the provider's
+        // directory, and prevents a source file changing mid-import.
+        let staging = FileManager.default.temporaryDirectory
+            .appendingPathComponent("NexusBackupRestore-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: staging, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: staging) }
+        let snapshot = staging.appendingPathComponent("snapshot.sqlite")
+        try FileManager.default.copyItem(at: source, to: snapshot)
+        let uri = snapshot.absoluteString + "?immutable=1"
+        var sourceDB: OpaquePointer?
+        guard sqlite3_open_v2(uri, &sourceDB,
+                              SQLITE_OPEN_READONLY | SQLITE_OPEN_URI, nil) == SQLITE_OK,
+              let sourceDB else {
+            if let sourceDB { sqlite3_close(sourceDB) }
+            throw InputStoreError.open
+        }
+        defer { sqlite3_close(sourceDB) }
+
+        var check: OpaquePointer?
+        guard sqlite3_prepare_v2(sourceDB, "PRAGMA quick_check(1)", -1, &check, nil) == SQLITE_OK,
+              let check else { throw InputStoreError.backupRead("integrity preflight: \(String(cString: sqlite3_errmsg(sourceDB)))") }
+        let healthy = sqlite3_step(check) == SQLITE_ROW &&
+            sqlite3_column_text(check, 0).map { String(cString: $0) } == "ok"
+        sqlite3_finalize(check)
+        guard healthy else { throw InputStoreError.backupRead("backup failed quick_check") }
+
+        var cursor: OpaquePointer?
+        let sql = """
+            SELECT id,time_ms,category,name,source,count,
+                   remote_device_id,remote_event_id
+            FROM input_events ORDER BY id
+            """
+        guard sqlite3_prepare_v2(sourceDB, sql, -1, &cursor, nil) == SQLITE_OK,
+              let cursor else { throw InputStoreError.backupRead("missing backup schema: \(String(cString: sqlite3_errmsg(sourceDB)))") }
+        defer { sqlite3_finalize(cursor) }
+
+        var rows: [BackupInputEvent] = []
+        var inserted = 0
+        while true {
+            let step = sqlite3_step(cursor)
+            if step == SQLITE_DONE { break }
+            guard step == SQLITE_ROW,
+                  let category = sqlite3_column_text(cursor, 2),
+                  let name = sqlite3_column_text(cursor, 3),
+                  let source = sqlite3_column_text(cursor, 4) else {
+                throw InputStoreError.backupRead("invalid backup cursor row or unexpected SQLite result: \(step)")
+            }
+            let row = BackupInputEvent(
+                id: sqlite3_column_int64(cursor, 0),
+                timeMS: sqlite3_column_int64(cursor, 1),
+                category: String(cString: category),
+                name: String(cString: name),
+                source: String(cString: source),
+                count: sqlite3_column_int64(cursor, 5),
+                originDeviceID: sqlite3_column_text(cursor, 6).map { String(cString: $0) },
+                originEventID: sqlite3_column_type(cursor, 7) == SQLITE_NULL
+                    ? nil : sqlite3_column_int64(cursor, 7)
+            )
+            guard row.id >= 0, row.timeMS >= 0, row.count > 0,
+                  row.name.count <= 80, row.source.count <= 512,
+                  (row.originDeviceID == nil) == (row.originEventID == nil),
+                  (row.originDeviceID?.count ?? 0) <= 80,
+                  (row.originEventID ?? 0) >= 0,
+                  ["ordinary", "keyboard", "modifier", "shortcut", "mouse", "scroll", "system"].contains(row.category) else {
+                throw InputStoreError.backupRead("invalid input record \(row.id) category=\(row.category)")
+            }
+            rows.append(row)
+            if rows.count == 250 {
+                inserted += try mergeBackupBatch(rows, deviceID: deviceID)
+                rows.removeAll(keepingCapacity: true)
+            }
+        }
+        if !rows.isEmpty { inserted += try mergeBackupBatch(rows, deviceID: deviceID) }
+        return inserted
+    }
+
+    private struct BackupInputEvent {
+        let id: Int64
+        let timeMS: Int64
+        let category: String
+        let name: String
+        let source: String
+        let count: Int64
+        let originDeviceID: String?
+        let originEventID: Int64?
+    }
+
+    private func mergeBackupBatch(_ batch: [BackupInputEvent], deviceID: String) throws -> Int {
         try queue.sync {
             try flushOnQueue()
-            var target: OpaquePointer?
-            guard sqlite3_open_v2(destination.path, &target, SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE, nil) == SQLITE_OK,
-                  let target else { throw InputStoreError.open }
-            defer { sqlite3_close(target) }
-            guard let backup = sqlite3_backup_init(target, "main", database, "main") else { throw InputStoreError.write }
-            let result = sqlite3_backup_step(backup, -1)
-            sqlite3_backup_finish(backup)
-            guard result == SQLITE_DONE else { throw InputStoreError.write }
+            guard sqlite3_exec(database, "BEGIN IMMEDIATE", nil, nil, nil) == SQLITE_OK else {
+                throw InputStoreError.write
+            }
+            var existing: OpaquePointer?
+            var insert: OpaquePointer?
+            defer {
+                if let existing { sqlite3_finalize(existing) }
+                if let insert { sqlite3_finalize(insert) }
+            }
+            do {
+                let checkSQL = """
+                    SELECT 1 FROM input_events
+                    WHERE time_ms = ? AND category = ?
+                      AND name = ? AND source = ? AND count = ?
+                      AND remote_device_id IS NULL
+                    LIMIT 1
+                    """
+                guard sqlite3_prepare_v2(database, checkSQL, -1, &existing, nil) == SQLITE_OK,
+                      let existing else { throw InputStoreError.write }
+                let insertSQL = """
+                    INSERT INTO input_events
+                    (time_ms,category,name,source,is_repeat,count,synced_at_ms,
+                     remote_device_id,remote_event_id)
+                    VALUES(?,?,?,?,0,?,?,?,?)
+                    ON CONFLICT(remote_device_id,remote_event_id) DO NOTHING
+                    """
+                guard sqlite3_prepare_v2(database, insertSQL, -1, &insert, nil) == SQLITE_OK,
+                      let insert else { throw InputStoreError.write }
+                let now = Int64(Date().timeIntervalSince1970 * 1000)
+                var inserted = 0
+                for row in batch {
+                    // Preserve the original source device across A -> B -> A
+                    // iCloud file sync cycles. Never re-tag an imported row
+                    // as originating from the intermediate backup machine.
+                    let originDeviceID = row.originDeviceID ?? deviceID
+                    let originEventID = row.originEventID ?? row.id
+                    sqlite3_reset(existing)
+                    sqlite3_clear_bindings(existing)
+                    // Local database integer IDs are assigned in buffered
+                    // flush order, so another Mac's identical local event may
+                    // have a different ID. Compare its event fingerprint.
+                    sqlite3_bind_int64(existing, 1, row.timeMS)
+                    bind(row.category, to: 2, in: existing)
+                    bind(row.name, to: 3, in: existing)
+                    bind(row.source, to: 4, in: existing)
+                    sqlite3_bind_int64(existing, 5, row.count)
+                    if sqlite3_step(existing) == SQLITE_ROW { continue }
+
+                    sqlite3_reset(insert)
+                    sqlite3_clear_bindings(insert)
+                    sqlite3_bind_int64(insert, 1, row.timeMS)
+                    bind(row.category, to: 2, in: insert)
+                    bind(row.name, to: 3, in: insert)
+                    bind(row.source, to: 4, in: insert)
+                    sqlite3_bind_int64(insert, 5, row.count)
+                    sqlite3_bind_int64(insert, 6, now)
+                    bind(originDeviceID, to: 7, in: insert)
+                    sqlite3_bind_int64(insert, 8, originEventID)
+                    guard sqlite3_step(insert) == SQLITE_DONE else {
+                        throw InputStoreError.write
+                    }
+                    inserted += Int(sqlite3_changes(database))
+                }
+                guard sqlite3_exec(database, "COMMIT", nil, nil, nil) == SQLITE_OK else {
+                    throw InputStoreError.write
+                }
+                return inserted
+            } catch {
+                sqlite3_exec(database, "ROLLBACK", nil, nil, nil)
+                throw error
+            }
         }
     }
 
+    /// SQLite's VACUUM INTO creates a consistent, independently readable
+    /// single-file snapshot from a live WAL database. Unlike a raw copy or
+    /// sqlite3_backup + journal conversion it never relies on -wal/-shm
+    /// sidecars, and never holds a destination journal-mode transition lock.
+    public func backup(to destination: URL) throws {
+        guard destination.standardizedFileURL != databaseURL.standardizedFileURL,
+              !FileManager.default.fileExists(atPath: destination.path) else {
+            throw InputStoreError.write
+        }
+        try queue.sync {
+            try flushOnQueue()
+            var statement: OpaquePointer?
+            guard sqlite3_prepare_v2(database, "VACUUM main INTO ?", -1,
+                                     &statement, nil) == SQLITE_OK,
+                  let statement else { throw InputStoreError.write }
+            defer { sqlite3_finalize(statement) }
+            bind(destination.path, to: 1, in: statement)
+            guard sqlite3_step(statement) == SQLITE_DONE else {
+                throw InputStoreError.backupRead(
+                    "VACUUM INTO snapshot: \(String(cString: sqlite3_errmsg(database)))"
+                )
+            }
+        }
+    }
     public var databaseSizeBytes: Int64 {
         let attributes = try? FileManager.default.attributesOfItem(atPath: databaseURL.path)
         return (attributes?[.size] as? NSNumber)?.int64Value ?? 0
@@ -594,5 +778,5 @@ public final class InputStatisticsStore: @unchecked Sendable {
         sqlite3_bind_text(statement, column, value, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
     }
 
-    public enum InputStoreError: Error { case open, read, write }
+    public enum InputStoreError: Error { case open, read, write, backupRead(String) }
 }
