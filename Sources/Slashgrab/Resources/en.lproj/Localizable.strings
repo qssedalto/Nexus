@@ -124,3 +124,16 @@
 "Operation sync status" = "Operation sync status";
 "Delete remote operation history" = "Delete remote operation history";
 "This deletes this device's copy operation records on the server. Local records remain unchanged." = "This deletes this device's copy operation records on the server. Local records remain unchanged.";
+
+"Item type" = "Item type";
+"Package" = "Package";
+"Document" = "Document";
+"Video" = "Video";
+"Archive" = "Archive";
+"Cancel folder scan" = "Cancel folder scan";
+"Copy source path" = "Copy source path";
+"Copy target path" = "Copy target path";
+"Calculate folder size (background)" = "Calculate folder size (background)";
+"Calculating folder size in the background…" = "Calculating folder size in the background…";
+"Folder size" = "Folder size";
+"Folder size scan cancelled" = "Folder size scan cancelled";
