@@ -9,6 +9,7 @@ public actor ClipboardCloudKitPrivateTransport: ClipboardCloudTransport {
     public enum TransportError: Error {
         case privateDatabaseRequired, invalidZone, oversizedBatch
         case unexpectedPhysicalDeletion, malformedChangeToken, returnedRecordMismatch
+        case remoteRevisionRequiresReconciliation
     }
 
     private let database: CKDatabase
@@ -70,12 +71,20 @@ public actor ClipboardCloudKitPrivateTransport: ClipboardCloudTransport {
                 )
                 let winner = try ClipboardCloudMerge.winner(server, change)
                 if winner == server {
-                    // The remote already has this mutation or a newer one.
-                    // A later fetch will reconcile the local cache.
-                    acknowledged.append(ClipboardCloudUploadAck(
-                        id: change.id, mutationID: change.mutationID
-                    ))
-                    continue
+                    if server == change {
+                        // Exact retry already landed. Acknowledge only the
+                        // same mutation and payload, never a newer remote edit.
+                        acknowledged.append(ClipboardCloudUploadAck(
+                            id: change.id, mutationID: change.mutationID
+                        ))
+                        continue
+                    }
+                    // The coordinator's upload ACK API does not yet carry
+                    // the winning server record. Do not falsely acknowledge
+                    // a local update and silently discard it before it can
+                    // be merged into the local journal. A later explicit
+                    // reconciliation/full fetch must resolve this conflict.
+                    throw TransportError.remoteRevisionRequiresReconciliation
                 }
                 let encoded = try ClipboardCloudKitCodec.encode(change, zoneID: zoneID)
                 for key in ["schemaVersion", "kind", "counter", "deviceID",
