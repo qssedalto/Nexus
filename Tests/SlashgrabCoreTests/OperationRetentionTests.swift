@@ -49,7 +49,10 @@ final class OperationRetentionTests: XCTestCase {
                          detectedTimeMS: 2000, completedTimeMS: 2001)
 
         for (index, kind) in ["text_copy", "image_copy", "copy"].enumerated() {
-            try store.record(type: kind, urls: [],
+            // File copies require a real URL reference in the core model.
+            let urls = kind == "copy"
+                ? [URL(fileURLWithPath: "/tmp/copied.pdf")] : []
+            try store.record(type: kind, urls: urls,
                              sourceApplication: nil, detectionMethod: "clipboard",
                              detectedTimeMS: Int64(3000 + index * 1000),
                              clipboardText: kind == "text_copy" ? "hello" : nil)
