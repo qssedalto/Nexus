@@ -1,4 +1,5 @@
 import Foundation
+import SQLite3
 import XCTest
 @testable import SlashgrabCore
 
@@ -59,4 +60,30 @@ final class InputDashboardTests: XCTestCase {
         XCTAssertEqual(try store.trend(from: millis[1], to: end, resolution: .day)
             .reduce(0) { $0 + $1.count }, 1)
     }
+    func testPartialSchemaMigrationKeepsPreviousStatisticsAndAddsMissingColumns() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let path = root.appendingPathComponent("inputs.sqlite")
+        var db: OpaquePointer?
+        XCTAssertEqual(sqlite3_open(path.path, &db), SQLITE_OK)
+        let partialSchema = """
+            CREATE TABLE input_events (
+              id INTEGER PRIMARY KEY, time_ms INTEGER NOT NULL, category TEXT NOT NULL,
+              name TEXT NOT NULL, source TEXT NOT NULL, is_repeat INTEGER NOT NULL,
+              count INTEGER NOT NULL DEFAULT 1
+            );
+            INSERT INTO input_events VALUES (1, 12001, 'keyboard', 'escape', 'old', 0, 42);
+            PRAGMA user_version=1;
+            """
+        XCTAssertEqual(sqlite3_exec(db, partialSchema, nil, nil, nil), SQLITE_OK)
+        sqlite3_close(db)
+        let store = try InputStatisticsStore(url: path)
+        XCTAssertEqual(try store.counts(from: 12000, to: 12002)
+            .first(where: { $0.name == "escape" })?.count, 42)
+        XCTAssertEqual(try store.pendingSync().count, 1)
+        let summary = try store.overview(from: 12000, to: 12002)
+        XCTAssertEqual(summary.specialKeys, 42)
+    }
+
 }
