@@ -469,16 +469,14 @@ struct ClipboardShelfView: View {
                 .lineLimit(2)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            Text(snippet.isEmpty ? localized("Unknown source") : snippet)
-                .font({
-                    if case .fencedCode = textPreview {
-                        return Font.system(size: 11, design: .monospaced)
-                    }
-                    return Font.caption
-                }())
-                .foregroundStyle(.secondary)
-                .lineLimit(3)
-                .frame(maxWidth: .infinity, minHeight: 40, alignment: .topLeading)
+            ClipboardRichTextExcerpt(
+                operationID: operation.id,
+                fallback: snippet.isEmpty ? localized("Unknown source") : snippet,
+                monospaced: {
+                    if case .fencedCode = textPreview { return true }
+                    return false
+                }()
+            )
 
             Text(operation.sourceApplication ?? localized("Source application unknown"))
                 .font(.caption2)
