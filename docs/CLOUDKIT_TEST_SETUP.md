@@ -4,8 +4,8 @@ The default Nexus app, Finder extension, Release, Debug, ServicesOnly and CI
 builds **do not have CloudKit entitlements** and cannot upload the clipboard.
 Do not change this default or replace a working installation implicitly.
 
-The Swift code includes an explicit privacy/settings tab and an adapter for a
-private CKRecordZone named NexusClipboard. To exercise it on a Mac with
+The Swift code includes opt-in privacy/settings panels on macOS and a universal
+iPhone/iPad client, with a private CKRecordZone named NexusClipboard. To exercise it on a Mac with
 a real Apple Developer team and a signed test build:
 
 1. In the Apple Developer portal create or select an appropriate iCloud
@@ -27,7 +27,9 @@ a real Apple Developer team and a signed test build:
    explicitly enable the category-level consent switches.
 5. Click **Prepare next local history page** (200 items per request, bounded),
    **Create private iCloud zone**, then **Sync now**. To download more server
-   change pages, click Sync again. No scheduled network work is active.
+   change pages, click Sync again. Automatic periodic sync is separately
+   opt-in on macOS and requires both authorization and a configured container;
+   it does not turn on merely by opening Settings.
 6. On a second Mac signed for the *same* container and Apple Account, repeat
    setup and fetch. Check deletion tombstones, conflict recovery, duplicate
    retries, sign-out, permission revocation, network loss, file-only records,
@@ -37,10 +39,15 @@ Privacy and scope:
 
 - CloudKit stores operation **metadata only by default**. Copied text,
   file/collection names and local file paths require independent opt-ins.
-- Original clipboard image data and file bytes are **never uploaded**.
-  Remote file records are descriptive metadata, not valid file references
-  on other devices. The remote history screen only copies text that was
-  explicitly authorized.
+- Separately authorized original clipboard images and eligible single local
+  regular-file payloads (up to **8 MiB each**) can be stored as private
+  CloudKit CKAssets. Image and file permissions are independent; the default
+  remains off. Large files, packages, symlinks, recursive directories and
+  cloud-only File Provider placeholders are excluded from direct transfer.
+  Signed live binary round-trip fidelity and quota/error handling have not
+  been verified. Remote file *paths* are descriptive metadata, not valid
+  file references on other devices; iPhone/iPad can explicitly export a
+  previously downloaded file or copy an authorized image.
 - Current transport expects logical deletion tombstones rather than physically
   deleting a record from the CloudKit zone. It does **not** reconcile every
   retention-cleanup deletion automatically, and does not provide a verified
@@ -50,8 +57,10 @@ Privacy and scope:
 - macOS CI exercises the codec, deterministic merge, offline journal,
   mock transport and unsigned build. It **cannot** verify real Apple account
   access, CloudKit server permissions or end-to-end device synchronization.
-- This integration does not create an iPhone/iPadOS binary or automatically
-  install any application on another device.
+- A separate universal iPhone/iPad SwiftUI app compiles for unsigned iOS
+  Simulator in CI; it does not have a signed device build or distribution
+  pipeline. It never automatically installs any app on another device and
+  cannot silently observe the iOS clipboard in the background.
 
 
 ## Explicit cloud data removal (manual)
