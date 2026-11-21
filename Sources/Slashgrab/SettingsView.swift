@@ -67,9 +67,36 @@ struct SettingsView<Updater: UpdaterControlling>: View {
             Section(localized("Copy history")) {
                 Toggle(localized("Monitor file copies from the clipboard"), isOn: $clipboardMonitor.enabled)
                 Toggle(localized("Record clipboard text (opt-in)"), isOn: $clipboardMonitor.textEnabled)
+                Toggle(localized("Pause clipboard history collection"), isOn: $clipboardMonitor.paused)
                 Text(localized("Text history can include private information. Enable only when you want Nexus to store copied text locally."))
                     .font(.caption).foregroundStyle(.secondary)
                 Text(localized("Records detected clipboard changes, not confirmed file transfers or paste completion."))
+                    .font(.caption).foregroundStyle(.secondary)
+                TextField(localized("Excluded foreground app bundle IDs (comma separated)"),
+                          text: $clipboardMonitor.excludedApps)
+                Text(localized("Excluding the foreground app is best-effort; pasteboards do not reliably identify the source app. Pause history for sensitive sessions."))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Section(localized("Local history retention")) {
+                Picker(localized("Delete unpinned history after"), selection: $clipboardMonitor.retentionDays) {
+                    Text(localized("Never")).tag(0)
+                    Text("7 d").tag(7)
+                    Text("30 d").tag(30)
+                    Text("90 d").tag(90)
+                    Text("365 d").tag(365)
+                }
+                Picker(localized("Maximum unpinned history records"), selection: $clipboardMonitor.maximumHistoryRecords) {
+                    Text(localized("Unlimited")).tag(0)
+                    Text("100").tag(100)
+                    Text("500").tag(500)
+                    Text("1000").tag(1000)
+                    Text("5000").tag(5000)
+                }
+                Button(localized("Apply local cleanup now")) {
+                    clipboardMonitor.cleanupNow()
+                }
+                Text(clipboardMonitor.cleanupStatus).font(.caption).foregroundStyle(.secondary)
+                Text(localized("Pinned records are preserved. Local deletion does not automatically erase an earlier cloud upload."))
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section(localized("Copy feedback")) {
