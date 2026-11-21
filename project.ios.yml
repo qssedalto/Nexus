@@ -29,6 +29,7 @@ targets:
       - Sources/SlashgrabCore/MobileClipboardLocalStore.swift
       - Sources/SlashgrabCore/ClipboardCloudJournal.swift
       - Sources/SlashgrabCore/ClipboardCloudSyncCoordinator.swift
+      - Sources/SlashgrabCore/ClipboardCloudRunSummary.swift
       - Sources/SlashgrabCore/ClipboardCloudKitCodec.swift
       - Sources/SlashgrabCore/ClipboardCloudKitPrivateTransport.swift
       - Sources/SlashgrabCore/ClipboardCloudUploadDecision.swift
