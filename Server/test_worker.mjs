@@ -51,6 +51,7 @@ test("API handshake reports authenticated operation support and version", async 
   assert.equal(hello.authenticated, true);
   assert.equal(hello.schema_version, 1);
   assert.ok(hello.capabilities.includes("operations.events"));
+  assert.ok(hello.capabilities.includes("statistics.monotonic_aggregates"));
   assert.ok(hello.capabilities.includes("operations.restore"));
   assert.equal((await worker.fetch(request("/api/nexus/v1/me", "GET", undefined, "wrong"), env)).status, 401);
 });
