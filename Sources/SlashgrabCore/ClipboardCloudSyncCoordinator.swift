@@ -29,7 +29,12 @@ public struct ClipboardCloudDownloadPage: Sendable {
 /// user's private zone, authenticate via supported Apple APIs, and provide
 /// bounded, idempotent upload acknowledgements and incremental pages.
 public protocol ClipboardCloudTransport: Sendable {
-    func upload(_ records: [ClipboardCloudRecord]) async throws -> [ClipboardCloudUploadAck]
+    /// Transport must re-check a dynamic current authorization before every
+    /// separate server write, including after any intervening awaited reads.
+    func upload(
+        _ records: [ClipboardCloudRecord],
+        permissionCheck: @escaping @Sendable (ClipboardCloudRecord) async -> Bool
+    ) async throws -> [ClipboardCloudUploadAck]
     func fetch(after token: Data?) async throws -> ClipboardCloudDownloadPage
 }
 
@@ -105,9 +110,10 @@ public actor ClipboardCloudSyncCoordinator {
     /// A single bounded pass: fetch, validate and merge the remote page
     /// BEFORE uploading only after the backlog is drained. Re-read current
     /// authorization after every network suspension and directly before
-    /// starting the outbound batch. An in-flight CloudKit request already
-    /// submitted to Apple cannot be unsent, but a newly revoked permission
-    /// blocks all subsequent batches and local remote-data import.
+    /// starting the outbound batch; the transport also verifies authorization
+    /// immediately before each separate CloudKit write. A request already
+    /// submitted to Apple cannot be unsent, but revocation prevents later
+    /// individual server writes and local remote-data import.
     public func syncOnce(
         consentProvider: @escaping @Sendable () async -> ClipboardCloudConsent
     ) async throws -> ClipboardCloudSyncReport {
@@ -161,7 +167,12 @@ public actor ClipboardCloudSyncCoordinator {
         if pending.isEmpty {
             acknowledgements = []
         } else {
-            acknowledgements = try await transport.upload(pending)
+            acknowledgements = try await transport.upload(
+                pending, permissionCheck: { record in
+                    let live = await consentProvider()
+                    return live.permits(record)
+                }
+            )
         }
         let expected = Set(pending.map {
             ClipboardCloudUploadAck(id: $0.id, mutationID: $0.mutationID)
