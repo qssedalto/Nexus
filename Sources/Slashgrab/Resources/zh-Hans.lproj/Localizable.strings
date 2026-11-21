@@ -458,3 +458,6 @@
 "Pinned clipboard" = "固定的剪贴板";
 "No recorded clipboard entries" = "暂无剪贴板历史";
 "Open clipboard shelf" = "打开剪贴板面板";
+
+"Resume clipboard history" = "恢复剪贴板历史记录";
+"Pause clipboard history" = "暂停剪贴板历史记录";
