@@ -389,3 +389,8 @@
 "Gray" = "Gray";
 
 "Restored %d cloud entries and %d collection changes to local history" = "Restored %d cloud entries and %d collection changes to local history";
+
+"Identical plain-text copies" = "Identical plain-text copies";
+"Keep every copy" = "Keep every copy";
+"Refresh newest identical plain-text copy" = "Refresh newest identical plain-text copy";
+"Default keeps every copy. Optional consolidation only refreshes the most recent identical plain-text entry within 10 minutes; files, images and formatted text break the sequence." = "Default keeps every copy. Optional consolidation only refreshes the most recent identical plain-text entry within 10 minutes; files, images and formatted text break the sequence.";
