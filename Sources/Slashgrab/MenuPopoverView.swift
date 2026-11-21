@@ -53,6 +53,17 @@ struct MenuPopoverView: View {
             .buttonStyle(.borderless)
 
             quickClipboardMenu
+            Button {
+                clipboardMonitor.paused.toggle()
+            } label: {
+                Label(
+                    localized(clipboardMonitor.paused
+                              ? "Resume clipboard history" : "Pause clipboard history"),
+                    systemImage: clipboardMonitor.paused
+                        ? "play.circle" : "pause.circle"
+                )
+            }
+            .buttonStyle(.borderless)
             historyMenu
 
             Divider()
