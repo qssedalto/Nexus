@@ -60,6 +60,9 @@ final class AppState: ObservableObject {
     }
 
     static func production() -> AppState {
+        // Move legacy settings and SQLite snapshots before opening any new store.
+        // Existing Nexus data wins; the migration never overwrites user files.
+        SharedSettings.migrateLegacyStorage()
         let settings = AppSettingsStore(defaults: .standard)
         // The initializer persists the current state; remember whether a
         // preference existed BEFORE it runs. Never re-enable launch at login
