@@ -46,13 +46,17 @@ final class ClipboardCloudLocalSnapshotTests: XCTestCase {
             from: store, in: journal, deviceID: "Mac-A",
             consent: .init(enabled: true), limit: 2)
         XCTAssertEqual(redacted.staged, 2)
-        let firstRecord = try XCTUnwrap(journal.pending().first {
-            $0.id.hasPrefix("operation:")
-        })
-        if case .operation(let payload)? = firstRecord.payload {
-            XCTAssertNil(payload.text)
-        } else {
-            XCTFail("Expected an operation")
+        let redactedIDs = try store.query(from: 4, to: 6).map {
+            ClipboardCloudRecord.operationID($0.id)
+        }
+        XCTAssertEqual(redactedIDs.count, 2)
+        for id in redactedIDs {
+            let updated = try XCTUnwrap(journal.record(id: id))
+            if case .operation(let payload)? = updated.payload {
+                XCTAssertNil(payload.text)
+            } else {
+                XCTFail("Expected an operation for the redacted page")
+            }
         }
     }
 
