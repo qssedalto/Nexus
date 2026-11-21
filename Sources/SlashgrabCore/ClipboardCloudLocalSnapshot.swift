@@ -36,8 +36,18 @@ public enum ClipboardCloudLocalSnapshot {
             } else {
                 imageReference = nil
             }
+            let fileReference: ClipboardCloudFileReference?
+            if consent.includeFiles && record.items.count == 1,
+               ["copy", "path_copy", "drop_copy"].contains(record.type) {
+                fileReference = (try? store.cloudFileAsset(
+                    operationID: record.id
+                ))?.reference
+            } else {
+                fileReference = nil
+            }
             guard let payload = ClipboardCloudOperation(
-                record: record, consent: consent, image: imageReference
+                record: record, consent: consent, image: imageReference,
+                file: fileReference
             ) else { continue }
             let id = ClipboardCloudRecord.operationID(record.id)
             let previous = try journal.record(id: id)
