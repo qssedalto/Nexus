@@ -86,4 +86,30 @@ final class InputDashboardTests: XCTestCase {
         XCTAssertEqual(summary.specialKeys, 42)
     }
 
+
+    func testPerSourceStatisticsNeverAttributeQuartzEventsToHIDDevice() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try InputStatisticsStore(url: root.appendingPathComponent("input.sqlite"))
+        let hid = "iohid_consumer:vendor_1234_product_5678_location_2"
+        store.enqueue(ClassifiedInputEvent(timeMS: 2000, category: "system",
+                                           name: "volume_up", source: hid))
+        store.enqueue(ClassifiedInputEvent(timeMS: 2001, category: "system",
+                                           name: "volume_up", source: "appkit_system_defined"))
+        store.enqueue(ClassifiedInputEvent(timeMS: 2002, category: "mouse",
+                                           name: "mouse_left", source: "quartz_uptime"))
+        let all = try store.sourceCounts(from: 2000, to: 2003)
+        XCTAssertEqual(all.count, 3)
+        XCTAssertEqual(all.first(where: { $0.source == hid })?.count, 1)
+        let overview = try store.overview(from: 2000, to: 2003, source: hid)
+        XCTAssertEqual(overview.specialKeys, 1)
+        XCTAssertEqual(overview.mouse, 0)
+        XCTAssertEqual(overview.firstEventMS, 2000)
+        XCTAssertEqual(try store.categoryCounts(from: 2000, to: 2003, source: hid).count, 1)
+        XCTAssertEqual(try store.trend(from: 2000, to: 2003, resolution: .hour,
+                                       source: hid).reduce(0) { $0 + $1.count }, 1)
+        XCTAssertEqual(try store.sourceCounts(from: 2001, to: 2003).count, 2)
+    }
+
 }
