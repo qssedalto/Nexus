@@ -266,7 +266,11 @@ final class MobileClipboardController: ObservableObject {
             let coordinator = try ClipboardCloudSyncCoordinator(
                 journal: journal, transport: transport, zoneID: zoneID.zoneName
             )
-            let report = try await coordinator.syncOnce(consent: consent)
+            let report = try await coordinator.syncOnce(consentProvider: { [weak self] in
+                await MainActor.run {
+                    self?.consent ?? ClipboardCloudConsent()
+                }
+            })
             if let summary = ClipboardCloudRunSummary(
                 report: report,
                 finishedTimeMS: Int64(Date().timeIntervalSince1970 * 1_000)
