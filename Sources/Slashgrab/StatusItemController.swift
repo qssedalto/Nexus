@@ -10,6 +10,7 @@ final class StatusItemController {
     private let popover = NSPopover()
     private let feedbackPopover = NSPopover()
     private let dropReadyPopover = NSPopover()
+    private var clipboardShelfPanel: NSPanel?
     private var statusView: DropTargetStatusView?
     private var dropReadyShowTask: DispatchWorkItem?
     private var feedbackDismissTask: Task<Void, Never>?
@@ -75,6 +76,9 @@ final class StatusItemController {
                 onOpenLegacySettings: { [weak self] in
                     self?.openLegacySettings()
                 },
+                onOpenClipboardShelf: { [weak self] in
+                    self?.showClipboardShelf()
+                },
                 onQuit: { NSApp.terminate(nil) }
             )
         )
@@ -132,7 +136,43 @@ final class StatusItemController {
     }
 
     private var menuPopoverHeight: CGFloat {
-        appState.lastCopiedOutput == nil ? 248 : 310
+        appState.lastCopiedOutput == nil ? 285 : 347
+    }
+
+    private func showClipboardShelf() {
+        popover.performClose(nil)
+
+        let panel: NSPanel
+        if let existing = clipboardShelfPanel {
+            panel = existing
+        } else {
+            let created = NSPanel(
+                contentRect: NSRect(x: 0, y: 0, width: 900, height: 390),
+                styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
+                backing: .buffered,
+                defer: false
+            )
+            created.title = localized("Clipboard Shelf")
+            created.level = .floating
+            created.isReleasedWhenClosed = false
+            created.hidesOnDeactivate = false
+            created.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+            created.contentViewController = NSHostingController(
+                rootView: ClipboardShelfView(appState: appState)
+            )
+            clipboardShelfPanel = created
+            panel = created
+        }
+
+        if let visible = NSScreen.main?.visibleFrame {
+            var frame = panel.frame
+            frame.origin.x = visible.midX - frame.width / 2
+            frame.origin.y = visible.minY + 20
+            panel.setFrame(frame, display: true)
+        }
+        appState.refreshOperations()
+        NSApp.activate(ignoringOtherApps: true)
+        panel.makeKeyAndOrderFront(nil)
     }
 
     private func prepareToOpenSettings() {
