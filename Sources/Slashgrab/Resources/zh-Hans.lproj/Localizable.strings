@@ -195,3 +195,25 @@
 "Calculating folder size in the background…" = "正在后台计算文件夹大小…";
 "Folder size" = "文件夹大小";
 "Folder size scan cancelled" = "已取消文件夹扫描";
+
+"History retention is unlimited" = "历史保留时间未设限制";
+"old records removed locally" = "条旧记录已从本地删除";
+"Pause clipboard history collection" = "暂停收集剪贴板历史";
+"Excluded foreground app bundle IDs (comma separated)" = "排除的前台应用 Bundle ID（逗号分隔）";
+"Excluding the foreground app is best-effort; pasteboards do not reliably identify the source app. Pause history for sensitive sessions." = "仅能尽可能排除前台应用，剪贴板无法可靠识别复制来源。处理敏感信息时请暂停监控。";
+"Local history retention" = "本地历史保留";
+"Delete unpinned history after" = "未固定历史保留期限";
+"Maximum unpinned history records" = "最多保留未固定记录数";
+"Never" = "永不自动删除";
+"Unlimited" = "不限制";
+"Apply local cleanup now" = "立即清理本地历史";
+"Pinned records are preserved. Local deletion does not automatically erase an earlier cloud upload." = "固定记录不会被清理。本地删除不会自动清除此前上传到云端的数据。";
+"Clear unpinned local history" = "清除未固定的本地历史";
+"Delete all unpinned local copy history?" = "确定清除全部未固定的本地复制历史吗？";
+"Delete unpinned local history" = "删除未固定的本地历史";
+"Pinned records are preserved. This does not delete anything previously uploaded to a remote server." = "固定记录将保留。本操作不会删除此前上传到服务器的内容。";
+"Delete from local history" = "从本地历史删除";
+"Local record deleted" = "已从本地历史删除";
+"Unable to delete local record" = "无法删除这条本地记录";
+"local records deleted" = "条本地记录已删除";
+"Unable to clear local history" = "无法清空本地历史";
