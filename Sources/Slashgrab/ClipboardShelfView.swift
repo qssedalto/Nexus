@@ -43,7 +43,7 @@ struct ClipboardShelfView: View {
     private var operations: [RecordedOperation] {
         let pins = pinned
         let matches = appState.operations.filter { operation in
-            guard ["copy", "path_copy", "text_copy", "image_copy"].contains(operation.type) else { return false }
+            guard ["copy", "path_copy", "text_copy", "image_copy", "drop_copy"].contains(operation.type) else { return false }
             if !selectedCollectionID.isEmpty && !collectionMemberIDs.contains(operation.id) { return false }
             let kind = operation.items.first?.kind
             switch filter {
@@ -551,6 +551,7 @@ struct ClipboardShelfView: View {
 
     private func categoryTitle(for operation: RecordedOperation) -> String {
         if operation.type == "text_copy" { return localized("Text") }
+        if operation.type == "drop_copy" { return localized("Drag/drop copy") }
         let kind = operation.items.first?.kind
         if kind == "image" { return localized("Images") }
         if kind == "folder" { return localized("Folder") }
