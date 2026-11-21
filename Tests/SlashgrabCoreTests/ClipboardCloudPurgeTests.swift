@@ -47,7 +47,8 @@ final class ClipboardCloudPurgeTests: XCTestCase {
             try await purge.purgeCloudZoneAndLocalCache()
             XCTFail("Must require explicit user confirmation")
         } catch ClipboardCloudPurgeError.explicitConfirmationRequired {
-            XCTAssertEqual(await remote.callCount(), 0)
+            let calls = await remote.callCount()
+            XCTAssertEqual(calls, 0)
             XCTAssertEqual(try journal.pendingCount(), 1)
             XCTAssertNotNil(try journal.token(forZone: "NexusClipboard"))
         }
@@ -70,7 +71,8 @@ final class ClipboardCloudPurgeTests: XCTestCase {
             XCTAssertEqual(try journal.token(forZone: "NexusClipboard"),
                            Data([0xAA, 0xBB]))
         }
-        XCTAssertEqual(await remote.callCount(), 1)
+        let calls = await remote.callCount()
+        XCTAssertEqual(calls, 1)
     }
 
     func testSuccessfulPurgeClearsOutboxCacheAndTokenAcrossRestart() async throws {
