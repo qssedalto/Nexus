@@ -42,7 +42,7 @@ enum ClipboardRemoteWebTitleFetcher {
               )?.lowercased(),
               contentType.hasPrefix("text/html"),
               (response.expectedContentLength < 0 ||
-               response.expectedContentLength <= ClipboardRemoteWebTitlePolicy.maximumHTMLBytes)
+               response.expectedContentLength <= Int64(ClipboardRemoteWebTitlePolicy.maximumHTMLBytes))
         else { return nil }
 
         var data = Data()
