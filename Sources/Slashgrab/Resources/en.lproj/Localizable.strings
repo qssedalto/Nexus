@@ -87,3 +87,27 @@
 "Clipboard files detected" = "Clipboard file references detected";
 "Clipboard image detected" = "Clipboard image detected";
 "Clipboard text detected" = "Clipboard text detected";
+
+"Follow system default" = "Follow system default";
+"Expand all Services where possible" = "Expand all Services where possible";
+"Group Services in submenu" = "Group Services in submenu";
+"System default (no override)" = "System default (no override)";
+"Global threshold" = "Global threshold";
+"Global Services setting updated; reopen the Finder menu." = "Global Services setting updated; reopen the Finder menu.";
+"No saved original setting found" = "No saved original setting found";
+"Original global Services setting restored" = "Original global Services setting restored";
+"Cannot inspect global Services preferences" = "Cannot inspect global Services preferences";
+"Existing preference type is not an integer; no changes were made" = "Existing preference type is not an integer; no changes were made";
+"Could not change global Services preferences; no settings were deleted" = "Could not change global Services preferences; no settings were deleted";
+"This setting changes the Services submenu for every app, not only Nexus." = "This setting changes the Services submenu for every app, not only Nexus.";
+"Current global setting" = "Current global setting";
+"Services menu layout" = "Services menu layout";
+"Apply system-wide…" = "Apply system-wide…";
+"Change Services menus for all apps?" = "Change Services menus for all apps?";
+"Apply system-wide" = "Apply system-wide";
+"This global setting may change where other apps' Services appear. Finder may need to reopen its context menu." = "This global setting may change where other apps' Services appear. Finder may need to reopen its context menu.";
+"Restore previous global value…" = "Restore previous global value…";
+"Restore the saved global Services value?" = "Restore the saved global Services value?";
+"Restore original" = "Restore original";
+"Restore the exact integer value (or unset state) saved before Nexus first changed this preference." = "Restore the exact integer value (or unset state) saved before Nexus first changed this preference.";
+"Global Services menu layout" = "Global Services menu layout";
