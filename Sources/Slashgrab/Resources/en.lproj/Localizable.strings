@@ -465,3 +465,10 @@
 "Image preview unavailable" = "Image preview unavailable";
 "Cloud image unavailable" = "Cloud image unavailable";
 "Cloud image copied to clipboard" = "Cloud image copied to clipboard";
+"Local full-text indexing" = "Local full-text indexing";
+"Maintain on-device clipboard search index (opt-in)" = "Maintain on-device clipboard search index (opt-in)";
+"Optional FTS5 indexing speeds up searches of three or more characters, including CJK text. Short terms and punctuation use the original exact search. Disabling the index removes its extra local plaintext copy without deleting clipboard history." = "Optional FTS5 indexing speeds up searches of three or more characters, including CJK text. Short terms and punctuation use the original exact search. Disabling the index removes its extra local plaintext copy without deleting clipboard history.";
+"Search index ready" = "Search index ready";
+"Search index removed" = "Search index removed";
+"Local history database unavailable" = "Local history database unavailable";
+"Search index unavailable: " = "Search index unavailable: ";
