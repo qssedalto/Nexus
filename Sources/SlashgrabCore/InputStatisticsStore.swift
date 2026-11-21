@@ -717,35 +717,30 @@ public final class InputStatisticsStore: @unchecked Sendable {
         }
     }
 
+    /// SQLite's VACUUM INTO creates a consistent, independently readable
+    /// single-file snapshot from a live WAL database. Unlike a raw copy or
+    /// sqlite3_backup + journal conversion it never relies on -wal/-shm
+    /// sidecars, and never holds a destination journal-mode transition lock.
     public func backup(to destination: URL) throws {
-        guard destination.standardizedFileURL != databaseURL.standardizedFileURL else { throw InputStoreError.write }
+        guard destination.standardizedFileURL != databaseURL.standardizedFileURL,
+              !FileManager.default.fileExists(atPath: destination.path) else {
+            throw InputStoreError.write
+        }
         try queue.sync {
             try flushOnQueue()
-            var target: OpaquePointer?
-            guard sqlite3_open_v2(destination.path, &target, SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE, nil) == SQLITE_OK,
-                  let target else { throw InputStoreError.open }
-            defer { sqlite3_close(target) }
-            guard let backup = sqlite3_backup_init(target, "main", database, "main") else { throw InputStoreError.write }
-            let result = sqlite3_backup_step(backup, -1)
-            let finished = sqlite3_backup_finish(backup)
-            guard result == SQLITE_DONE, finished == SQLITE_OK else { throw InputStoreError.write }
-            // The source uses WAL journaling. A single-file iCloud backup
-            // cannot depend on external -wal/-shm sidecars; transition the
-            // completed destination to DELETE mode, forcing a checkpoint
-            // before the file is handed to File Provider or copied elsewhere.
-            // A destination produced by sqlite3_backup is already a
-            // consistent single-file database. The preceding checkpoint can
-            // return SQLITE_LOCKED while macOS is finalizing WAL state, so
-            // switch journal mode directly. Report the SQLite diagnostic
-            // instead of hiding all backup failures as a generic write error.
-            guard sqlite3_exec(target, "PRAGMA journal_mode=DELETE;", nil, nil, nil) == SQLITE_OK else {
+            var statement: OpaquePointer?
+            guard sqlite3_prepare_v2(database, "VACUUM main INTO ?", -1,
+                                     &statement, nil) == SQLITE_OK,
+                  let statement else { throw InputStoreError.write }
+            defer { sqlite3_finalize(statement) }
+            bind(destination.path, to: 1, in: statement)
+            guard sqlite3_step(statement) == SQLITE_DONE else {
                 throw InputStoreError.backupRead(
-                    "snapshot journal conversion: \(String(cString: sqlite3_errmsg(target)))"
+                    "VACUUM INTO snapshot: \(String(cString: sqlite3_errmsg(database)))"
                 )
             }
         }
     }
-
     public var databaseSizeBytes: Int64 {
         let attributes = try? FileManager.default.attributesOfItem(atPath: databaseURL.path)
         return (attributes?[.size] as? NSNumber)?.int64Value ?? 0
