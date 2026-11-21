@@ -105,6 +105,6 @@ public struct ClipboardShortcutSpecification: Codable, Sendable, Equatable {
             (.control, "⌃"), (.option, "⌥"), (.shift, "⇧"), (.command, "⌘")
         ]
         return symbols.filter { modifiers.contains($0.0) }
-            .map(\.1).joined() + key.displayName
+            .map { $0.1 }.joined() + key.displayName
     }
 }
