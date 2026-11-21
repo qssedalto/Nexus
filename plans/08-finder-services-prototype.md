@@ -47,17 +47,25 @@ Do not run this test by installing the prototype alongside the existing active F
 
 On a controlled test machine check Finder menu, Services submenu, copied string, whether file URL is valid without downloading file bytes, and whether the existing FinderSync action was absent. Do not assume an online-only iCloud URL will be available without materialization; record unavailable instead of inventing one.
 
-## Global Services submenu preference
+## Global Services submenu preference — opt-in UI
 
-The task.md global menu experiment is deliberately **not enabled** by the prototype. A future UI needs explicit user consent, a precise backup of the previous global preference including its *unset* state, and a restore control. Do not use an app-only preference and claim that it changes Finder globally. Do not force-relaunch Finder while user work is open.
+The **System Services** settings tab now includes a collapsed **Global Services menu layout** section. It displays the *actual global preference*, not the app's own defaults. The user must explicitly choose one of the following, click **Apply system-wide…**, and then confirm the effect on other applications:
 
-Manual, read-only inspection on a Mac:
+- **Follow system default** — remove only this global key when it is currently set.
+- **Expand all Services where possible** — set the global threshold to integer `999`.
+- **Group Services in submenu** — set the global threshold to integer `1`.
+
+Before the first modification, Nexus backs up both the integer value and whether the key was **unset**, using the app's UserDefaults. **Restore previous global value…** asks for separate confirmation, restores the exact saved integer/unset state using the supported `defaults` command and only then removes the snapshot. It refuses to overwrite an existing preference whose type is not an integer. Failure preserves the snapshot. Neither app launch nor the prototype build writes this global preference, and Nexus never restarts Finder automatically.
+
+This is **not per-service control**. It may change menu placement for many apps, and macOS retains ultimate control of what appears. Restored snapshots are scoped to the bundle ID that made the initial change; keep that app's preference domain until restoration.
+
+Read-only terminal inspection:
 
 ```zsh
 defaults read -g NSServicesMinimumItemCountForContextSubmenu 2>/dev/null || echo "System default (not explicitly set)"
 ```
 
-Avoid using `defaults write -g` until the user understands that it affects other apps' Services menus.
+Do not use `defaults write -g` manually unless you understand that it affects other apps' Services menus.
 
 ## Source references
 
