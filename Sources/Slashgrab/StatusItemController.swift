@@ -191,9 +191,9 @@ final class StatusItemController {
         let preferredScreen = NSScreen.screens.first(where: { $0.frame.contains(mouseLocation) })
             ?? NSScreen.main
         if let visible = preferredScreen?.visibleFrame {
-            var frame = panel.frame
-            frame.origin.x = visible.midX - frame.width / 2
-            frame.origin.y = visible.minY + 20
+            let frame = ClipboardPanelPlacement.frame(
+                inside: visible, requestedSize: panel.frame.size
+            )
             panel.setFrame(frame, display: true)
         }
         appState.refreshOperations()

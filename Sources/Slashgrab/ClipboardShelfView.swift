@@ -311,7 +311,7 @@ struct ClipboardShelfView: View {
             }
         }
         .padding(18)
-        .frame(minWidth: 710, idealWidth: 890, minHeight: 405, idealHeight: 455)
+        .frame(minWidth: 520, idealWidth: 890, minHeight: 320, idealHeight: 455)
         .background(.regularMaterial)
         .focusable()
         .focused($shelfFocused)
