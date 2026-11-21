@@ -371,3 +371,7 @@
 
 "Preview local copied files using Quick Look (opt-in)" = "使用快速查看预览本地复制的文件（需主动开启）";
 "File previews read only local supported files up to 24 MB. Cloud-only files and File Provider folders show an icon, without a requested download." = "文件缩略图只读取最大 24 MB 的受支持本地文件；仅云端的文件与文件提供程序目录只显示图标，不主动下载。";
+
+"Links" = "链接";
+"Code" = "代码";
+"Copied code" = "已复制代码";
