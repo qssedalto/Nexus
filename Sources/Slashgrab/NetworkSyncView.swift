@@ -93,6 +93,7 @@ final class NetworkSyncController: ObservableObject {
     private var statisticsUploadTask: Task<UploadConfirmation, Error>?
     private var statisticsUploadWasAutomatic = false
     private var statisticsDeletionInProgress = false
+    private var statisticsSyncPreparationInProgress = false
     private var operationDeletionInProgress = false
     private let keychainService = "com.prof18.slashgrab.nexus-sync"
     private let session: URLSession = {
@@ -168,15 +169,29 @@ final class NetworkSyncController: ObservableObject {
             return
         }
         if automaticRun && !automatic { return }
-        guard statisticsUploadTask == nil else {
+        guard statisticsUploadTask == nil && !statisticsSyncPreparationInProgress else {
             status = "Statistics upload already in progress"
             return
         }
+        statisticsSyncPreparationInProgress = true
+        defer { statisticsSyncPreparationInProgress = false }
         guard let store else { status = "Statistics database unavailable"; return }
         let transferRevision = statisticsTransferRevision
         do {
             let pending = try store.pendingSync()
             guard !pending.isEmpty else { status = "Up to date"; return }
+            // The v1 endpoint predates aggregate uploads and acknowledges
+            // duplicates even when it silently discards their increased
+            // counts. Fail closed until the server explicitly advertises the
+            // monotonic-upsert behavior; keep every local row pending.
+            let hello: ServerHello = try await fetch(
+                try makeRequest(path: "/api/nexus/v1/me", method: "GET")
+            )
+            guard hello.authenticated, hello.schemaVersion == 1,
+                  hello.capabilities?.contains("statistics.monotonic_aggregates") == true else {
+                status = localized("Statistics server requires aggregate retry support before upload")
+                return
+            }
             let deviceID = persistentDeviceID()
             // Ordinary character events are aggregated per UTC hour,
             // independently of the optional precise non-text event toggle.
@@ -446,7 +461,8 @@ final class NetworkSyncController: ObservableObject {
 
     func deleteRemoteDevice() async {
         automatic = false
-        guard statisticsUploadTask == nil && !statisticsDeletionInProgress else {
+        guard statisticsUploadTask == nil && !statisticsSyncPreparationInProgress
+                && !statisticsDeletionInProgress else {
             status = "A statistics upload is still running; retry deletion once it completes"
             return
         }
