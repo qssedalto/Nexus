@@ -41,6 +41,16 @@ final class ClipboardMonitor: ObservableObject {
         }
     }
 
+    /// Optional local-only display of a copied URL's pasteboard-provided
+    /// title. Default is off, independent of RTF and cloud-sync consent.
+    @Published var linkTitleEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(
+                linkTitleEnabled, forKey: "nexusClipboardLinkTitleCapture"
+            )
+        }
+    }
+
     @Published var imageEnabled: Bool {
         didSet {
             UserDefaults.standard.set(imageEnabled, forKey: "nexusClipboardImageCapture")
@@ -88,6 +98,9 @@ final class ClipboardMonitor: ObservableObject {
         textEnabled = UserDefaults.standard.bool(forKey: "nexusMonitorTextCopies")
         imageEnabled = UserDefaults.standard.bool(forKey: "nexusClipboardImageCapture")
         richTextEnabled = UserDefaults.standard.bool(forKey: "nexusClipboardRichTextCapture")
+        linkTitleEnabled = UserDefaults.standard.bool(
+            forKey: "nexusClipboardLinkTitleCapture"
+        )
         textDuplicatePolicy = ClipboardTextDuplicatePolicy(
             rawValue: UserDefaults.standard.string(
                 forKey: "nexusClipboardTextDuplicatePolicy"
@@ -270,6 +283,9 @@ final class ClipboardMonitor: ObservableObject {
         // allowlist, never rendered as a webpage or loaded by WebKit.
         let richRTF = richTextEnabled ? pasteboard.data(forType: .rtf) : nil
         let richHTML = richTextEnabled ? pasteboard.data(forType: .html) : nil
+        let rawURLName = linkTitleEnabled
+            ? pasteboard.string(forType: NSPasteboard.PasteboardType("public.url-name"))
+            : nil
         let duplicatePolicy = textDuplicatePolicy
         persist {
             let original = text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -286,18 +302,26 @@ final class ClipboardMonitor: ObservableObject {
                 sanitized = candidate
                 format = "html"
             }
+            let recordedID: String
             if let sanitized {
-                try store.recordRichText(
+                recordedID = try store.recordRichText(
                     sanitized, detectedTimeMS: detected,
                     observedForegroundBundleID: observedForegroundID,
                     sourceFormat: format
                 )
             } else {
-                try store.recordTextCopy(
+                recordedID = try store.recordTextCopy(
                     text, detectedTimeMS: detected,
                     observedForegroundBundleID: observedForegroundID,
                     policy: duplicatePolicy
                 )
+            }
+            // The URL's own pasteboard metadata is optional. A failed title
+            // cache write must not lose the successfully committed copy.
+            if let title = ClipboardLinkTitlePolicy.sanitized(
+                rawURLName, copiedText: text
+            ) {
+                try? store.recordLinkTitle(operationID: recordedID, title: title)
             }
         }
     }

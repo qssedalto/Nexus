@@ -481,3 +481,6 @@
 "Local cloud cache removal failed" = "清理本机云端缓存失败";
 "Nexus private iCloud clipboard zone deleted. Disable sync on other devices to prevent recreation." = "Nexus 私有 iCloud 剪贴板存储区已删除。请关闭其他设备的同步，避免重新建立数据。";
 "Cloud deletion failed; sync remains disabled and local recovery data may remain" = "云端删除失败；同步仍保持关闭，本地恢复数据可能仍在";
+
+"Save clipboard-provided link titles (opt-in)" = "保存剪贴板附带的链接标题（需主动开启）";
+"Only a title already present in the copied link's pasteboard is retained locally. Nexus never fetches the webpage, and titles are removed when their history entry is deleted." = "仅将复制链接时剪贴板已提供的标题保存在本机。Nexus 不会联网获取网页内容；删除对应历史记录时也会删除标题。";

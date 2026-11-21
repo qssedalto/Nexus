@@ -60,6 +60,11 @@ struct PrivacySettingsView: View {
                     .disabled(!clipboard.textEnabled)
                 Text(localized("RTF and safe HTML formatting retain only bold, italic and underline flags. Unsupported HTML, attachments, remote resources, fonts and original markup are never saved."))
                     .font(.caption).foregroundStyle(.secondary)
+                Toggle(localized("Save clipboard-provided link titles (opt-in)"),
+                       isOn: $clipboard.linkTitleEnabled)
+                    .disabled(!clipboard.textEnabled)
+                Text(localized("Only a title already present in the copied link's pasteboard is retained locally. Nexus never fetches the webpage, and titles are removed when their history entry is deleted."))
+                    .font(.caption).foregroundStyle(.secondary)
                 Toggle(localized("Save copied image pixels (opt-in, 8 MB maximum)"),
                        isOn: $clipboard.imageEnabled)
                 Toggle(localized("Preview local copied files using Quick Look (opt-in)"),
