@@ -121,6 +121,16 @@ public final class OperationStore: @unchecked Sendable {
                 END
                 """)
             if version < 3 { try execute("PRAGMA user_version=3") }
+            // A single small, safely decoded presentation cache per event.
+            // Foreign keys delete formatting when its clipboard row is removed.
+            try execute("""
+                CREATE TABLE IF NOT EXISTS clipboard_rich_text (
+                    operation_id TEXT PRIMARY KEY
+                    REFERENCES operations(id) ON DELETE CASCADE,
+                    document BLOB NOT NULL
+                )
+                """)
+            if version < 4 { try execute("PRAGMA user_version=4") }
         } catch {
             sqlite3_close(database)
             throw error
@@ -189,6 +199,84 @@ public final class OperationStore: @unchecked Sendable {
             try? execute("ROLLBACK")
             throw error
         }
+    }
+
+    /// One opt-in formatted-text event, committed with its safe formatting
+    /// cache in the same SQLite transaction. The content is never sent in the
+    /// operation metadata network API without the user's text permission.
+    @discardableResult
+    public func recordRichText(
+        _ preview: ClipboardRichTextPreview, detectedTimeMS: Int64
+    ) throws -> String {
+        let document = try JSONEncoder().encode(preview)
+        guard detectedTimeMS >= 0, document.count <= 128 * 1024 else {
+            throw StoreError.write
+        }
+        let id = UUID().uuidString
+        lock.lock()
+        defer { lock.unlock() }
+        try execute("BEGIN IMMEDIATE")
+        do {
+            let operation = try prepare("""
+                INSERT INTO operations
+                (id,type,event_time_ms,detected_time_ms,completed_time_ms,
+                 source_application,detection_method,status,target,duration_ms,clipboard_text)
+                VALUES(?,'text_copy',NULL,?,NULL,NULL,'clipboard_rtf','clipboard_detected',NULL,NULL,?)
+                """)
+            bind(id, to: 1, in: operation)
+            bind(detectedTimeMS, to: 2, in: operation)
+            bind(preview.text, to: 3, in: operation)
+            let inserted = sqlite3_step(operation) == SQLITE_DONE
+            sqlite3_finalize(operation)
+            guard inserted else { throw StoreError.write }
+
+            let item = try prepare("""
+                INSERT INTO operation_items
+                (operation_id,position,name,source,extension,kind,size)
+                VALUES(?,0,'Rich Text',NULL,NULL,'text',?)
+                """)
+            bind(id, to: 1, in: item)
+            bind(Int64(preview.text.utf8.count), to: 2, in: item)
+            let insertedItem = sqlite3_step(item) == SQLITE_DONE
+            sqlite3_finalize(item)
+            guard insertedItem else { throw StoreError.write }
+
+            let formatted = try prepare("""
+                INSERT INTO clipboard_rich_text(operation_id,document) VALUES(?,?)
+                """)
+            bind(id, to: 1, in: formatted)
+            bindBlob(document, to: 2, in: formatted)
+            let saved = sqlite3_step(formatted) == SQLITE_DONE
+            sqlite3_finalize(formatted)
+            guard saved else { throw StoreError.write }
+            try execute("COMMIT")
+            return id
+        } catch {
+            try? execute("ROLLBACK")
+            throw error
+        }
+    }
+
+    /// Lazy formatted preview lookup; ordinary history queries never read
+    /// document blobs or allocate an attributed string.
+    public func richTextPreview(operationID: String) throws -> ClipboardRichTextPreview? {
+        lock.lock()
+        defer { lock.unlock() }
+        let stmt = try prepare("""
+            SELECT document FROM clipboard_rich_text WHERE operation_id=?
+            """)
+        defer { sqlite3_finalize(stmt) }
+        bind(operationID, to: 1, in: stmt)
+        let step = sqlite3_step(stmt)
+        if step == SQLITE_DONE { return nil }
+        guard step == SQLITE_ROW else { throw StoreError.write }
+        let count = Int(sqlite3_column_bytes(stmt, 0))
+        guard count > 0, count <= 128 * 1024,
+              let bytes = sqlite3_column_blob(stmt, 0) else { throw StoreError.write }
+        let preview = try JSONDecoder().decode(
+            ClipboardRichTextPreview.self, from: Data(bytes: bytes, count: count)
+        )
+        return ClipboardRichTextPreview(text: preview.text, runs: preview.runs)
     }
 
     public func query(from startMS: Int64, to endMS: Int64,
