@@ -135,7 +135,9 @@ final class InputMonitor: @unchecked Sendable {
             }
         }
         store.enqueue(ClassifiedInputEvent(
-            timeMS: timestampMS, category: "system", name: name, source: source))
+            timeMS: timestampMS,
+            category: source == "iohid_function" ? "keyboard" : "system",
+            name: name, source: source))
         onDiagnostic?(InputDiagnosticEvent(
             timeMS: timestampMS, name: name, source: source, supported: true))
     }
@@ -146,6 +148,12 @@ final class InputMonitor: @unchecked Sendable {
         if flags.contains(.maskSecondaryFn), let function = specialKeys[code], function.first == "f",
            Int(function.dropFirst()) != nil {
             return "fn_\(function)"
+        }
+        if flags.contains(.maskCommand),
+           let function = specialKeys[code],
+           function.hasPrefix("f"), Int(function.dropFirst()) != nil {
+            return flags.contains(.maskShift)
+                ? "command_shift_\(function)" : "command_\(function)"
         }
         guard flags.contains(.maskCommand), let key = shortcutKeys[code] else { return nil }
         if key == "z" && flags.contains(.maskShift) { return "command_shift_z" }
