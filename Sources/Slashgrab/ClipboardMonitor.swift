@@ -244,16 +244,31 @@ final class ClipboardMonitor: ObservableObject {
               !text.isEmpty,
               text.utf8.count <= maximumTextBytes else { return }
         onDetected?("Clipboard text detected")
-        // Read RTF only when the user authorized both plain-text history and
-        // additional formatting, independently of image and file capture.
-        // The parser runs on the utility queue and never retains raw RTF.
+        // RTF and HTML formatting both require the existing independent
+        // typography opt-in. HTML is parsed offline with a strict tag
+        // allowlist, never rendered as a webpage or loaded by WebKit.
         let richRTF = richTextEnabled ? pasteboard.data(forType: .rtf) : nil
+        let richHTML = richTextEnabled ? pasteboard.data(forType: .html) : nil
         persist {
+            let original = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            var sanitized: ClipboardRichTextPreview?
+            var format = "rtf"
             if let richRTF,
-               let sanitized = ClipboardRTFParser.sanitizedPreview(from: richRTF) {
+               let candidate = ClipboardRTFParser.sanitizedPreview(from: richRTF),
+               candidate.text.trimmingCharacters(in: .whitespacesAndNewlines) == original {
+                sanitized = candidate
+            } else if let richHTML, richHTML.count <= 128 * 1024,
+                      let html = String(data: richHTML, encoding: .utf8),
+                      let candidate = ClipboardSafeHTMLPreview.parse(html),
+                      candidate.text.trimmingCharacters(in: .whitespacesAndNewlines) == original {
+                sanitized = candidate
+                format = "html"
+            }
+            if let sanitized {
                 try store.recordRichText(
                     sanitized, detectedTimeMS: detected,
-                    observedForegroundBundleID: observedForegroundID
+                    observedForegroundBundleID: observedForegroundID,
+                    sourceFormat: format
                 )
             } else {
                 try store.record(type: "text_copy", urls: [],
