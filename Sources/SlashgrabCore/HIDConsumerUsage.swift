@@ -30,6 +30,13 @@ public enum HIDConsumerUsage {
         }
     }
 
+    /// HID Keyboard Page (0x07) has F21–F24 usage IDs 0x70–0x73.
+    /// Other keyboard usages are deliberately discarded to avoid raw typing.
+    public static func functionName(forKeyboardUsage usage: Int) -> String? {
+        guard (0x70...0x73).contains(usage) else { return nil }
+        return "f\(usage - 0x70 + 21)"
+    }
+
     /// Known independent system-defined key type codes in macOS NSEvent
     /// (subtype 8). Do not infer that F3 automatically means Mission Control.
     public static func macSystemKeyName(for type: Int) -> String? {
