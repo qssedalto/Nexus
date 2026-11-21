@@ -6,6 +6,7 @@ import SlashgrabCore
 /// This does not install a second clipboard observer or retain image pixels.
 struct ClipboardShelfView: View {
     @ObservedObject var appState: AppState
+    @ObservedObject private var clipboard = ClipboardMonitor.shared
     let onPasteRequested: () -> Void
     let onCloseRequested: () -> Void
     @State private var selectedOperationID: String?
@@ -271,6 +272,12 @@ struct ClipboardShelfView: View {
             refreshShelf()
             loadCollections()
             shelfFocused = true
+        }
+        // Refresh only when an operation was actually committed to SQLite.
+        // Unlike a timer or an observation callback, this cannot outrun the
+        // background writer and miss the newly inserted clipboard event.
+        .onChange(of: clipboard.savedRevision) { _ in
+            refreshShelf()
         }
         .task(id: searchFingerprint) {
             guard shouldQueryDatabase else {
