@@ -32,6 +32,12 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- Nexus.xcodeproj
+          # The repository ignores generated project directories; stage only
+          # already tracked project files to avoid xcuserdata and local files.
+          git add -u -- Nexus.xcodeproj
+          if git diff --cached --quiet; then
+            echo "No tracked project changes to commit."
+            exit 0
+          fi
           git commit -m "build: regenerate native Nexus Xcode project from integrated sources"
           git push origin HEAD:refs/heads/fix/nexus-main-feature-integration-20261121
