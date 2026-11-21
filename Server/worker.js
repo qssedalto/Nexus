@@ -76,7 +76,13 @@ export default {
       if (!(await authorized(request, env.API_TOKEN))) return json({ error: "unauthorized" }, 401);
       const url = new URL(request.url);
       const path = url.pathname;
-      if (path === "/api/nexus/v1/me" && request.method === "GET") return json({ authenticated: true });
+      if (path === "/api/nexus/v1/me" && request.method === "GET") {
+        return json({
+          authenticated: true,
+          schema_version: 1,
+          capabilities: ["statistics.events", "statistics.summary", "operations.events", "operations.restore"]
+        });
+      }
       if (path === "/api/nexus/v1/operations/events" && request.method === "POST") {
         const length = Number(request.headers.get("Content-Length"));
         if (!Number.isSafeInteger(length) || length < 1 || length > 1_000_000) return json({ error: "invalid_size" }, 400);
