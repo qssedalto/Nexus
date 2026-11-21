@@ -35,6 +35,16 @@ public struct InputStatisticsOverview: Sendable, Equatable {
     public let shortcuts: Int64
     public let scrolls: Int64
     public let firstEventMS: Int64?
+
+    public init(keyboard: Int64, mouse: Int64, specialKeys: Int64,
+                shortcuts: Int64, scrolls: Int64, firstEventMS: Int64?) {
+        self.keyboard = keyboard
+        self.mouse = mouse
+        self.specialKeys = specialKeys
+        self.shortcuts = shortcuts
+        self.scrolls = scrolls
+        self.firstEventMS = firstEventMS
+    }
 }
 
 public struct ClassifiedInputEvent: Sendable, Hashable {
