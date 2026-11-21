@@ -530,3 +530,12 @@
 "Search index removed" = "搜索索引已移除";
 "Local history database unavailable" = "本地历史数据库不可用";
 "Search index unavailable: " = "搜索索引不可用：";
+"Include one small local file original in iCloud (up to 8 MB)" = "在 iCloud 中同步单个小型本地文件原件（最多 8 MB）";
+"Original image and single-file transfers have independent permission switches, off by default. File transfer excludes folders, symlinks, cloud-only files and packages. Turning off permission cannot erase copies already uploaded." = "图片原件与单文件原件有独立权限开关，默认关闭。文件传输排除文件夹、符号链接、纯云端文件和应用包。关闭权限不会自动擦除已上传副本。";
+"Save remote file…" = "保存远端文件…";
+"Cloud file not available locally" = "云端文件尚未缓存到本机";
+"Cloud file exported" = "云端文件已导出";
+"Cloud file export failed" = "导出云端文件失败";
+"Include one small original file (up to 8 MB)" = "包含单个小型文件原件（最多 8 MB）";
+"Image and single-file originals use independent iCloud permissions. Files are exported only when you request it; Nexus does not inspect the clipboard in the background." = "图片与单文件原件分别授权。只有你主动选择时才会导出文件，Nexus 不会在后台检查剪贴板。";
+"Export file" = "导出文件";

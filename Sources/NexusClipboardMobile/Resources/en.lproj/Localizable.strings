@@ -84,3 +84,12 @@
 "Image preview unavailable" = "Image preview unavailable";
 "Cloud image unavailable" = "Cloud image unavailable";
 "Cloud image copied to clipboard" = "Cloud image copied to clipboard";
+"Include one small local file original in iCloud (up to 8 MB)" = "Include one small local file original in iCloud (up to 8 MB)";
+"Original image and single-file transfers have independent permission switches, off by default. File transfer excludes folders, symlinks, cloud-only files and packages. Turning off permission cannot erase copies already uploaded." = "Original image and single-file transfers have independent permission switches, off by default. File transfer excludes folders, symlinks, cloud-only files and packages. Turning off permission cannot erase copies already uploaded.";
+"Save remote file…" = "Save remote file…";
+"Cloud file not available locally" = "Cloud file not available locally";
+"Cloud file exported" = "Cloud file exported";
+"Cloud file export failed" = "Cloud file export failed";
+"Include one small original file (up to 8 MB)" = "Include one small original file (up to 8 MB)";
+"Image and single-file originals use independent iCloud permissions. Files are exported only when you request it; Nexus does not inspect the clipboard in the background." = "Image and single-file originals use independent iCloud permissions. Files are exported only when you request it; Nexus does not inspect the clipboard in the background.";
+"Export file" = "Export file";

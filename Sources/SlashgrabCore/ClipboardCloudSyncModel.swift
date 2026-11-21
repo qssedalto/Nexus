@@ -37,15 +37,17 @@ public struct ClipboardCloudConsent: Sendable, Equatable {
     public let includeNames: Bool
     public let includePaths: Bool
     public let includeImages: Bool
+    public let includeFiles: Bool
 
     public init(enabled: Bool = false, includeText: Bool = false,
                 includeNames: Bool = false, includePaths: Bool = false,
-                includeImages: Bool = false) {
+                includeImages: Bool = false, includeFiles: Bool = false) {
         self.enabled = enabled
         self.includeText = includeText
         self.includeNames = includeNames
         self.includePaths = includePaths
         self.includeImages = includeImages
+        self.includeFiles = includeFiles
     }
 }
 
@@ -65,17 +67,24 @@ public struct ClipboardCloudOperation: Codable, Sendable, Equatable {
     /// Optional digest-only reference. The actual image lives in an
     /// independently consented CloudKit CKAsset, never embedded as JSON.
     public let image: ClipboardCloudImageReference?
+    /// A single, independently authorized small regular file can be included
+    /// as a CKAsset. No local path or binary bytes enter this JSON reference.
+    public let file: ClipboardCloudFileReference?
 
     /// Build a privacy-minimized snapshot of the user's local record.
     /// File paths, filenames, clipboard bodies and image pixel data are
     /// never included just because the base CloudKit toggle was enabled.
     public init?(record: RecordedOperation, consent: ClipboardCloudConsent,
-                 image: ClipboardCloudImageReference? = nil) {
+                 image: ClipboardCloudImageReference? = nil,
+                 file: ClipboardCloudFileReference? = nil) {
         guard consent.enabled else { return nil }
         type = record.type
         detectedTimeMS = record.detectedTimeMS
         sourceApplication = record.sourceApplication
         self.image = consent.includeImages && record.type == "image_copy" ? image : nil
+        self.file = consent.includeFiles
+            && ["copy", "path_copy", "drop_copy"].contains(record.type)
+            && record.items.count == 1 ? file : nil
         items = record.items.prefix(200).map {
             ClipboardCloudItem(kind: $0.kind, size: $0.size,
                                name: consent.includeNames ? $0.name : nil,
@@ -167,8 +176,19 @@ public struct ClipboardCloudRecord: Codable, Sendable, Equatable, Identifiable {
               isDeleted ? payload == nil : payload?.kind == kind else {
             throw ClipboardCloudModelError.invalidRecord
         }
-        if case .operation(let operation)? = payload, let image = operation.image {
-            guard operation.type == "image_copy", image.isStructurallyValid else {
+        if case .operation(let operation)? = payload {
+            if let image = operation.image {
+                guard operation.type == "image_copy", image.isStructurallyValid else {
+                    throw ClipboardCloudModelError.invalidRecord
+                }
+            }
+            if let file = operation.file {
+                guard ["copy", "path_copy", "drop_copy"].contains(operation.type),
+                      operation.items.count == 1, file.isStructurallyValid else {
+                    throw ClipboardCloudModelError.invalidRecord
+                }
+            }
+            guard !(operation.image != nil && operation.file != nil) else {
                 throw ClipboardCloudModelError.invalidRecord
             }
         }

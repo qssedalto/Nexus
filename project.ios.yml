@@ -34,6 +34,8 @@ targets:
       - Sources/SlashgrabCore/ClipboardCloudKitCodec.swift
       - Sources/SlashgrabCore/ClipboardCloudKitPrivateTransport.swift
       - Sources/SlashgrabCore/ClipboardCloudImageAsset.swift
+      - Sources/SlashgrabCore/ClipboardCloudFileAsset.swift
+      - Sources/SlashgrabCore/ClipboardFilePreviewPolicy.swift
       - Sources/SlashgrabCore/ClipboardCloudUploadDecision.swift
       - Sources/SlashgrabCore/ClipboardCloudForegroundSyncPolicy.swift
     dependencies:

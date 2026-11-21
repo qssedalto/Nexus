@@ -40,7 +40,10 @@ struct ClipboardCloudSettingsView: View {
                        isOn: $cloud.includePaths).disabled(!cloud.enabled)
                 Toggle(localized("Include original clipboard images in iCloud (up to 8 MB)"),
                        isOn: $cloud.includeImages).disabled(!cloud.enabled)
-                Text(localized("Image transfer is off by default. Enabling it uploads original image copies as private CloudKit assets. File originals are not included; disabling permission stops future transfers but does not erase cloud copies already uploaded."))
+                Toggle(localized("Include one small local file original in iCloud (up to 8 MB)"),
+                       isOn: $cloud.includeFiles).disabled(!cloud.enabled)
+                Text(localized("Original image and single-file transfers have independent permission switches, off by default. File transfer excludes folders, symlinks, cloud-only files and packages. Turning off permission cannot erase copies already uploaded."))
+                    .font(.caption).foregroundStyle(.secondary)
                     .font(.caption).foregroundStyle(.secondary)
             }
 
@@ -151,6 +154,12 @@ struct ClipboardCloudSettingsView: View {
                                     }
                                 }
                                 Spacer(minLength: 12)
+                                if case .operation(let operation)? = record.payload,
+                                   operation.file != nil && cloud.includeFiles {
+                                    Button(localized("Save remote file…")) {
+                                        cloud.saveCachedRemoteFile(recordID: record.id)
+                                    }
+                                }
                                 Button(localized("Copy text")) {
                                     cloud.copyRemoteText(record)
                                 }

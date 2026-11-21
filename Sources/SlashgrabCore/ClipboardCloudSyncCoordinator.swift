@@ -19,14 +19,17 @@ public struct ClipboardCloudDownloadPage: Sendable {
     /// Independently authorized binary image assets keyed by operation ID.
     /// These are saved alongside journal records and cursor atomically.
     public let imageAssets: [String: ClipboardCloudImageAsset]
+    public let fileAssets: [String: ClipboardCloudFileAsset]
 
     public init(changes: [ClipboardCloudRecord], token: Data?,
                 moreComing: Bool = false,
-                imageAssets: [String: ClipboardCloudImageAsset] = [:]) {
+                imageAssets: [String: ClipboardCloudImageAsset] = [:],
+                fileAssets: [String: ClipboardCloudFileAsset] = [:]) {
         self.changes = changes
         self.token = token
         self.moreComing = moreComing
         self.imageAssets = imageAssets
+        self.fileAssets = fileAssets
     }
 }
 
@@ -72,6 +75,7 @@ public extension ClipboardCloudConsent {
         case .operation(let operation):
             if !includeText && operation.text != nil { return false }
             if !includeImages && operation.image != nil { return false }
+            if !includeFiles && operation.file != nil { return false }
             for item in operation.items {
                 if !includeNames && item.name != nil { return false }
                 if !includePaths && item.path != nil { return false }
@@ -153,7 +157,7 @@ public actor ClipboardCloudSyncCoordinator {
         }
         let downloaded = try journal.applyRemote(
             page.changes, zoneID: zoneID, changeToken: page.token,
-            imageAssets: page.imageAssets
+            imageAssets: page.imageAssets, fileAssets: page.fileAssets
         )
         if page.moreComing {
             return ClipboardCloudSyncReport(

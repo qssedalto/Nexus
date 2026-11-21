@@ -1,5 +1,6 @@
 import NexusMobileCore
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// Adaptive iPhone/iPad UI with one explicit clipboard read button. It never
 /// attempts unsupported iOS background clipboard observation or auto-paste.
@@ -12,6 +13,9 @@ struct MobileHomeView: View {
     @State private var showLocalCloudClear = false
     @State private var showCloudEraseSheet = false
     @State private var cloudEraseConfirmation = ""
+    @State private var showFileExporter = false
+    @State private var fileExport: NexusCloudFileDocument?
+    @State private var fileExportName = "NexusFile"
 
     private var collections: [ClipboardCloudRecord] {
         cloud.records.filter { !$0.isDeleted && $0.kind == .collection }
@@ -133,7 +137,10 @@ struct MobileHomeView: View {
                         Toggle("Include original clipboard images (up to 8 MB)",
                                isOn: $cloud.includeImages)
                             .disabled(!cloud.cloudEnabled)
-                        Text("Image originals are downloaded from your private CloudKit zone only after this separate permission is enabled. File originals are not synchronized. Your clipboard is never inspected in the background.")
+                        Toggle("Include one small original file (up to 8 MB)",
+                               isOn: $cloud.includeFiles)
+                            .disabled(!cloud.cloudEnabled)
+                        Text("Image and single-file originals use independent iCloud permissions. Files are exported only when you request it; Nexus does not inspect the clipboard in the background.")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     Section("Manual synchronization") {
@@ -247,6 +254,14 @@ struct MobileHomeView: View {
                 Task { await cloud.syncWhenForegroundEligible() }
             }
         }
+        .fileExporter(
+            isPresented: $showFileExporter,
+            document: fileExport,
+            contentType: .data,
+            defaultFilename: fileExportName
+        ) { _ in
+            fileExport = nil
+        }
     }
 
     @ViewBuilder
@@ -329,6 +344,16 @@ struct MobileHomeView: View {
                             cloud.copyRemoteImage(recordID: record.id)
                         }
                     }
+                    if info.file != nil && cloud.includeFiles {
+                        Button("Export file") {
+                            guard let asset = cloud.cachedRemoteFile(
+                                recordID: record.id
+                            ) else { return }
+                            fileExport = NexusCloudFileDocument(data: asset.bytes)
+                            fileExportName = asset.reference.fileName
+                            showFileExporter = true
+                        }
+                    }
                     if !collections.isEmpty {
                         Menu("Add to collection") {
                             ForEach(collections, id: \.id) { collection in
@@ -356,6 +381,29 @@ struct MobileHomeView: View {
             RoundedRectangle(cornerRadius: 15)
                 .strokeBorder(.secondary.opacity(0.2))
         }
+    }
+}
+
+/// A bounded verified cloud file becomes a user-chosen Files export.
+/// Never restores the sender's absolute path or writes without a picker.
+private struct NexusCloudFileDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.data] }
+    var data: Data
+
+    init(data: Data) {
+        self.data = data
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        guard let data = configuration.file.regularFileContents,
+              data.count <= ClipboardCloudFileReference.maximumBytes else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        self.data = data
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: data)
     }
 }
 
