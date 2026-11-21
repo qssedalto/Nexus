@@ -430,3 +430,6 @@
 "Restore cached cloud history to local shelf" = "将缓存的云端历史恢复到本地剪贴板面板";
 
 "RTF and safe HTML formatting retain only bold, italic and underline flags. Unsupported HTML, attachments, remote resources, fonts and original markup are never saved." = "RTF 和经过安全筛选的 HTML 只保留粗体、斜体与下划线。不会保存不受支持的 HTML、附件、远程资源、字体或原始标记内容。";
+
+"Switch collections while shelf is open" = "面板打开时切换收藏集";
+"0 shows all history; 1–9 select named collections in display order. Command-F focuses clipboard search. These shortcuts work only while the shelf is focused." = "按 0 显示全部历史；1–9 按当前显示顺序切换命名收藏集。Command-F 聚焦剪贴板搜索框。仅面板获得键盘焦点时有效。";

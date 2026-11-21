@@ -13,6 +13,7 @@ struct SettingsView<Updater: UpdaterControlling>: View {
     @State private var customOption = true
     @State private var customShift = false
     @State private var customCommand = false
+    @AppStorage("nexusClipboardCollectionSwitchModifier") private var collectionShortcutModifier = "command"
 
     var body: some View {
         TabView {
@@ -102,6 +103,13 @@ struct SettingsView<Updater: UpdaterControlling>: View {
                 Text(localized("Custom shortcuts require two or more modifiers. Keys use physical keyboard positions; system conflicts are rejected without losing the previous shortcut."))
                     .font(.caption).foregroundStyle(.secondary)
                 Text(clipboardHotkey.status).font(.caption).foregroundStyle(.secondary)
+                Picker(localized("Switch collections while shelf is open"),
+                       selection: $collectionShortcutModifier) {
+                    Text("⌘ + 0…9").tag("command")
+                    Text("⌃⌥ + 0…9").tag("controlOption")
+                }
+                Text(localized("0 shows all history; 1–9 select named collections in display order. Command-F focuses clipboard search. These shortcuts work only while the shelf is focused."))
+                    .font(.caption).foregroundStyle(.secondary)
             }
             Section(localized("Copy feedback")) {
                 Picker(localized("Show feedback for"), selection: Binding(

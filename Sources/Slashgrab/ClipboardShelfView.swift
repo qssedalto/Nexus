@@ -12,6 +12,7 @@ struct ClipboardShelfView: View {
     let onCloseRequested: () -> Void
     @State private var selectedOperationID: String?
     @FocusState private var shelfFocused: Bool
+    @FocusState private var searchFocused: Bool
     @State private var search = ""
     @State private var sourceFilter = ""
     @State private var filter: Category = .all
@@ -31,6 +32,7 @@ struct ClipboardShelfView: View {
     @State private var showingDeleteCollection = false
     @AppStorage("nexusPinnedClipboardOperationIDs") private var pinnedRaw = ""
     @AppStorage("nexusClipboardFileThumbnailPreviews") private var filePreviewEnabled = false
+    @AppStorage("nexusClipboardCollectionSwitchModifier") private var collectionShortcutModifier = "command"
 
     private enum Category: String, CaseIterable, Identifiable {
         case all, files, images, text, pinned
@@ -147,6 +149,16 @@ struct ClipboardShelfView: View {
     }
 
     var body: some View {
+        if #available(macOS 14.0, *) {
+            shelfContent.onKeyPress { press in
+                handleShelfShortcut(press)
+            }
+        } else {
+            shelfContent
+        }
+    }
+
+    private var shelfContent: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .center) {
                 Image(systemName: "square.on.square")
@@ -176,6 +188,7 @@ struct ClipboardShelfView: View {
                 Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
                 TextField(localized("Search clipboard"), text: $search)
                     .textFieldStyle(.plain)
+                    .focused($searchFocused)
                 Spacer()
                 Picker(localized("Category"), selection: $filter) {
                     ForEach(Category.allCases) { category in
@@ -596,6 +609,40 @@ struct ClipboardShelfView: View {
                 deleteLocally(operation.id)
             }
         }
+    }
+
+    /// Scoped to the focused clipboard panel, not a second system-wide
+    /// hotkey. 0 selects all history; 1–9 follow the displayed collection
+    /// order. The modifier pair is user-configurable in Nexus Settings.
+    @available(macOS 14.0, *)
+    private func handleShelfShortcut(_ press: KeyPress) -> KeyPress.Result {
+        let hasCommand = press.modifiers.contains(.command)
+        let hasControl = press.modifiers.contains(.control)
+        let hasOption = press.modifiers.contains(.option)
+        let hasShift = press.modifiers.contains(.shift)
+        if hasCommand && !hasControl && !hasOption && !hasShift,
+           press.characters.lowercased() == "f" {
+            searchFocused = true
+            return .handled
+        }
+        let mode = ClipboardCollectionSwitchModifier(
+            rawValue: collectionShortcutModifier
+        ) ?? .command
+        let matches: Bool
+        switch mode {
+        case .command:
+            matches = hasCommand && !hasControl && !hasOption && !hasShift
+        case .controlOption:
+            matches = hasControl && hasOption && !hasCommand && !hasShift
+        }
+        guard matches,
+              let id = ClipboardCollectionShortcut.target(
+                for: press.characters, collectionIDs: collections.map(\.id)
+              ) else { return .ignored }
+        selectedCollectionID = id
+        selectedOperationID = nil
+        shelfFocused = true
+        return .handled
     }
 
     private func refreshShelf() {

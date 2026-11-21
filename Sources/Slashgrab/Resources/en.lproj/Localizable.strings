@@ -372,3 +372,6 @@
 "Restore cached cloud history to local shelf" = "Restore cached cloud history to local shelf";
 
 "RTF and safe HTML formatting retain only bold, italic and underline flags. Unsupported HTML, attachments, remote resources, fonts and original markup are never saved." = "RTF and safe HTML formatting retain only bold, italic and underline flags. Unsupported HTML, attachments, remote resources, fonts and original markup are never saved.";
+
+"Switch collections while shelf is open" = "Switch collections while shelf is open";
+"0 shows all history; 1–9 select named collections in display order. Command-F focuses clipboard search. These shortcuts work only while the shelf is focused." = "0 shows all history; 1–9 select named collections in display order. Command-F focuses clipboard search. These shortcuts work only while the shelf is focused.";
