@@ -423,3 +423,6 @@
 "Reported source app: " = "报告的来源应用：";
 
 "Reset cloud change cursor" = "重置云端变更游标";
+
+"matching records loaded" = "条匹配记录已加载";
+"Load 200 older matching records" = "继续加载 200 条更早的匹配记录";
