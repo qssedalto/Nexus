@@ -14,4 +14,15 @@ public enum PrivacyFeatureSwitchPolicy {
     ) -> Bool {
         enabled && (!automaticRun || automatic)
     }
+    /// A token removal permanently disables Nexus access, even if Keychain
+    /// deletion fails or an older application still owns a valid credential.
+    /// Only an explicit successful Nexus token save may clear this revocation.
+    public static func shouldReadStoredAPIToken(
+        credentialRevoked: Bool,
+        isLegacyService: Bool,
+        legacyFallbackDisabled: Bool
+    ) -> Bool {
+        !credentialRevoked && (!isLegacyService || !legacyFallbackDisabled)
+    }
+
 }

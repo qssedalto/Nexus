@@ -25,4 +25,31 @@ final class PrivacyFeatureSwitchPolicyTests: XCTestCase {
         XCTAssertTrue(PrivacyFeatureSwitchPolicy.shouldUploadStatistics(
             enabled: true, automaticRun: true, automatic: true))
     }
+    func testRevokedAPITokenNeverFallsBackToNewOrLegacyKeychain() {
+        for legacy in [false, true] {
+            for fallbackDisabled in [false, true] {
+                XCTAssertFalse(PrivacyFeatureSwitchPolicy.shouldReadStoredAPIToken(
+                    credentialRevoked: true,
+                    isLegacyService: legacy,
+                    legacyFallbackDisabled: fallbackDisabled
+                ))
+            }
+        }
+    }
+
+    func testLegacyCredentialRequiresSeparateFallbackPermission() {
+        XCTAssertTrue(PrivacyFeatureSwitchPolicy.shouldReadStoredAPIToken(
+            credentialRevoked: false, isLegacyService: false,
+            legacyFallbackDisabled: true
+        ))
+        XCTAssertTrue(PrivacyFeatureSwitchPolicy.shouldReadStoredAPIToken(
+            credentialRevoked: false, isLegacyService: true,
+            legacyFallbackDisabled: false
+        ))
+        XCTAssertFalse(PrivacyFeatureSwitchPolicy.shouldReadStoredAPIToken(
+            credentialRevoked: false, isLegacyService: true,
+            legacyFallbackDisabled: true
+        ))
+    }
+
 }

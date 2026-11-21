@@ -112,6 +112,7 @@ final class NetworkSyncController: ObservableObject {
     private let keychainService = "com.qssedalto.nexus-sync"
     private let legacyKeychainService = "com.prof18.slashgrab.nexus-sync"
     private let legacyTokenFallbackDisabledKey = "nexusSyncLegacyTokenFallbackDisabled"
+    private let credentialRevokedKey = "nexusSyncCredentialRevoked"
     private let session: URLSession = {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.httpShouldSetCookies = false
@@ -151,7 +152,11 @@ final class NetworkSyncController: ObservableObject {
         }
         // Explicitly saving a Nexus credential opts out of silently reusing
         // an older app's token if this new item later becomes unavailable.
-        if saved { defaults.set(true, forKey: legacyTokenFallbackDisabledKey) }
+        if saved {
+            defaults.set(true, forKey: legacyTokenFallbackDisabledKey)
+            // Only an explicit successful save may re-enable credential use.
+            defaults.set(false, forKey: credentialRevokedKey)
+        }
         status = saved ? "Token saved" : "Keychain error"
         return saved
     }
@@ -162,6 +167,9 @@ final class NetworkSyncController: ObservableObject {
         // the user's original Slashgrab installation. Suppress future legacy
         // fallback before deleting only the Nexus-owned Keychain item.
         defaults.set(true, forKey: legacyTokenFallbackDisabledKey)
+        // Fail closed even if Keychain refuses to delete the Nexus token:
+        // stale credentials must never resume automatic uploads.
+        defaults.set(true, forKey: credentialRevokedKey)
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: keychainService,
@@ -171,7 +179,7 @@ final class NetworkSyncController: ObservableObject {
         serverOperationsSupported = false
         serverStatisticsAggregatesSupported = false
         status = (deletion == errSecSuccess || deletion == errSecItemNotFound)
-            ? "Token removed" : "Keychain error"
+            ? "Token removed" : "Keychain error; Nexus credential access disabled"
     }
 
     func testConnection() async {
@@ -563,10 +571,11 @@ final class NetworkSyncController: ObservableObject {
         for service in [keychainService, legacyKeychainService] {
             // Once a user removes or replaces Nexus's API token, the old
             // application's token must never silently re-enable syncing.
-            if service == legacyKeychainService &&
-               defaults.bool(forKey: legacyTokenFallbackDisabledKey) {
-                continue
-            }
+            guard PrivacyFeatureSwitchPolicy.shouldReadStoredAPIToken(
+                credentialRevoked: defaults.bool(forKey: credentialRevokedKey),
+                isLegacyService: service == legacyKeychainService,
+                legacyFallbackDisabled: defaults.bool(forKey: legacyTokenFallbackDisabledKey)
+            ) else { continue }
             let query: [String: Any] = [
                 kSecClass as String: kSecClassGenericPassword,
                 kSecAttrService as String: service,
