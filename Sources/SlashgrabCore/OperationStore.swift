@@ -175,6 +175,76 @@ public final class OperationStore: @unchecked Sendable {
         return results
     }
 
+    /// Remove one local history record and its items and sync receipt via FK
+    /// cascades. Remote history is deliberately managed by a separate action.
+    @discardableResult
+    public func deleteOperation(id: String) throws -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        let stmt = try prepare("DELETE FROM operations WHERE id = ?")
+        defer { sqlite3_finalize(stmt) }
+        bind(id, to: 1, in: stmt)
+        guard sqlite3_step(stmt) == SQLITE_DONE else { throw StoreError.write }
+        return sqlite3_changes(database) > 0
+    }
+
+    /// Bounded local retention. Defaults are unlimited; callers must opt in.
+    /// Pinned UUIDs are excluded from both age and count based cleanup.
+    /// Existing history is always preserved when the operation is cancelled
+    /// or the cleanup query fails.
+    @discardableResult
+    public func pruneHistory(
+        olderThan cutoffMS: Int64? = nil,
+        keepingNewest maxCount: Int? = nil,
+        protectedIDs: Set<String> = [],
+        maxDeletions: Int = 1000
+    ) throws -> Int {
+        guard cutoffMS != nil || (maxCount ?? 0) > 0 else { return 0 }
+        lock.lock()
+        defer { lock.unlock() }
+        try execute("BEGIN IMMEDIATE")
+        do {
+            var candidates: [String] = []
+            let scanLimit = max(1, min(10_000, maxDeletions * 4))
+            if let cutoffMS {
+                let stmt = try prepare("SELECT id FROM operations WHERE detected_time_ms < ? ORDER BY detected_time_ms")
+                bind(cutoffMS, to: 1, in: stmt)
+                while sqlite3_step(stmt) == SQLITE_ROW {
+                    if let id = string(stmt, 0), !protectedIDs.contains(id) { candidates.append(id) }
+                    if candidates.count >= scanLimit { break }
+                }
+                sqlite3_finalize(stmt)
+            }
+            if let maxCount, maxCount > 0 {
+                // Count only unpinned rows toward the retention budget.
+                let stmt = try prepare("SELECT id FROM operations ORDER BY detected_time_ms DESC, id DESC")
+                var retained = 0
+                while sqlite3_step(stmt) == SQLITE_ROW {
+                    guard let id = string(stmt, 0), !protectedIDs.contains(id) else { continue }
+                    retained += 1
+                    if retained > maxCount, !candidates.contains(id) { candidates.append(id) }
+                    if candidates.count >= scanLimit { break }
+                }
+                sqlite3_finalize(stmt)
+            }
+            let remove = try prepare("DELETE FROM operations WHERE id = ?")
+            defer { sqlite3_finalize(remove) }
+            var deleted = 0
+            for id in candidates.prefix(max(1, maxDeletions)) {
+                sqlite3_reset(remove)
+                sqlite3_clear_bindings(remove)
+                bind(id, to: 1, in: remove)
+                guard sqlite3_step(remove) == SQLITE_DONE else { throw StoreError.write }
+                deleted += Int(sqlite3_changes(database))
+            }
+            try execute("COMMIT")
+            return deleted
+        } catch {
+            try? execute("ROLLBACK")
+            throw error
+        }
+    }
+
     // Local-only, bounded queue: the same operation UUID is retried until a
     // server response explicitly acknowledges it. Nothing is deleted on error.
     public func pendingSync(limit: Int = 25) throws -> [RecordedOperation] {

@@ -9,6 +9,7 @@ struct ClipboardShelfView: View {
     @State private var search = ""
     @State private var filter: Category = .all
     @State private var message: String?
+    @State private var confirmClear = false
     @AppStorage("nexusPinnedClipboardOperationIDs") private var pinnedRaw = ""
 
     private enum Category: String, CaseIterable, Identifiable {
@@ -68,6 +69,11 @@ struct ClipboardShelfView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
+                Button {
+                    confirmClear = true
+                } label: {
+                    Label(localized("Clear unpinned local history"), systemImage: "trash")
+                }
                 Button {
                     appState.refreshOperations()
                 } label: {
@@ -130,6 +136,15 @@ struct ClipboardShelfView: View {
         .frame(minWidth: 710, idealWidth: 890, minHeight: 355, idealHeight: 380)
         .background(.regularMaterial)
         .onAppear { appState.refreshOperations() }
+        .confirmationDialog(localized("Delete all unpinned local copy history?"),
+                            isPresented: $confirmClear) {
+            Button(localized("Delete unpinned local history"), role: .destructive) {
+                clearUnpinnedLocally()
+            }
+            Button(localized("Cancel"), role: .cancel) {}
+        } message: {
+            Text(localized("Pinned records are preserved. This does not delete anything previously uploaded to a remote server."))
+        }
     }
 
     private func card(for operation: RecordedOperation) -> some View {
@@ -201,6 +216,61 @@ struct ClipboardShelfView: View {
                 .strokeBorder(accent.opacity(0.24), lineWidth: 1)
         }
         .accessibilityElement(children: .contain)
+        .contextMenu {
+            Button(localized("Copy again")) { copyAgain(operation) }
+            Button(localized(isPinned ? "Unpin" : "Pin")) { togglePin(operation.id) }
+            Button(localized("Delete from local history"), role: .destructive) {
+                deleteLocally(operation.id)
+            }
+        }
+    }
+
+    private func deleteLocally(_ id: String) {
+        let store = OperationStore.shared()
+        Task {
+            let deleted = await Task.detached(priority: .utility) {
+                (try? store?.deleteOperation(id: id)) ?? false
+            }.value
+            if deleted {
+                var remainingPins = pinned
+                remainingPins.remove(id)
+                pinnedRaw = remainingPins.sorted().joined(separator: "\n")
+                appState.refreshOperations()
+                message = localized("Local record deleted")
+            } else {
+                message = localized("Unable to delete local record")
+            }
+        }
+    }
+
+    private func clearUnpinnedLocally() {
+        let keep = pinned
+        let store = OperationStore.shared()
+        Task {
+            let removed = await Task.detached(priority: .utility) {
+                var count = 0
+                guard let store else { return -1 }
+                do {
+                    // Work is bounded to 1,000 deletions per SQLite transaction.
+                    // Large histories may need additional passes, but the UI
+                    // never blocks to recurse through files.
+                    for _ in 0..<100 {
+                        let batch = try store.pruneHistory(olderThan: Int64.max,
+                                                           protectedIDs: keep,
+                                                           maxDeletions: 1_000)
+                        count += batch
+                        if batch == 0 { break }
+                    }
+                    return count
+                } catch {
+                    return -1
+                }
+            }.value
+            appState.refreshOperations()
+            message = removed >= 0
+                ? "\(removed) \(localized("local records deleted"))"
+                : localized("Unable to clear local history")
+        }
     }
 
     private func copyAgain(_ operation: RecordedOperation) {
