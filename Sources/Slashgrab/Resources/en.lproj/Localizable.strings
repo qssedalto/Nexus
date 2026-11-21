@@ -299,3 +299,9 @@
 "Server schema not recognized; operation sync not verified" = "Server schema not recognized; operation sync not verified";
 "Connected: statistics and operation history APIs available" = "Connected: statistics and operation history APIs available";
 "Connected: operation history API unavailable or not advertised" = "Connected: operation history API unavailable or not advertised";
+
+"Source application filter" = "Source application";
+"Source application unknown" = "Source application unknown";
+"Filter by date" = "Filter by date";
+"Through" = "Through";
+"Showing the latest 200 matching records; narrow the search to find older ones." = "Showing the latest 200 matching records; narrow the search to find older ones.";
