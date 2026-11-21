@@ -1044,7 +1044,7 @@ public final class OperationStore: @unchecked Sendable {
         let ordered = try ClipboardCloudMerge.merged(existing: [], incoming: records)
         let collections = ordered.filter { $0.kind == .collection }
         let memberships = ordered.filter { $0.kind == .membership }
-        guard ordered.allSatisfy({ consent.permits($0) }) else {
+        guard (collections + memberships).allSatisfy({ consent.permits($0) }) else {
             throw ClipboardCloudModelError.invalidRecord
         }
         lock.lock()
