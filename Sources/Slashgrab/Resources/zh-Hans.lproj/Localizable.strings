@@ -489,3 +489,8 @@
 "Rename" = "重命名";
 "Collection renamed" = "集合已重命名";
 "Unable to rename collection" = "无法重命名集合";
+"Remote deletion is available even when operation uploads are disabled. Automatic sync and operation upload permissions are turned off before deletion." = "即使已关闭操作历史上传，仍可删除服务器上的记录。删除前会关闭自动同步及操作历史上传权限。";
+"This deletes this device's server statistics. Automatic sync will be turned off before deletion." = "这将删除本设备在服务器上的统计数据。删除前将关闭自动同步。";
+"This deletes this device's copy operation records on the server. Automatic sync and operation upload permissions will be turned off; local records remain unchanged." = "这将删除本设备在服务器上的复制操作记录，同时关闭自动同步和操作历史上传权限；本机记录不受影响。";
+"Statistics server requires aggregate retry support before upload" = "统计服务器尚未支持可靠的聚合重试；已停止上传并保留本地待同步记录";
+"Server connected but safe aggregate statistics retry is unavailable" = "服务器已连接，但缺少安全的统计聚合重试支持；请先升级服务端";

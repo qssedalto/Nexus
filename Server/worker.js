@@ -80,7 +80,7 @@ export default {
         return json({
           authenticated: true,
           schema_version: 1,
-          capabilities: ["statistics.events", "statistics.summary", "operations.events", "operations.restore"]
+          capabilities: ["statistics.events", "statistics.summary", "statistics.monotonic_aggregates", "operations.events", "operations.restore"]
         });
       }
       if (path === "/api/nexus/v1/operations/events" && request.method === "POST") {
@@ -122,7 +122,7 @@ export default {
         const body = await request.json().catch(() => null);
         if (body?.schema_version !== 1 || typeof body.device_id !== "string" || !body.device_id || body.device_id.length > 80 || !Array.isArray(body.events) || body.events.length > 500 || !body.events.every(validEvent)) return json({ error: "invalid_request" }, 400);
         const statements = body.events.map(event => env.DB.prepare(
-          "INSERT INTO input_events(device_id, event_id, time_ms, category, name, count) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(device_id, event_id) DO NOTHING"
+          "INSERT INTO input_events(device_id, event_id, time_ms, category, name, count) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(device_id, event_id) DO UPDATE SET count = MAX(input_events.count, excluded.count), time_ms = MIN(input_events.time_ms, excluded.time_ms)"
         ).bind(body.device_id, event.id, event.time_ms, event.category, event.name, event.count));
         if (statements.length) await env.DB.batch(statements);
         return json({ accepted_ids: body.events.map(event => event.id) });

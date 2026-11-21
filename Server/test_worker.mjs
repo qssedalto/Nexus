@@ -51,6 +51,7 @@ test("API handshake reports authenticated operation support and version", async 
   assert.equal(hello.authenticated, true);
   assert.equal(hello.schema_version, 1);
   assert.ok(hello.capabilities.includes("operations.events"));
+  assert.ok(hello.capabilities.includes("statistics.monotonic_aggregates"));
   assert.ok(hello.capabilities.includes("operations.restore"));
   assert.equal((await worker.fetch(request("/api/nexus/v1/me", "GET", undefined, "wrong"), env)).status, 401);
 });
@@ -71,6 +72,32 @@ test("authenticated uploads are idempotent and ranges use milliseconds", async (
   assert.equal((await worker.fetch(request("/api/nexus/v1/me", "GET", undefined, "wrong"), env)).status, 401);
 });
 
+
+test("lost acknowledgement retries keep aggregate counts monotonic", async () => {
+  const env = environment();
+  const path = "/api/nexus/v1/statistics/events";
+  const initial = { schema_version: 1, device_id: "aggregate-device", events: [
+    { id: 42, time_ms: 3_600_000, category: "ordinary", name: "character_total", count: 2 },
+  ] };
+  assert.equal((await worker.fetch(request(path, "POST", initial), env)).status, 200);
+  const newer = { ...initial, events: [
+    { ...initial.events[0], count: 3, time_ms: 3_600_500 },
+  ] };
+  assert.equal((await worker.fetch(request(path, "POST", newer), env)).status, 200);
+  assert.equal((await worker.fetch(request(path, "POST", initial), env)).status, 200);
+
+  const history = await (await worker.fetch(request(
+    path + "?start_ms=3600000&end_ms=3601000"
+  ), env)).json();
+  assert.equal(history.events.length, 1);
+  assert.equal(history.events[0].count, 3);
+  assert.equal(history.events[0].time_ms, 3_600_000);
+  const result = await (await worker.fetch(request(
+    "/api/nexus/v1/statistics/summary?start_ms=3600000&end_ms=7200000"
+  ), env)).json();
+  assert.equal(result.statistics.length, 1);
+  assert.equal(result.statistics[0].count, 3);
+});
 
 test("operation metadata retries, UTC ranges and device deletion are idempotent", async () => {
   const env = environment();

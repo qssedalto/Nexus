@@ -3,6 +3,19 @@ import Security
 import SwiftUI
 import SlashgrabCore
 
+/// Never follow a redirect carrying the user's bearer token or private
+/// statistics/clipboard payload to an unexpected host or downgraded URL.
+private final class NexusRejectHTTPRedirects: NSObject, URLSessionTaskDelegate {
+    func urlSession(
+        _ session: URLSession, task: URLSessionTask,
+        willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest,
+        completionHandler: @escaping (URLRequest?) -> Void
+    ) {
+        completionHandler(nil)
+    }
+}
+
 @MainActor
 final class NetworkSyncController: ObservableObject {
     static let shared = NetworkSyncController()
@@ -10,6 +23,7 @@ final class NetworkSyncController: ObservableObject {
         didSet {
             defaults.set(serverAddress, forKey: "nexusSyncServer")
             serverOperationsSupported = false
+            serverStatisticsAggregatesSupported = false
             cancelInFlightUploads()
         }
     }
@@ -34,6 +48,7 @@ final class NetworkSyncController: ObservableObject {
     }
     @Published private(set) var status = "Idle"
     @Published private(set) var serverOperationsSupported = false
+    @Published private(set) var serverStatisticsAggregatesSupported = false
     @Published private(set) var lastSync: Date?
     @Published private(set) var remoteSummary: [String: Int64] = [:]
     @Published var operationSyncEnabled: Bool {
@@ -79,7 +94,19 @@ final class NetworkSyncController: ObservableObject {
     private var operationUploadWasAutomatic = false
     private var statisticsUploadTask: Task<UploadConfirmation, Error>?
     private var statisticsUploadWasAutomatic = false
+    private var statisticsDeletionInProgress = false
+    private var statisticsSyncPreparationInProgress = false
+    private var operationDeletionInProgress = false
     private let keychainService = "com.prof18.slashgrab.nexus-sync"
+    private let session: URLSession = {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.httpShouldSetCookies = false
+        configuration.httpCookieStorage = nil
+        configuration.urlCache = nil
+        return URLSession(configuration: configuration,
+                          delegate: NexusRejectHTTPRedirects(),
+                          delegateQueue: nil)
+    }()
 
     private init() {
         defaults = .standard
@@ -116,11 +143,13 @@ final class NetworkSyncController: ObservableObject {
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: keychainService, kSecAttrAccount as String: "api-token"]
         SecItemDelete(query as CFDictionary)
         serverOperationsSupported = false
+        serverStatisticsAggregatesSupported = false
         status = "Token removed"
     }
 
     func testConnection() async {
         serverOperationsSupported = false
+        serverStatisticsAggregatesSupported = false
         do {
             let request = try makeRequest(path: "/api/nexus/v1/me", method: "GET")
             let hello: ServerHello = try await fetch(request)
@@ -130,6 +159,11 @@ final class NetworkSyncController: ObservableObject {
                 return
             }
             serverOperationsSupported = (hello.capabilities ?? []).contains("operations.events")
+            serverStatisticsAggregatesSupported = (hello.capabilities ?? []).contains("statistics.monotonic_aggregates")
+            if !serverStatisticsAggregatesSupported {
+                status = localized("Server connected but safe aggregate statistics retry is unavailable")
+                return
+            }
             status = localized(serverOperationsSupported
                 ? "Connected: statistics and operation history APIs available"
                 : "Connected: operation history API unavailable or not advertised")
@@ -139,19 +173,46 @@ final class NetworkSyncController: ObservableObject {
     }
 
     func syncNow(automaticRun: Bool = false) async {
+        guard !statisticsDeletionInProgress else {
+            status = "Statistics deletion in progress; upload blocked"
+            return
+        }
         if automaticRun && !automatic { return }
-        guard statisticsUploadTask == nil else {
+        guard statisticsUploadTask == nil && !statisticsSyncPreparationInProgress else {
             status = "Statistics upload already in progress"
             return
         }
+        statisticsSyncPreparationInProgress = true
+        defer { statisticsSyncPreparationInProgress = false }
         guard let store else { status = "Statistics database unavailable"; return }
         let transferRevision = statisticsTransferRevision
         do {
             let pending = try store.pendingSync()
             guard !pending.isEmpty else { status = "Up to date"; return }
+            // The v1 endpoint predates aggregate uploads and acknowledges
+            // duplicates even when it silently discards their increased
+            // counts. Fail closed until the server explicitly advertises the
+            // monotonic-upsert behavior; keep every local row pending.
+            let hello: ServerHello = try await fetch(
+                try makeRequest(path: "/api/nexus/v1/me", method: "GET")
+            )
+            serverStatisticsAggregatesSupported =
+                hello.authenticated && hello.schemaVersion == 1
+                && hello.capabilities?.contains("statistics.monotonic_aggregates") == true
+            guard serverStatisticsAggregatesSupported else {
+                status = localized("Statistics server requires aggregate retry support before upload")
+                return
+            }
             let deviceID = persistentDeviceID()
-            let events = pending.map { event in
-                UploadEvent(id: event.id, timeMS: preciseEvents && event.category != "ordinary" ? event.timeMS : (event.timeMS / 60_000) * 60_000, category: event.category, name: event.name, count: event.count)
+            // Ordinary character events are aggregated per UTC hour,
+            // independently of the optional precise non-text event toggle.
+            let plan = try InputUploadPrivacyPolicy.prepare(
+                pending, preciseNonTextEvents: preciseEvents
+            )
+            let events = plan.events.map { event in
+                UploadEvent(id: event.id, timeMS: event.timeMS,
+                            category: event.category, name: event.name,
+                            count: event.count)
             }
             var request = try makeRequest(path: "/api/nexus/v1/statistics/events", method: "POST")
             request.httpBody = try JSONEncoder().encode(UploadBatch(schemaVersion: 1, deviceID: deviceID, events: events))
@@ -178,12 +239,16 @@ final class NetworkSyncController: ObservableObject {
                 status = "Statistics request cancelled; check server before retrying"
                 return
             }
-            let submitted = Set(pending.map(\.id))
-            guard Set(confirmation.acceptedIDs).isSubset(of: submitted) else { throw SyncError.invalidResponse }
-            try store.markSynced(ids: confirmation.acceptedIDs, deviceID: deviceID)
+            guard let acknowledgedSourceIDs = plan.sourceIDs(
+                forAcknowledgedUploadIDs: confirmation.acceptedIDs
+            ) else { throw SyncError.invalidResponse }
+            // Only the source IDs represented by a confirmed aggregate may
+            // be marked as synchronized. A revoked permission still leaves
+            // the originals pending via the revision/cancellation guard above.
+            try store.markSynced(ids: acknowledgedSourceIDs, deviceID: deviceID)
             lastSync = Date()
             defaults.set(lastSync, forKey: "nexusSyncLastSuccess")
-            status = "Uploaded \(confirmation.acceptedIDs.count) records"
+            status = "Uploaded \(acknowledgedSourceIDs.count) local events in \(confirmation.acceptedIDs.count) aggregated records"
             appendLog(status)
         } catch is CancellationError {
             status = "Statistics request cancelled; an in-flight server request may already have arrived"
@@ -201,6 +266,10 @@ final class NetworkSyncController: ObservableObject {
     }
 
     func syncOperationsNow(automaticRun: Bool = false) async {
+        guard !operationDeletionInProgress else {
+            operationSyncStatus = "Remote operation deletion in progress; upload blocked"
+            return
+        }
         if automaticRun && !automatic { return }
         guard operationSyncEnabled else {
             operationSyncStatus = "Operation history upload requires separate consent"
@@ -337,10 +406,18 @@ final class NetworkSyncController: ObservableObject {
     }
 
     func deleteRemoteOperations() async {
-        guard operationSyncEnabled else {
-            operationSyncStatus = "Enable operation history sync to manage server data"
+        // Deletion never requires turning upload back on. Revoke future
+        // automatic and category-specific permissions before network access.
+        automatic = false
+        operationSyncEnabled = false
+        operationSyncPaths = false
+        operationSyncText = false
+        guard operationUploadTask == nil && !operationDeletionInProgress else {
+            operationSyncStatus = "An operation upload is still running; retry deletion once it completes"
             return
         }
+        operationDeletionInProgress = true
+        defer { operationDeletionInProgress = false }
         do {
             let request = try makeRequest(
                 path: "/api/nexus/v1/operations/events?device_id=\(persistentDeviceID())",
@@ -394,6 +471,14 @@ final class NetworkSyncController: ObservableObject {
     }
 
     func deleteRemoteDevice() async {
+        automatic = false
+        guard statisticsUploadTask == nil && !statisticsSyncPreparationInProgress
+                && !statisticsDeletionInProgress else {
+            status = "A statistics upload is still running; retry deletion once it completes"
+            return
+        }
+        statisticsDeletionInProgress = true
+        defer { statisticsDeletionInProgress = false }
         do {
             let request = try makeRequest(path: "/api/nexus/v1/statistics/events?device_id=\(persistentDeviceID())", method: "DELETE")
             let response: DeleteResponse = try await fetch(request)
@@ -403,7 +488,7 @@ final class NetworkSyncController: ObservableObject {
     }
 
     private func fetch<T: Decodable>(_ request: URLRequest) async throws -> T {
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw SyncError.invalidResponse }
         guard (200..<300).contains(http.statusCode) else { throw SyncError.http(http.statusCode) }
         return try JSONDecoder().decode(T.self, from: data)
@@ -415,7 +500,9 @@ final class NetworkSyncController: ObservableObject {
     }
 
     private func makeRequest(path: String, method: String) throws -> URLRequest {
-        guard let base = URL(string: serverAddress), base.scheme == "https", base.host != nil,
+        guard let base = URL(string: serverAddress), base.scheme == "https",
+              base.host != nil, base.user == nil, base.password == nil,
+              base.query == nil, base.fragment == nil,
               let token = token(), !token.isEmpty else { throw SyncError.configuration }
         guard let pathParts = URLComponents(string: path),
               var destination = URLComponents(url: base, resolvingAgainstBaseURL: false) else { throw SyncError.configuration }
@@ -561,8 +648,10 @@ struct NetworkSyncView: View {
                     }.disabled(!controller.operationSyncEnabled)
                     Button(localized("Delete this device's remote operation history"), role: .destructive) {
                         confirmOperationDelete = true
-                    }.disabled(!controller.operationSyncEnabled)
+                    }.disabled(!controller.hasToken)
                 }
+                Text(localized("Remote deletion is available even when operation uploads are disabled. Automatic sync and operation upload permissions are turned off before deletion."))
+                    .font(.caption).foregroundStyle(.secondary)
                 Text(controller.operationPreview).font(.caption).textSelection(.enabled)
                 LabeledContent(localized("Operation sync status"), value: controller.operationSyncStatus)
             }
@@ -594,14 +683,14 @@ struct NetworkSyncView: View {
         .alert(localized("Delete remote device data"), isPresented: $confirmRemoteDelete) {
             Button(localized("Cancel"), role: .cancel) {}
             Button(localized("Confirm"), role: .destructive) { Task { await controller.deleteRemoteDevice() } }
-        } message: { Text(localized("This deletes this device's server statistics.")) }
+        } message: { Text(localized("This deletes this device's server statistics. Automatic sync will be turned off before deletion.")) }
         .alert(localized("Delete remote operation history"), isPresented: $confirmOperationDelete) {
             Button(localized("Cancel"), role: .cancel) {}
             Button(localized("Confirm"), role: .destructive) {
                 Task { await controller.deleteRemoteOperations() }
             }
         } message: {
-            Text(localized("This deletes this device's copy operation records on the server. Local records remain unchanged."))
+            Text(localized("This deletes this device's copy operation records on the server. Automatic sync and operation upload permissions will be turned off; local records remain unchanged."))
         }
     }
 
