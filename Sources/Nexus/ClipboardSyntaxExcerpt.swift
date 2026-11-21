@@ -1,5 +1,5 @@
 import AppKit
-import SlashgrabCore
+import NexusCore
 import SwiftUI
 
 /// Read-only syntax colors, generated from an explicit Markdown code fence.

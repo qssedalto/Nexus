@@ -1,6 +1,6 @@
 import AppKit
 import SwiftUI
-import SlashgrabCore
+import NexusCore
 import UniformTypeIdentifiers
 
 /// A lightweight, original bottom-shelf view of the existing SQLite timeline.

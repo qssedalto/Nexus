@@ -1,5 +1,5 @@
 import AppKit
-import SlashgrabCore
+import NexusCore
 import SwiftUI
 
 /// Lazy presentation of pre-sanitized formatting metadata. Plain clipboard

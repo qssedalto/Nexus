@@ -1,5 +1,5 @@
 import AppKit
-import SlashgrabCore
+import NexusCore
 import SwiftUI
 
 /// A best-effort visual cue, never a claim about the actual clipboard writer.
