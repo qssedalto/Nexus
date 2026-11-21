@@ -68,11 +68,20 @@ public final class OperationStore: @unchecked Sendable {
             let version = sqlite3_step(versionStatement) == SQLITE_ROW ? sqlite3_column_int(versionStatement, 0) : 0
             sqlite3_finalize(versionStatement)
             if version < 2 {
+                // Some local preview builds already added individual columns
+                // without bumping user_version. Never destroy their history.
+                let columns = try operationColumnNames()
                 try execute("BEGIN IMMEDIATE")
                 do {
-                    try execute("ALTER TABLE operations ADD COLUMN target TEXT")
-                    try execute("ALTER TABLE operations ADD COLUMN duration_ms INTEGER")
-                    try execute("ALTER TABLE operations ADD COLUMN clipboard_text TEXT")
+                    if !columns.contains("target") {
+                        try execute("ALTER TABLE operations ADD COLUMN target TEXT")
+                    }
+                    if !columns.contains("duration_ms") {
+                        try execute("ALTER TABLE operations ADD COLUMN duration_ms INTEGER")
+                    }
+                    if !columns.contains("clipboard_text") {
+                        try execute("ALTER TABLE operations ADD COLUMN clipboard_text TEXT")
+                    }
                     try execute("PRAGMA user_version=2")
                     try execute("COMMIT")
                 } catch {
@@ -171,6 +180,16 @@ public final class OperationStore: @unchecked Sendable {
             results.append(RecordedOperation(id: id, type: string(statement, 1) ?? "", eventTimeMS: integer(statement, 2), detectedTimeMS: sqlite3_column_int64(statement, 3), completedTimeMS: integer(statement, 4), sourceApplication: string(statement, 5), detectionMethod: string(statement, 6) ?? "", status: string(statement, 7) ?? "", target: string(statement, 8), durationMS: integer(statement, 9), clipboardText: string(statement, 10), items: items))
         }
         return results
+    }
+
+    private func operationColumnNames() throws -> Set<String> {
+        let statement = try prepare("PRAGMA table_info(operations)")
+        defer { sqlite3_finalize(statement) }
+        var names = Set<String>()
+        while sqlite3_step(statement) == SQLITE_ROW {
+            if let name = string(statement, 1) { names.insert(name) }
+        }
+        return names
     }
 
     private func execute(_ sql: String) throws {
