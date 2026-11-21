@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import SlashgrabCore
+import UniformTypeIdentifiers
 
 /// A lightweight, original bottom-shelf view of the existing SQLite timeline.
 /// This does not install a second clipboard observer or retain image pixels.
@@ -219,7 +220,9 @@ struct ClipboardShelfView: View {
                         .help(localized("Delete collection only"))
                 }
                 Spacer()
-                Text(localized("Collections protect their entries from history cleanup."))
+                Text(localized(selectedCollectionID.isEmpty
+                    ? "Collections protect their entries from history cleanup."
+                    : "Drag cards to reorder this collection."))
                     .font(.caption2).foregroundStyle(.secondary)
             }
 
@@ -466,6 +469,27 @@ struct ClipboardShelfView: View {
                 )
         }
         .accessibilityElement(children: .contain)
+        .onDrag {
+            // Export only an opaque operation ID, never clipboard content.
+            NSItemProvider(object: operation.id as NSString)
+        }
+        .onDrop(of: [UTType.plainText], isTargeted: nil) { providers in
+            guard !selectedCollectionID.isEmpty,
+                  collectionMemberIDs.contains(operation.id),
+                  let provider = providers.first(where: {
+                      $0.canLoadObject(ofClass: NSString.self)
+                  }) else { return false }
+            let target = operation.id
+            let collection = selectedCollectionID
+            _ = provider.loadObject(ofClass: NSString.self) { value, _ in
+                guard let dragged = value as? String else { return }
+                Task { @MainActor in
+                    guard selectedCollectionID == collection else { return }
+                    reorderInCurrentCollection(dragged, before: target)
+                }
+            }
+            return true
+        }
         .onTapGesture {
             selectedOperationID = operation.id
         }
@@ -597,6 +621,24 @@ struct ClipboardShelfView: View {
                 try? store?.removeOperation(id: operationID, fromCollection: collectionID)
             }.value
             loadCollectionMembers()
+        }
+    }
+
+    private func reorderInCurrentCollection(_ draggedID: String, before targetID: String) {
+        let collectionID = selectedCollectionID
+        guard !collectionID.isEmpty, draggedID != targetID,
+              collectionMemberIDs.contains(draggedID),
+              collectionMemberIDs.contains(targetID) else { return }
+        let store = OperationStore.shared()
+        Task {
+            let changed = await Task.detached(priority: .utility) {
+                (try? store?.moveOperation(id: draggedID,
+                                          before: targetID,
+                                          inCollection: collectionID)) ?? false
+            }.value
+            if changed {
+                loadCollectionMembers()
+            }
         }
     }
 
