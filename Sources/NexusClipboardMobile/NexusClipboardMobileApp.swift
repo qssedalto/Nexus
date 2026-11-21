@@ -124,6 +124,10 @@ struct MobileHomeView: View {
                         .disabled(!cloud.cloudEnabled || !cloud.containerConfigured || cloud.running)
                         LabeledContent("Local pending updates", value: String(cloud.pendingCount))
                         Button("Refresh local cache") { cloud.refresh() }
+                        Button("Reset cloud change cursor") {
+                            cloud.resetServerCursor()
+                        }
+                        .disabled(!cloud.cloudEnabled || cloud.running)
                     }
                     Section("Status") {
                         Text(cloud.status).foregroundStyle(.secondary)
