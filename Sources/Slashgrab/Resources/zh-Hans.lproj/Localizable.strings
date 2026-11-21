@@ -182,3 +182,16 @@
 "Operation sync status" = "操作历史同步状态";
 "Delete remote operation history" = "删除云端操作历史";
 "This deletes this device's copy operation records on the server. Local records remain unchanged." = "这将删除服务器上属于本设备的复制操作记录，不影响本地历史。";
+
+"Item type" = "对象类型";
+"Package" = "文件包";
+"Document" = "文档";
+"Video" = "视频";
+"Archive" = "压缩包";
+"Cancel folder scan" = "取消文件夹扫描";
+"Copy source path" = "复制来源路径";
+"Copy target path" = "复制目标路径";
+"Calculate folder size (background)" = "后台计算文件夹大小";
+"Calculating folder size in the background…" = "正在后台计算文件夹大小…";
+"Folder size" = "文件夹大小";
+"Folder size scan cancelled" = "已取消文件夹扫描";
