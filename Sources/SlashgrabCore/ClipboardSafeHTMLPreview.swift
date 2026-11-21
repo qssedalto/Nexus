@@ -75,7 +75,12 @@ public enum ClipboardSafeHTMLPreview {
                 var name = isClosing ? String(token.dropFirst()) : token
                 let isSelfClosing = name.hasSuffix("/")
                 if isSelfClosing { name.removeLast() }
-                let supported = ["b", "strong", "i", "em", "u", "span", "p", "div", "br"]
+                let supported = [
+                    "b", "strong", "i", "em", "u", "span", "p", "div", "br",
+                    "h1", "h2", "h3", "h4", "h5", "h6",
+                    "ul", "ol", "li", "blockquote", "pre", "code",
+                    "section", "article"
+                ]
                 guard supported.contains(name),
                       !name.contains(where: { $0.isWhitespace }),
                       !(isClosing && isSelfClosing) else { return nil }
@@ -88,7 +93,8 @@ public enum ClipboardSafeHTMLPreview {
                     guard tags.last == name else { return nil }
                     tags.removeLast()
                     switch name {
-                    case "b", "strong": boldDepth -= 1
+                    case "b", "strong", "h1", "h2", "h3", "h4", "h5", "h6":
+                        boldDepth -= 1
                     case "i", "em": italicDepth -= 1
                     case "u": underlineDepth -= 1
                     default: break
@@ -97,13 +103,23 @@ public enum ClipboardSafeHTMLPreview {
                     guard !isSelfClosing, tags.count < maximumNesting else {
                         return nil
                     }
-                    if (name == "p" || name == "div"),
-                       !output.isEmpty, !output.hasSuffix("\n") {
+                    // List items must belong to a list; unlike a WebKit
+                    // renderer, this parser intentionally accepts no CSS,
+                    // image tags, HTML attributes, links or external assets.
+                    if name == "li", !tags.contains("ul") && !tags.contains("ol") {
+                        return nil
+                    }
+                    let isBlock = [
+                        "p", "div", "h1", "h2", "h3", "h4", "h5",
+                        "h6", "li", "blockquote", "pre", "section", "article"
+                    ].contains(name)
+                    if isBlock && !output.isEmpty && !output.hasSuffix("\n") {
                         guard append("\n") else { return nil }
                     }
                     tags.append(name)
                     switch name {
-                    case "b", "strong": boldDepth += 1
+                    case "b", "strong", "h1", "h2", "h3", "h4", "h5", "h6":
+                        boldDepth += 1
                     case "i", "em": italicDepth += 1
                     case "u": underlineDepth += 1
                     default: break
