@@ -64,6 +64,26 @@ struct ClipboardCloudSettingsView: View {
                     Text(String(cloud.pendingCount)).monospacedDigit()
                 }
                 .font(.caption)
+                if let previous = cloud.lastSuccessfulSync {
+                    HStack {
+                        Text(localized("Last successful manual sync:"))
+                        Text(
+                            Date(timeIntervalSince1970:
+                                TimeInterval(previous.finishedTimeMS) / 1_000),
+                            style: .relative
+                        )
+                        Spacer()
+                        Text("\(previous.uploaded) ↑ / \(previous.downloaded) ↓")
+                            .monospacedDigit()
+                        if previous.moreComing || previous.pending > 0 {
+                            Text(localized("More changes pending"))
+                        } else {
+                            Text(localized("Synchronized at last run"))
+                        }
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
                 Text(cloud.status)
                     .font(.caption)
                     .foregroundStyle(.secondary)

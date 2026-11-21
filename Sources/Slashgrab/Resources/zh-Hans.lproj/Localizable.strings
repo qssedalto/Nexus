@@ -461,3 +461,7 @@
 
 "Resume clipboard history" = "恢复剪贴板历史记录";
 "Pause clipboard history" = "暂停剪贴板历史记录";
+
+"Last successful manual sync:" = "最近成功的手动同步：";
+"More changes pending" = "仍有待同步变更";
+"Synchronized at last run" = "上次运行时已同步";

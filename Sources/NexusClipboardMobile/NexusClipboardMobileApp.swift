@@ -123,6 +123,21 @@ struct MobileHomeView: View {
                         }
                         .disabled(!cloud.cloudEnabled || !cloud.containerConfigured || cloud.running)
                         LabeledContent("Local pending updates", value: String(cloud.pendingCount))
+                        if let previous = cloud.lastSuccessfulSync {
+                            LabeledContent("Last successful manual sync") {
+                                Text(
+                                    Date(timeIntervalSince1970:
+                                        TimeInterval(previous.finishedTimeMS) / 1_000),
+                                    style: .relative
+                                )
+                            }
+                            LabeledContent("Last uploaded / received", value:
+                                "\(previous.uploaded) / \(previous.downloaded)")
+                            if previous.moreComing || previous.pending > 0 {
+                                Text("More changes pending")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                         Button("Refresh local cache") { cloud.refresh() }
                         Button("Reset cloud change cursor") {
                             cloud.resetServerCursor()

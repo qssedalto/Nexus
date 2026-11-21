@@ -24,6 +24,7 @@ final class MobileClipboardController: ObservableObject {
     @Published private(set) var pendingCount = 0
     @Published private(set) var status = "No cloud network activity until you press Sync"
     @Published private(set) var running = false
+    @Published private(set) var lastSuccessfulSync: ClipboardCloudRunSummary?
 
     private let defaults: UserDefaults
     private let journal: ClipboardCloudJournal?
@@ -34,6 +35,8 @@ final class MobileClipboardController: ObservableObject {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        lastSuccessfulSync = defaults.data(forKey: "nexusMobileCloudLastSuccess")
+            .flatMap { try? JSONDecoder().decode(ClipboardCloudRunSummary.self, from: $0) }
         cloudEnabled = defaults.bool(forKey: "nexusMobileCloudEnabled")
         includeText = defaults.bool(forKey: "nexusMobileCloudText")
         includeNames = defaults.bool(forKey: "nexusMobileCloudNames")
@@ -216,6 +219,15 @@ final class MobileClipboardController: ObservableObject {
                 journal: journal, transport: transport, zoneID: zoneID.zoneName
             )
             let report = try await coordinator.syncOnce(consent: consent)
+            if let summary = ClipboardCloudRunSummary(
+                report: report,
+                finishedTimeMS: Int64(Date().timeIntervalSince1970 * 1_000)
+            ) {
+                lastSuccessfulSync = summary
+                if let encoded = try? JSONEncoder().encode(summary) {
+                    defaults.set(encoded, forKey: "nexusMobileCloudLastSuccess")
+                }
+            }
             refresh()
             status = "Uploaded \(report.uploaded), received \(report.downloaded), pending \(report.pending)"
                 + (report.moreComing ? " — more pages available" : "")
