@@ -57,7 +57,8 @@ struct ClipboardShelfView: View {
     private var shouldQueryDatabase: Bool {
         !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             || !sourceFilter.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            || filterByDate || (filter != .all && filter != .pinned)
+            || filterByDate || !selectedCollectionID.isEmpty
+            || (filter != .all && filter != .pinned)
     }
 
     private var filterFingerprint: String {
@@ -89,6 +90,7 @@ struct ClipboardShelfView: View {
 
     private var operations: [RecordedOperation] {
         let pins = pinned
+        let collectionMembers = Set(collectionMemberIDs)
         let candidates: [RecordedOperation]
         if shouldQueryDatabase {
             // Keep pinned cards discoverable even when they are older than
@@ -105,7 +107,7 @@ struct ClipboardShelfView: View {
 
         let matches = candidates.filter { operation in
             guard ["copy", "path_copy", "text_copy", "image_copy", "drop_copy"].contains(operation.type) else { return false }
-            if !selectedCollectionID.isEmpty && !collectionMemberIDs.contains(operation.id) { return false }
+            if !selectedCollectionID.isEmpty && !collectionMembers.contains(operation.id) { return false }
             let kind = operation.items.first?.kind
             switch filter {
             case .all: break
