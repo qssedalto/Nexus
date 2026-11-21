@@ -349,6 +349,7 @@ final class MobileClipboardController: ObservableObject {
     func clearLocalCloudData() async {
         guard !running, let journal else { return }
         cloudEnabled = false
+        foregroundSyncEnabled = false
         running = true
         defer { running = false }
         do {
@@ -371,6 +372,7 @@ final class MobileClipboardController: ObservableObject {
     func erasePrivateNexusCloudZone(confirmation: String) async {
         guard confirmation == "DELETE", !running, let journal else { return }
         cloudEnabled = false
+        foregroundSyncEnabled = false
         running = true
         defer { running = false }
         do {
