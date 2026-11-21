@@ -157,7 +157,10 @@ final class AppState: ObservableObject {
         let queryID = UUID()
         shelfQueryID = queryID
         let store = operationStore
-        let ids = Array(Set(protectedIDs)).sorted()
+        var seen = Set<String>()
+        let ids = Array(protectedIDs.filter {
+            !$0.isEmpty && seen.insert($0).inserted
+        }.prefix(500))
         Task { [weak self] in
             let results = await Task.detached(priority: .utility) {
                 let recent = (try? store?.searchClipboard(query: "", limit: 200)) ?? []
