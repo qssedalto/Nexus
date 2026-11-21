@@ -418,26 +418,36 @@ struct InputStatisticsView: View {
             if !expanded { controller.diagnosticsEnabled = false }
         }
         .onDisappear { controller.diagnosticsEnabled = false }
-        .alert("\(localized("Confirm deletion")) \(deleteConfirmation)/5", isPresented: $showingDeleteAlert) {
+        .alert("\(localized("Confirm deletion")) \(deleteConfirmation)/\(StatisticsDeletionConfirmationPolicy.requiredSteps)", isPresented: $showingDeleteAlert) {
             Button(localized("Cancel"), role: .cancel) {
                 deleteConfirmation = 0
                 deleteAllRequested = false
             }
             Button(localized("Confirm"), role: .destructive) {
-                if deleteConfirmation == 5 {
+                if StatisticsDeletionConfirmationPolicy.allowsDeletion(
+                    afterConfirmed: deleteConfirmation
+                ) {
                     let (lower, upper) = deleteAllRequested ? (Int64(0), Int64.max) : bounds
                     controller.delete(from: lower, to: upper)
                     deleteConfirmation = 0
                     deleteAllRequested = false
-                } else {
-                    deleteConfirmation += 1
+                } else if let nextStep = StatisticsDeletionConfirmationPolicy.nextStep(
+                    afterConfirmed: deleteConfirmation
+                ) {
+                    deleteConfirmation = nextStep
                     DispatchQueue.main.async { showingDeleteAlert = true }
+                } else {
+                    // An unexpected step must always fail closed.
+                    deleteConfirmation = 0
+                    deleteAllRequested = false
                 }
             }
         } message: {
-            Text(localized(deleteAllRequested
+            Text("\(localized(StatisticsDeletionConfirmationPolicy.prompt(
+                forStep: deleteConfirmation
+            ) ?? "Review the time range to be deleted."))\n\n\(localized(deleteAllRequested
                 ? "This deletes every locally stored input statistic. Existing cloud backups and uploads are not deleted."
-                : "This deletes statistics in the selected time range."))
+                : "This deletes statistics in the selected time range."))")
         }
     }
 
