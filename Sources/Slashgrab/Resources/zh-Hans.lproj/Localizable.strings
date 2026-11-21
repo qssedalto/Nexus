@@ -377,3 +377,13 @@
 "Copied code" = "已复制代码";
 
 "Drag cards to reorder this collection." = "拖动卡片以调整此收藏集中的顺序。";
+
+"Custom shortcut" = "自定义快捷键";
+"Configure custom shortcut…" = "设置自定义快捷键…";
+"Custom shortcuts require two or more modifiers. Keys use physical keyboard positions; system conflicts are rejected without losing the previous shortcut." = "自定义快捷键至少需要两个修饰键；按键按物理键位识别。若与系统快捷键冲突，将保留原有快捷键。";
+"Custom clipboard shortcut" = "自定义剪贴板快捷键";
+"Key" = "按键";
+"Choose at least two modifiers. If macOS already uses the combination, Nexus keeps the previous shortcut." = "请至少选择两个修饰键。若 macOS 已占用该组合，Nexus 将保留此前的快捷键。";
+"Apply shortcut" = "应用快捷键";
+"Select at least two shortcut modifiers" = "请至少选择两个快捷键修饰键";
+"Configure a custom shortcut first" = "请先设置自定义快捷键";

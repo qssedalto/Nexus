@@ -1,6 +1,7 @@
 import AppKit
 import Carbon
 import SwiftUI
+import SlashgrabCore
 
 /// Supported global shortcuts are intentionally opt-in: the default is Off.
 /// RegisterEventHotKey fails rather than overriding existing registrations.
@@ -13,6 +14,7 @@ final class ClipboardHotkeyController: ObservableObject {
         case controlOptionV
         case controlShiftSpace
         case controlOptionShiftV
+        case custom
 
         var id: String { rawValue }
 
@@ -22,6 +24,7 @@ final class ClipboardHotkeyController: ObservableObject {
             case .controlOptionV: return "⌃⌥V"
             case .controlShiftSpace: return "⌃⇧Space"
             case .controlOptionShiftV: return "⌃⌥⇧V"
+            case .custom: return localized("Custom shortcut")
             }
         }
 
@@ -30,6 +33,7 @@ final class ClipboardHotkeyController: ObservableObject {
             case .off: return 0
             case .controlOptionV, .controlOptionShiftV: return 9
             case .controlShiftSpace: return 49
+            case .custom: return 0
             }
         }
 
@@ -39,21 +43,32 @@ final class ClipboardHotkeyController: ObservableObject {
             case .controlOptionV: return UInt32(controlKey | optionKey)
             case .controlShiftSpace: return UInt32(controlKey | shiftKey)
             case .controlOptionShiftV: return UInt32(controlKey | optionKey | shiftKey)
+            case .custom: return 0
             }
         }
     }
 
     @Published private(set) var selected: Preset
     @Published private(set) var status = ""
+    @Published private(set) var customShortcut: ClipboardShortcutSpecification?
     var onToggle: (@MainActor () -> Void)?
 
     private var hotKey: EventHotKeyRef?
     private var eventHandler: EventHandlerRef?
     private let signature: OSType = 0x4E585348 // NXSH
+    private let customKey = "nexusClipboardHotkeyCustomShortcut"
 
     private init() {
-        selected = Preset(rawValue: UserDefaults.standard.string(
+        let defaults = UserDefaults.standard
+        let stored = defaults.data(forKey: customKey)
+            .flatMap { try? JSONDecoder().decode(
+                ClipboardShortcutSpecification.self, from: $0
+            ) }
+        let loadedCustom = stored?.isValid == true ? stored : nil
+        customShortcut = loadedCustom
+        let preferred = Preset(rawValue: defaults.string(
             forKey: "nexusClipboardHotkeyPreset") ?? "") ?? .off
+        selected = preferred == .custom && loadedCustom == nil ? .off : preferred
     }
 
     func install() {
@@ -93,8 +108,36 @@ final class ClipboardHotkeyController: ObservableObject {
             UserDefaults.standard.set(candidate.rawValue, forKey: "nexusClipboardHotkeyPreset")
             return true
         }
-        // Do not silently drop a working shortcut if the new combo conflicts.
+        // A failed/conflicting shortcut must never remove the working one.
         _ = register(previous)
+        status = localized("Shortcut unavailable or used by another application")
+        return false
+    }
+
+    @discardableResult
+    func setCustomShortcut(_ candidate: ClipboardShortcutSpecification) -> Bool {
+        guard candidate.isValid else {
+            status = localized("Select at least two shortcut modifiers")
+            return false
+        }
+        let previous = selected
+        let previousCustom = customShortcut
+        if let hotKey {
+            UnregisterEventHotKey(hotKey)
+            self.hotKey = nil
+        }
+        customShortcut = candidate
+        if register(.custom) {
+            selected = .custom
+            UserDefaults.standard.set(Preset.custom.rawValue, forKey: "nexusClipboardHotkeyPreset")
+            if let data = try? JSONEncoder().encode(candidate) {
+                UserDefaults.standard.set(data, forKey: customKey)
+            }
+            return true
+        }
+        customShortcut = previousCustom
+        _ = register(previous)
+        status = localized("Shortcut unavailable or used by another application")
         return false
     }
 
@@ -104,10 +147,30 @@ final class ClipboardHotkeyController: ObservableObject {
             status = localized("Global clipboard shortcut disabled")
             return true
         }
+        let code: UInt32
+        let flags: UInt32
+        if preset == .custom {
+            guard let customShortcut, customShortcut.isValid else {
+                status = localized("Configure a custom shortcut first")
+                return false
+            }
+            code = customShortcut.key.physicalKeyCode
+            flags = customShortcut.modifiers.reduce(UInt32(0)) { partial, modifier in
+                switch modifier {
+                case .control: return partial | UInt32(controlKey)
+                case .option: return partial | UInt32(optionKey)
+                case .shift: return partial | UInt32(shiftKey)
+                case .command: return partial | UInt32(cmdKey)
+                }
+            }
+        } else {
+            code = preset.keyCode
+            flags = preset.modifiers
+        }
         var ref: EventHotKeyRef?
         let hotkeyID = EventHotKeyID(signature: signature, id: 1)
         let result = RegisterEventHotKey(
-            preset.keyCode, preset.modifiers, hotkeyID,
+            code, flags, hotkeyID,
             GetApplicationEventTarget(), 0, &ref
         )
         guard result == noErr, let ref else {
