@@ -4,15 +4,27 @@ import Foundation
 import SlashgrabCore
 import SwiftUI
 
-/// Manually invoked iCloud clipboard integration. Nothing calls the CloudKit
-/// network while this controller is initialized or on launch. A signed app
-/// must supply NexusCloudKitContainerIdentifier in Info.plist.
+/// CloudKit clipboard integration. Network access is manual unless the user
+/// explicitly enables the separate scheduled sync control. Simply opening
+/// Settings never contacts CloudKit. A signed app must supply
+/// NexusCloudKitContainerIdentifier in Info.plist.
 @MainActor
 final class ClipboardCloudController: ObservableObject {
     static let shared = ClipboardCloudController()
 
     @Published var enabled: Bool {
-        didSet { defaults.set(enabled, forKey: "nexusCloudClipboardEnabled") }
+        didSet {
+            defaults.set(enabled, forKey: "nexusCloudClipboardEnabled")
+            configureAutomaticSyncTimer()
+        }
+    }
+    /// Separate consent for timed CloudKit access. The default is OFF even
+    /// when the user previously enabled manual iCloud clipboard sync.
+    @Published var automaticSyncEnabled: Bool {
+        didSet {
+            defaults.set(automaticSyncEnabled, forKey: "nexusCloudClipboardAutomaticSync")
+            configureAutomaticSyncTimer()
+        }
     }
     @Published var includeNames: Bool {
         didSet { defaults.set(includeNames, forKey: "nexusCloudClipboardNames") }
@@ -38,6 +50,9 @@ final class ClipboardCloudController: ObservableObject {
         zoneName: "NexusClipboard", ownerName: CKCurrentUserDefaultName
     )
     private let maximumHistoryPage = 200
+    private var automaticSyncTimer: Timer?
+    private var automaticSyncTask: Task<Void, Never>?
+    private var automaticCycleRunning = false
 
     private init() {
         let defaults = UserDefaults.standard
@@ -45,6 +60,7 @@ final class ClipboardCloudController: ObservableObject {
         lastSuccessfulSync = defaults.data(forKey: "nexusCloudClipboardLastSuccess")
             .flatMap { try? JSONDecoder().decode(ClipboardCloudRunSummary.self, from: $0) }
         enabled = defaults.bool(forKey: "nexusCloudClipboardEnabled")
+        automaticSyncEnabled = defaults.bool(forKey: "nexusCloudClipboardAutomaticSync")
         includeNames = defaults.bool(forKey: "nexusCloudClipboardNames")
         includeText = defaults.bool(forKey: "nexusCloudClipboardText")
         includePaths = defaults.bool(forKey: "nexusCloudClipboardPaths")
@@ -71,6 +87,57 @@ final class ClipboardCloudController: ObservableObject {
             journal = nil
         }
         refreshLocalCache()
+        configureAutomaticSyncTimer()
+    }
+
+    /// The timer is created only under both independent user consents and a
+    /// signed CloudKit configuration. A disabled toggle prevents future
+    /// network attempts and cancels our scheduled in-flight task.
+    private func configureAutomaticSyncTimer() {
+        automaticSyncTimer?.invalidate()
+        automaticSyncTimer = nil
+        guard ClipboardCloudAutomaticSyncPolicy.maySchedule(
+            cloudEnabled: enabled,
+            automaticEnabled: automaticSyncEnabled,
+            containerConfigured: containerConfigured
+        ) else {
+            automaticSyncTask?.cancel()
+            return
+        }
+        automaticSyncTimer = Timer.scheduledTimer(
+            withTimeInterval: ClipboardCloudAutomaticSyncPolicy.intervalSeconds,
+            repeats: true
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self,
+                      ClipboardCloudAutomaticSyncPolicy.mayStartCycle(
+                          cloudEnabled: self.enabled,
+                          automaticEnabled: self.automaticSyncEnabled,
+                          containerConfigured: self.containerConfigured,
+                          busy: self.running || self.automaticCycleRunning
+                      ) else { return }
+                self.automaticSyncTask = Task { @MainActor [weak self] in
+                    await self?.runAutomaticSyncCycle()
+                }
+            }
+        }
+    }
+
+    private func runAutomaticSyncCycle() async {
+        guard !automaticCycleRunning,
+              ClipboardCloudAutomaticSyncPolicy.mayStartCycle(
+                  cloudEnabled: enabled, automaticEnabled: automaticSyncEnabled,
+                  containerConfigured: containerConfigured, busy: running
+              ) else { return }
+        automaticCycleRunning = true
+        defer {
+            automaticCycleRunning = false
+            automaticSyncTask = nil
+        }
+        await prepareLocalPage()
+        guard !Task.isCancelled, enabled, automaticSyncEnabled,
+              containerConfigured else { return }
+        await syncNow(automaticRun: true)
     }
 
     var currentConsent: ClipboardCloudConsent {
@@ -145,9 +212,10 @@ final class ClipboardCloudController: ObservableObject {
         }
     }
 
-    func syncNow() async {
+    func syncNow(automaticRun: Bool = false) async {
         guard !running else { return }
         guard enabled else { status = "Enable iCloud clipboard consent first"; return }
+        if automaticRun && (!automaticSyncEnabled || Task.isCancelled) { return }
         guard let journal else { status = "Cloud journal unavailable"; return }
         running = true
         defer { running = false }
@@ -160,7 +228,10 @@ final class ClipboardCloudController: ObservableObject {
             // decides whether old, queued metadata can leave this Mac.
             let report = try await coordinator.syncOnce(consentProvider: { [weak self] in
                 await MainActor.run {
-                    self?.currentConsent ?? ClipboardCloudConsent()
+                    guard let self, self.enabled,
+                          (!automaticRun || self.automaticSyncEnabled),
+                          !Task.isCancelled else { return ClipboardCloudConsent() }
+                    return self.currentConsent
                 }
             })
             if let summary = ClipboardCloudRunSummary(
