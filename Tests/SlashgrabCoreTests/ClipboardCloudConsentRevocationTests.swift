@@ -51,6 +51,41 @@ private actor ConsentRevokingTransport: ClipboardCloudTransport {
     func counts() -> (Int, Int) { (downloads, uploads) }
 }
 
+/// Simulates a user revoking collection-name permission after the first
+/// CKRecord was sent, while the remainder of the batch is still queued.
+private actor RevokingMidBatchTransport: ClipboardCloudTransport {
+    let state: MutableCloudConsent
+    private(set) var sentRecordIDs: [String] = []
+
+    init(state: MutableCloudConsent) { self.state = state }
+
+    func fetch(after token: Data?) async throws -> ClipboardCloudDownloadPage {
+        ClipboardCloudDownloadPage(changes: [], token: nil)
+    }
+
+    func upload(
+        _ records: [ClipboardCloudRecord],
+        permissionCheck: @escaping @Sendable (ClipboardCloudRecord) async -> Bool
+    ) async throws -> [ClipboardCloudUploadAck] {
+        var accepted: [ClipboardCloudUploadAck] = []
+        for record in records {
+            guard await permissionCheck(record) else {
+                throw ClipboardCloudSyncError.consentRequired
+            }
+            sentRecordIDs.append(record.id)
+            accepted.append(ClipboardCloudUploadAck(
+                id: record.id, mutationID: record.mutationID
+            ))
+            if sentRecordIDs.count == 1 {
+                await state.change(to: .init(enabled: true, includeNames: false))
+            }
+        }
+        return accepted
+    }
+
+    func sent() -> [String] { sentRecordIDs }
+}
+
 final class ClipboardCloudConsentRevocationTests: XCTestCase {
     private func makeJournal() throws -> (ClipboardCloudJournal, URL) {
         let root = FileManager.default.temporaryDirectory
@@ -145,4 +180,30 @@ final class ClipboardCloudConsentRevocationTests: XCTestCase {
             XCTAssertNil(try journal.token(forZone: "private"))
         }
     }
+    func testPerRecordAuthorizationStopsSubsequentWritesDuringAnUploadBatch() async throws {
+        let (journal, root) = try makeJournal()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let a = namedCollection()
+        let b = namedCollection()
+        try journal.stageLocal(a)
+        try journal.stageLocal(b)
+        let state = MutableCloudConsent(.init(enabled: true, includeNames: true))
+        let transport = RevokingMidBatchTransport(state: state)
+        let coordinator = try ClipboardCloudSyncCoordinator(
+            journal: journal, transport: transport, zoneID: "private"
+        )
+        do {
+            _ = try await coordinator.syncOnce(consentProvider: {
+                await state.current()
+            })
+            XCTFail("Second CKRecord must be blocked after the user revokes names")
+        } catch ClipboardCloudSyncError.consentRequired {
+            let transmitted = await transport.sent()
+            XCTAssertEqual(transmitted.count, 1,
+                           "Only the first already-authorized record may have been sent")
+            XCTAssertEqual(try journal.pendingCount(), 2,
+                           "Unknown partial acknowledgements must remain retryable")
+        }
+    }
+
 }
