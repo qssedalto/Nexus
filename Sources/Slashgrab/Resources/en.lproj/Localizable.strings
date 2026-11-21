@@ -227,3 +227,9 @@
 "mouse" = "mouse";
 "scroll" = "scroll";
 "ordinary" = "ordinary";
+
+"Special key detection" = "Special key detection";
+"Enable diagnostic key recognition" = "Enable diagnostic key recognition";
+"Diagnostics show only recognized functional keys and input categories. Unknown system key types are marked unsupported; ordinary text is never captured. Closing this section disables diagnostics." = "Diagnostics show only recognized functional keys and input categories. Unknown system key types are marked unsupported; ordinary text is never captured. Closing this section disables diagnostics.";
+"Recognized" = "Recognized";
+"Unknown / unsupported" = "Unknown / unsupported";
