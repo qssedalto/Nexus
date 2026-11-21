@@ -22,8 +22,16 @@ final class NexusServiceProvider: NSObject {
         }
         let action = PathCopyAction(clipboardWriter: AppKitClipboardWriter(), historyStore: settings, operationStore: operationStore)
         do {
-            try action.copy(urls: urls, as: formats?.selectedFormat ?? .shellEscaped,
-                            sourceApplication: "Nexus Service", detectionMethod: "nsservices")
+            let completed = try action.copy(
+                urls: urls, as: formats?.selectedFormat ?? .shellEscaped,
+                sourceApplication: "Nexus Service", detectionMethod: "nsservices"
+            )
+            if completed != nil {
+                ClipboardMonitor.shared.ignoreCurrentChange()
+                DistributedNotificationCenter.default().post(
+                    name: SharedSettings.finderCopyNotification, object: nil
+                )
+            }
         } catch let failure {
             error.pointee = failure.localizedDescription as NSString
         }
