@@ -2,6 +2,8 @@
 
 The separate universal iOS app is defined in project.ios.yml and is NOT
 included in, or substituted for, the existing installed macOS Nexus bundle.
+The app bundles native English and Simplified Chinese Localizable.strings
+resources, declaring both languages in its own development Info.plist.
 
 Source components:
 - Sources/NexusClipboardMobile: SwiftUI iPhone/iPad tab layout, explicit
