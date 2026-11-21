@@ -9,6 +9,8 @@ final class InputStatisticsController: ObservableObject {
     static let shared = InputStatisticsController()
     @Published private(set) var counts: [InputCount] = []
     @Published private(set) var categoryCounts: [InputCategoryCount] = []
+    @Published private(set) var sourceCounts: [InputSourceCount] = []
+    @Published var selectedSource = ""
     @Published private(set) var overview = InputStatisticsOverview(
         keyboard: 0, mouse: 0, specialKeys: 0, shortcuts: 0,
         scrolls: 0, firstEventMS: nil)
@@ -86,13 +88,16 @@ final class InputStatisticsController: ObservableObject {
             return
         }
         do {
+            let source = selectedSource.isEmpty ? nil : selectedSource
             counts = try store.counts(from: startMS, to: endMS)
-            categoryCounts = try store.categoryCounts(from: startMS, to: endMS)
-            overview = try store.overview(from: startMS, to: endMS)
+            sourceCounts = try store.sourceCounts(from: startMS, to: endMS)
+            categoryCounts = try store.categoryCounts(from: startMS, to: endMS, source: source)
+            overview = try store.overview(from: startMS, to: endMS, source: source)
             trend = try store.trend(from: startMS, to: endMS,
                                     resolution: trendResolution,
                                     category: selectedCategory.isEmpty ? nil : selectedCategory,
-                                    name: selectedKeyName.isEmpty ? nil : selectedKeyName)
+                                    name: selectedKeyName.isEmpty ? nil : selectedKeyName,
+                                    source: source)
             dataStatus = localized("Statistics query complete")
         } catch {
             dataStatus = error.localizedDescription
@@ -191,6 +196,20 @@ struct InputStatisticsView: View {
                 TextField("ms", value: $endMS, format: .number).frame(width: 44)
                 Button(localized("Query"), action: query)
             }.font(.caption)
+            HStack {
+                Picker(localized("Device or event source"), selection: $controller.selectedSource) {
+                    Text(localized("All sources")).tag("")
+                    ForEach(Array(Set(controller.sourceCounts.map(\.source))).sorted(), id: \.self) { source in
+                        Text(readableSource(source)).tag(source)
+                    }
+                }
+                .onChange(of: controller.selectedSource) { _ in query() }
+                Button(localized("Reset source filter")) {
+                    controller.selectedSource = ""
+                    query()
+                }
+                .disabled(controller.selectedSource.isEmpty)
+            }
             HStack(spacing: 8) {
                 statCard(localized("Keyboard presses"), controller.overview.keyboard, "keyboard")
                 statCard(localized("Mouse clicks"), controller.overview.mouse, "cursorarrow.click")
@@ -276,6 +295,27 @@ struct InputStatisticsView: View {
                 }
                 .font(.caption)
             }
+            DisclosureGroup(localized("Source and HID device statistics")) {
+                Text(localized("Only HID vendor/product and optional connection location identify a device model. Quartz and AppKit sources cannot identify a physical keyboard or mouse; location-free HID entries may represent several identical devices."))
+                    .font(.caption).foregroundStyle(.secondary)
+                List(controller.sourceCounts) { item in
+                    Button {
+                        controller.selectedSource = item.source
+                        query()
+                    } label: {
+                        HStack {
+                            Text(readableSource(item.source))
+                                .font(.caption).lineLimit(2)
+                            Text(item.category).font(.caption2).foregroundStyle(.secondary)
+                            Spacer()
+                            Text(item.count.formatted()).monospacedDigit()
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+                .frame(height: 145)
+            }
+
             DisclosureGroup(localized("Special key detection")) {
                 Toggle(localized("Enable diagnostic key recognition"), isOn: $controller.diagnosticsEnabled)
                 Text(localized("Diagnostics show only recognized functional keys and input categories. Unknown system key types are marked unsupported; ordinary text is never captured. Closing this section disables diagnostics."))
@@ -353,6 +393,16 @@ struct InputStatisticsView: View {
                 ? "This deletes every locally stored input statistic. Existing cloud backups and uploads are not deleted."
                 : "This deletes statistics in the selected time range."))
         }
+    }
+
+    private func readableSource(_ source: String) -> String {
+        if source.hasPrefix("iohid_") {
+            return source
+                .replacingOccurrences(of: "iohid_consumer:", with: "HID media · ")
+                .replacingOccurrences(of: "iohid_function:", with: "HID function · ")
+                .replacingOccurrences(of: "_", with: " ")
+        }
+        return "\(source) · \(localized("Device unknown"))"
     }
 
     private func icon(for key: String) -> String {
