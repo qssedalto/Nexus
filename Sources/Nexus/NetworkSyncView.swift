@@ -109,7 +109,8 @@ final class NetworkSyncController: ObservableObject {
     private var statisticsDeletionInProgress = false
     private var statisticsSyncPreparationInProgress = false
     private var operationDeletionInProgress = false
-    private let keychainService = "com.prof18.slashgrab.nexus-sync"
+    private let keychainService = "com.qssedalto.nexus-sync"
+    private let legacyKeychainService = "com.prof18.slashgrab.nexus-sync"
     private let session: URLSession = {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.httpShouldSetCookies = false
@@ -155,6 +156,9 @@ final class NetworkSyncController: ObservableObject {
         cancelInFlightUploads()
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: keychainService, kSecAttrAccount as String: "api-token"]
         SecItemDelete(query as CFDictionary)
+        var legacyQuery = query
+        legacyQuery[kSecAttrService as String] = legacyKeychainService
+        SecItemDelete(legacyQuery as CFDictionary)
         serverOperationsSupported = false
         serverStatisticsAggregatesSupported = false
         status = "Token removed"
@@ -543,11 +547,25 @@ final class NetworkSyncController: ObservableObject {
     }
 
     private func token() -> String? {
-        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: keychainService, kSecAttrAccount as String: "api-token", kSecReturnData as String: true, kSecMatchLimit as String: kSecMatchLimitOne]
-        var result: CFTypeRef?
-        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
-              let data = result as? Data else { return nil }
-        return String(data: data, encoding: .utf8)
+        // Prefer the new Nexus Keychain service, but allow older user-created
+        // credentials to remain readable when macOS Keychain access permits.
+        // No existing credential is overwritten or silently uploaded.
+        for service in [keychainService, legacyKeychainService] {
+            let query: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrService as String: service,
+                kSecAttrAccount as String: "api-token",
+                kSecReturnData as String: true,
+                kSecMatchLimit as String: kSecMatchLimitOne
+            ]
+            var result: CFTypeRef?
+            if SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
+               let data = result as? Data,
+               let value = String(data: data, encoding: .utf8), !value.isEmpty {
+                return value
+            }
+        }
+        return nil
     }
 
     private func persistentDeviceID() -> String {

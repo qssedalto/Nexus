@@ -6,7 +6,7 @@ enum ResourceBundleLocator {
     }
 
     private static func candidateBundles() -> [Bundle] {
-        let bundleName = "Slashgrab_Slashgrab.bundle"
+        let bundleName = "Nexus_Nexus.bundle"
         let candidates = [
             Bundle.main.resourceURL?.appendingPathComponent(bundleName),
             Bundle.main.bundleURL.appendingPathComponent(bundleName),

@@ -83,7 +83,7 @@ struct AboutView: View {
                 id: "github",
                 title: "GitHub",
                 systemImage: "chevron.left.forwardslash.chevron.right",
-                rawURL: "https://github.com/prof18/slashgrab"
+                rawURL: "https://github.com/qssedalto/Nexus"
             ),
             makeLink(
                 id: "website",

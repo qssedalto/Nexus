@@ -20,7 +20,7 @@ struct FinderExtensionMigrationController {
     }
 
     static func production(bundle: Bundle = .main) -> FinderExtensionMigrationController {
-        let appBundleIdentifier = bundle.bundleIdentifier ?? "com.prof18.slashgrab.dev"
+        let appBundleIdentifier = bundle.bundleIdentifier ?? "com.qssedalto.nexus.dev"
         let defaults = UserDefaults(suiteName: appBundleIdentifier) ?? .standard
 
         return FinderExtensionMigrationController(

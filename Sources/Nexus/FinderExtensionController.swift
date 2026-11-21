@@ -10,7 +10,7 @@ protocol FinderExtensionManaging {
 @MainActor
 struct FinderExtensionController: FinderExtensionManaging {
     static var embeddedExtensionURL: URL? {
-        guard let url = Bundle.main.builtInPlugInsURL?.appendingPathComponent("SlashgrabFinderSync.appex"),
+        guard let url = Bundle.main.builtInPlugInsURL?.appendingPathComponent("NexusFinderSync.appex"),
               FileManager.default.fileExists(atPath: url.path) else {
             return nil
         }
