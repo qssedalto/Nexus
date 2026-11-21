@@ -22,6 +22,10 @@ on:
       - 'Scripts/test_services_only_release.sh'
       - '.github/workflows/nexus-services.yml'
 
+concurrency:
+  group: nexus-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 

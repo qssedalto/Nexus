@@ -19,6 +19,10 @@ on:
       - 'project.ios.yml'
       - '.github/workflows/nexus-mobile.yml'
 
+concurrency:
+  group: nexus-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
