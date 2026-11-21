@@ -733,8 +733,15 @@ public final class InputStatisticsStore: @unchecked Sendable {
             // cannot depend on external -wal/-shm sidecars; transition the
             // completed destination to DELETE mode, forcing a checkpoint
             // before the file is handed to File Provider or copied elsewhere.
-            guard sqlite3_exec(target, "PRAGMA wal_checkpoint(TRUNCATE); PRAGMA journal_mode=DELETE;", nil, nil, nil) == SQLITE_OK else {
-                throw InputStoreError.write
+            // A destination produced by sqlite3_backup is already a
+            // consistent single-file database. The preceding checkpoint can
+            // return SQLITE_LOCKED while macOS is finalizing WAL state, so
+            // switch journal mode directly. Report the SQLite diagnostic
+            // instead of hiding all backup failures as a generic write error.
+            guard sqlite3_exec(target, "PRAGMA journal_mode=DELETE;", nil, nil, nil) == SQLITE_OK else {
+                throw InputStoreError.backupRead(
+                    "snapshot journal conversion: \(String(cString: sqlite3_errmsg(target)))"
+                )
             }
         }
     }
