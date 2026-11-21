@@ -63,6 +63,15 @@ struct SettingsView<Updater: UpdaterControlling>: View {
                 Text(localized("Keeps Nexus ready in the menu bar after you sign in."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
+
+                Button {
+                    NotificationCenter.default.post(name: .nexusShowWelcomeGuide, object: nil)
+                } label: {
+                    Label(localized("Show Welcome Guide…"), systemImage: "questionmark.circle")
+                }
+                Text(localized("Reopen the guide if the menu bar icon is hidden."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
             Section(localized("Copy history")) {
                 Toggle(localized("Monitor file copies from the clipboard"), isOn: $clipboardMonitor.enabled)

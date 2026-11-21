@@ -85,6 +85,10 @@
 		B77000000000000000000009 /* SystemServicesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77000000000000000000009 /* SystemServicesView.swift */; };
 		B77000000000000000000010 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = A77000000000000000000010 /* InfoPlist.strings */; };
 		B77000000000000000000011 /* ClipboardMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77000000000000000000011 /* ClipboardMonitor.swift */; };
+		C0DE00000000000000000001 /* WelcomeGuideStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0DE00000000000000000001 /* WelcomeGuideStore.swift */; };
+		C0DE00000000000000000002 /* WelcomeGuideWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0DE00000000000000000002 /* WelcomeGuideWindowController.swift */; };
+		C0DE00000000000000000003 /* WelcomeGuideStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0DE00000000000000000003 /* WelcomeGuideStoreTests.swift */; };
+		C0DE00000000000000000004 /* LegacyStorageMigrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0DE00000000000000000004 /* LegacyStorageMigrationTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -223,6 +227,10 @@
 		A77000000000000000000009 /* SystemServicesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemServicesView.swift; sourceTree = "<group>"; };
 		A77000000000000000000010 /* InfoPlist.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = InfoPlist.strings; path = "zh-Hans.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
 		A77000000000000000000011 /* ClipboardMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardMonitor.swift; sourceTree = "<group>"; };
+		D0DE00000000000000000001 /* WelcomeGuideStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeGuideStore.swift; sourceTree = "<group>"; };
+		D0DE00000000000000000002 /* WelcomeGuideWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeGuideWindowController.swift; sourceTree = "<group>"; };
+		D0DE00000000000000000003 /* WelcomeGuideStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeGuideStoreTests.swift; sourceTree = "<group>"; };
+		D0DE00000000000000000004 /* LegacyStorageMigrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyStorageMigrationTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -334,6 +342,8 @@
 				C9B3754BE92EE7861906E41F /* StatusIconProvider.swift */,
 				DAE2E0F0F48A6AA04B26FEF2 /* StatusItemController.swift */,
 				1B0D1A8DB0FC5BC8E9438234 /* URLDropReader.swift */,
+				D0DE00000000000000000001 /* WelcomeGuideStore.swift */,
+				D0DE00000000000000000002 /* WelcomeGuideWindowController.swift */,
 				E2E9CB6930295B6F33431710 /* Resources */,
 			);
 			name = Nexus;
@@ -358,6 +368,7 @@
 				CB3361D05B27300417E70A67 /* AppStateTests.swift */,
 				94F2647388444EA8D131ECA7 /* FinderExtensionMigrationControllerTests.swift */,
 				2FDD5A4964105ABE2BAA7BF7 /* FinderExtensionRegistryTests.swift */,
+				D0DE00000000000000000003 /* WelcomeGuideStoreTests.swift */,
 				A338925A788BF66151DACC62 /* URLDropReaderTests.swift */,
 			);
 			name = NexusTests;
@@ -402,6 +413,7 @@
 				4BC954E6A7D28C9705C5B9EC /* PathFormatterTests.swift */,
 				9768F96CACFD2C00656B22E8 /* PathHistoryTests.swift */,
 				A77000000000000000000007 /* InputStatisticsStoreTests.swift */,
+				D0DE00000000000000000004 /* LegacyStorageMigrationTests.swift */,
 				A77000000000000000000002 /* OperationStoreTests.swift */,
 			);
 			name = NexusCoreTests;
@@ -663,6 +675,8 @@
 				0C820E49347A4B94EF3FCA16 /* SparkleUpdater.swift in Sources */,
 				BD39369064E32AE51F746116 /* StatusIconProvider.swift in Sources */,
 				8C4A4665FF5D8741BF220CCE /* StatusItemController.swift in Sources */,
+				C0DE00000000000000000001 /* WelcomeGuideStore.swift in Sources */,
+				C0DE00000000000000000002 /* WelcomeGuideWindowController.swift in Sources */,
 				595CD8FE5D77535E275CC3A4 /* URLDropReader.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -674,6 +688,7 @@
 				14D73976DD8073C5410D4D2D /* AppStateTests.swift in Sources */,
 				EFE8456FF3C2979D466C5437 /* FinderExtensionMigrationControllerTests.swift in Sources */,
 				BB9B352A07C9C946C9BA2D66 /* FinderExtensionRegistryTests.swift in Sources */,
+				C0DE00000000000000000003 /* WelcomeGuideStoreTests.swift in Sources */,
 				A87F5A6FCF29FB92F888E0BD /* URLDropReaderTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -703,6 +718,7 @@
 				739DC00883939B79F8FB12BE /* PathFormatterTests.swift in Sources */,
 				EC93AEDAFFDB4B220C016011 /* PathHistoryTests.swift in Sources */,
 				B77000000000000000000007 /* InputStatisticsStoreTests.swift in Sources */,
+				C0DE00000000000000000004 /* LegacyStorageMigrationTests.swift in Sources */,
 				B77000000000000000000002 /* OperationStoreTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
