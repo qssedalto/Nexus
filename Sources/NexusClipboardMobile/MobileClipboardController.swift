@@ -29,6 +29,9 @@ final class MobileClipboardController: ObservableObject {
     @Published var includeImages: Bool {
         didSet { defaults.set(includeImages, forKey: "nexusMobileCloudImages") }
     }
+    @Published var includeFiles: Bool {
+        didSet { defaults.set(includeFiles, forKey: "nexusMobileCloudFiles") }
+    }
     @Published private(set) var records: [ClipboardCloudRecord] = []
     @Published private(set) var localEntries: [MobileLocalClipboardEntry] = []
     @Published private(set) var pendingCount = 0
@@ -55,6 +58,7 @@ final class MobileClipboardController: ObservableObject {
         includeNames = defaults.bool(forKey: "nexusMobileCloudNames")
         includePaths = defaults.bool(forKey: "nexusMobileCloudPaths")
         includeImages = defaults.bool(forKey: "nexusMobileCloudImages")
+        includeFiles = defaults.bool(forKey: "nexusMobileCloudFiles")
         if let existing = defaults.string(forKey: "nexusMobileCloudDeviceID"),
            UUID(uuidString: existing) != nil {
             deviceID = existing
@@ -93,7 +97,7 @@ final class MobileClipboardController: ObservableObject {
         ClipboardCloudConsent(
             enabled: cloudEnabled, includeText: includeText,
             includeNames: includeNames, includePaths: includePaths,
-            includeImages: includeImages
+            includeImages: includeImages, includeFiles: includeFiles
         )
     }
 
@@ -334,6 +338,14 @@ final class MobileClipboardController: ObservableObject {
 
     /// Read only a previously downloaded, verified image from the private
     /// CloudKit cache. No remote network or system pasteboard read occurs.
+    /// For a user-triggered document exporter only. The original file name
+    /// has been validated and remote binary bytes remain in the app cache.
+    func cachedRemoteFile(recordID: String) -> ClipboardCloudFileAsset? {
+        guard cloudEnabled, includeFiles,
+              let journal else { return nil }
+        return try? journal.cachedFile(recordID: recordID)
+    }
+
     func cachedRemoteImage(recordID: String) -> Data? {
         guard cloudEnabled, includeImages,
               let journal,
@@ -426,6 +438,7 @@ final class MobileClipboardController: ObservableObject {
         includeNames = false
         includePaths = false
         includeImages = false
+        includeFiles = false
         lastSuccessfulSync = nil
         defaults.removeObject(forKey: "nexusMobileCloudLastSuccess")
     }
@@ -442,6 +455,11 @@ final class MobileClipboardController: ObservableObject {
             mayDownloadImages: { [weak self] in
                 await MainActor.run {
                     self?.consent.includeImages == true
+                }
+            },
+            mayDownloadFiles: { [weak self] in
+                await MainActor.run {
+                    self?.consent.includeFiles == true
                 }
             }
         )
