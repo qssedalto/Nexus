@@ -160,8 +160,9 @@ final class NetworkSyncController: ObservableObject {
                 status = "Statistics upload cancelled because settings changed"
                 return
             }
+            let submittedRequest = request
             let uploadTask = Task<UploadConfirmation, Error> {
-                try await self.fetch(request)
+                try await self.fetch(submittedRequest)
             }
             statisticsUploadTask = uploadTask
             statisticsUploadWasAutomatic = automaticRun
@@ -249,8 +250,9 @@ final class NetworkSyncController: ObservableObject {
                 operationSyncStatus = "Operation upload cancelled because consent changed"
                 return
             }
+            let submittedRequest = request
             let uploadTask = Task<OperationSyncConfirmation, Error> {
-                try await self.fetch(request)
+                try await self.fetch(submittedRequest)
             }
             operationUploadTask = uploadTask
             operationUploadWasAutomatic = automaticRun
