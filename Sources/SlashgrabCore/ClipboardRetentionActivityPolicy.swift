@@ -4,9 +4,10 @@ import Foundation
 /// Pausing capture must not preserve previously saved history indefinitely.
 public enum ClipboardRetentionActivityPolicy {
     public static func shouldObserve(
-        paused: Bool, files: Bool, text: Bool, images: Bool
+        paused: Bool, files: Bool, text: Bool, images: Bool,
+        historyEnabled: Bool = true
     ) -> Bool {
-        !paused && (files || text || images)
+        historyEnabled && !paused && (files || text || images)
     }
 
     public static func shouldRunCleanup(
