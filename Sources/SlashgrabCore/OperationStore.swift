@@ -370,9 +370,10 @@ public final class OperationStore: @unchecked Sendable {
         sourceApplication: String = "",
         from startMS: Int64 = 0,
         to endMS: Int64 = Int64.max,
-        limit: Int = 100
+        limit: Int = 100,
+        offset: Int = 0
     ) throws -> [RecordedOperation] {
-        guard startMS < endMS else { return [] }
+        guard startMS < endMS, offset >= 0, offset <= 50_000 else { return [] }
         let needle = String(query.trimmingCharacters(in: .whitespacesAndNewlines).prefix(256))
         let app = String(sourceApplication.trimmingCharacters(in: .whitespacesAndNewlines).prefix(128))
         let kindClause: String
@@ -414,7 +415,7 @@ public final class OperationStore: @unchecked Sendable {
               AND (? = '' OR instr(lower(COALESCE(o.source_application, '')), lower(?)) > 0)
             \(kindClause)
             ORDER BY COALESCE(o.event_time_ms, o.detected_time_ms) DESC, o.id DESC
-            LIMIT ?
+            LIMIT ? OFFSET ?
             """)
         defer { sqlite3_finalize(statement) }
         bind(startMS, to: 1, in: statement)
@@ -426,6 +427,7 @@ public final class OperationStore: @unchecked Sendable {
         bind(app, to: 7, in: statement)
         bind(app, to: 8, in: statement)
         bind(Int64(max(1, min(200, limit))), to: 9, in: statement)
+        bind(Int64(offset), to: 10, in: statement)
         var results: [RecordedOperation] = []
         while true {
             let step = sqlite3_step(statement)

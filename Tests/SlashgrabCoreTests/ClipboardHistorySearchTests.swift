@@ -37,6 +37,29 @@ final class ClipboardHistorySearchTests: XCTestCase {
             .first?.clipboardText, "recent text 250")
     }
 
+    func testStablePagedSearchReturnsOlderMatchesWithoutDuplicates() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try OperationStore(url: root.appendingPathComponent("history.sqlite"))
+        for index in 0..<451 {
+            try store.record(type: "text_copy", urls: [], sourceApplication: nil,
+                             detectionMethod: "clipboard",
+                             detectedTimeMS: Int64(index + 1),
+                             clipboardText: "PageTest \(index)")
+        }
+        let first = try store.searchClipboard(query: "PageTest", limit: 200, offset: 0)
+        let second = try store.searchClipboard(query: "PageTest", limit: 200, offset: 200)
+        let third = try store.searchClipboard(query: "PageTest", limit: 200, offset: 400)
+        XCTAssertEqual(first.count, 200)
+        XCTAssertEqual(second.count, 200)
+        XCTAssertEqual(third.count, 51)
+        XCTAssertEqual(Set((first + second + third).map(\.id)).count, 451)
+        XCTAssertEqual(first.first?.clipboardText, "PageTest 450")
+        XCTAssertEqual(third.last?.clipboardText, "PageTest 0")
+        XCTAssertTrue(try store.searchClipboard(query: "PageTest", offset: -1).isEmpty)
+    }
+
     func testFileNameImageAndDateFiltersStayExact() throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
