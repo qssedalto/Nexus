@@ -120,7 +120,7 @@ public final class OperationStore: @unchecked Sendable {
                       AND NOT EXISTS (SELECT 1 FROM clipboard_image_records WHERE blob_hash = OLD.blob_hash);
                 END
                 """)
-            try execute("PRAGMA user_version=3")
+            if version < 3 { try execute("PRAGMA user_version=3") }
         } catch {
             sqlite3_close(database)
             throw error
@@ -335,7 +335,13 @@ public final class OperationStore: @unchecked Sendable {
               data.count <= 8 * 1_024 * 1_024,
               !thumbnail.isEmpty, thumbnail.count <= 256 * 1_024,
               detectedTimeMS >= 0 else { throw StoreError.write }
-        let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+        // The same bytes advertised as different pasteboard UTIs must not
+        // accidentally share a format declaration when restored later.
+        var hasher = SHA256()
+        hasher.update(data: Data(pasteboardType.utf8))
+        hasher.update(data: Data([0]))
+        hasher.update(data: data)
+        let digest = hasher.finalize().map { String(format: "%02x", $0) }.joined()
         let id = UUID().uuidString
         lock.lock()
         defer { lock.unlock() }
