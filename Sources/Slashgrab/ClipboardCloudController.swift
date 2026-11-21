@@ -117,7 +117,8 @@ final class ClipboardCloudController: ObservableObject {
                           busy: self.running || self.automaticCycleRunning
                       ) else { return }
                 self.automaticSyncTask = Task { @MainActor [weak self] in
-                    await self?.runAutomaticSyncCycle()
+                    guard let self else { return }
+                    await self.runAutomaticSyncCycle()
                 }
             }
         }
