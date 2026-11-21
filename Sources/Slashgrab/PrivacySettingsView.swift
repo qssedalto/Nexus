@@ -9,6 +9,7 @@ struct PrivacySettingsView: View {
     @ObservedObject private var statistics = InputStatisticsController.shared
     @ObservedObject private var sync = NetworkSyncController.shared
     @AppStorage("nexusMonitorPasteRequests") private var pasteObservation = false
+    @AppStorage("nexusClipboardFileThumbnailPreviews") private var allowFilePreviews = false
 
     var body: some View {
         Form {
@@ -46,7 +47,6 @@ struct PrivacySettingsView: View {
                 Toggle(localized("Record clipboard text (opt-in)"), isOn: $clipboard.textEnabled)
                 Toggle(localized("Save copied image pixels (opt-in, 8 MB maximum)"),
                        isOn: $clipboard.imageEnabled)
-                @AppStorage("nexusClipboardFileThumbnailPreviews") var allowFilePreviews = false
                 Toggle(localized("Preview local copied files using Quick Look (opt-in)"),
                        isOn: $allowFilePreviews)
                 Text(localized("File previews read only local supported files up to 24 MB. Cloud-only files and File Provider folders show an icon, without a requested download."))
