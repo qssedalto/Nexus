@@ -159,3 +159,13 @@
 "Unable to delete local record" = "Unable to delete local record";
 "local records deleted" = "local records deleted";
 "Unable to clear local history" = "Unable to clear local history";
+
+"Could not initialize global shortcut handler" = "Could not initialize global shortcut handler";
+"Global clipboard shortcut disabled" = "Global clipboard shortcut disabled";
+"Shortcut unavailable or used by another application" = "Shortcut unavailable or used by another application";
+"Global clipboard shortcut enabled" = "Global clipboard shortcut enabled";
+"Clipboard shortcut" = "Clipboard shortcut";
+"Show or hide clipboard shelf" = "Show or hide clipboard shelf";
+"Shortcuts are off by default. If the shortcut is occupied, the previous setting is kept." = "Shortcuts are off by default. If the shortcut is occupied, the previous setting is kept.";
+"Paste into previous app" = "Paste into previous app";
+"Paste as plain text" = "Paste as plain text";
