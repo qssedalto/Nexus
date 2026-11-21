@@ -403,3 +403,7 @@
 
 "Resume clipboard history" = "Resume clipboard history";
 "Pause clipboard history" = "Pause clipboard history";
+
+"Last successful manual sync:" = "Last successful manual sync:";
+"More changes pending" = "More changes pending";
+"Synchronized at last run" = "Synchronized at last run";
