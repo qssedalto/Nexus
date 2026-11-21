@@ -114,6 +114,13 @@ public enum SharedSettings {
         let finishResult = sqlite3_backup_finish(backup)
         guard result == SQLITE_DONE, finishResult == SQLITE_OK else { return false }
 
+        // The old database may use WAL. Make the migrated file standalone before
+        // moving it, so no temporary -wal/-shm sidecar is required to read it.
+        guard sqlite3_exec(
+            destination, "PRAGMA wal_checkpoint(TRUNCATE); PRAGMA journal_mode=DELETE;",
+            nil, nil, nil
+        ) == SQLITE_OK else { return false }
+
         var checkStatement: OpaquePointer?
         guard sqlite3_prepare_v2(destination, "PRAGMA quick_check", -1, &checkStatement, nil) == SQLITE_OK,
               let check = checkStatement else {

@@ -5,7 +5,7 @@
 </p>
 
 
-Nexus is a tiny macOS menu bar utility that turns dropped files and folders into copied path text.
+Nexus (天枢) is a native macOS menu-bar utility for copying paths, inspecting file-copy activity, and viewing keyboard/mouse usage statistics. Optional network synchronization is available for usage statistics.
 
 Drop something on the menu bar icon, then paste the path wherever you need it.
 
@@ -15,7 +15,7 @@ Drop something on the menu bar icon, then paste the path wherever you need it.
 
 Nexus provides a faster way to copy file paths without switching applications.
 
-When I needed to paste a path into an AI agent, a chat, a terminal command, a bug report, or a config file, I usually had to find the file in Finder, drag the folder into Terminal or use another copy-path flow, copy the result, then switch back to the app where I actually needed it.
+Copying a path traditionally means switching between Finder, Terminal, or a context menu. Nexus reduces that work to a menu-bar drop or a direct Finder action, with a separate view for copy-operation history.
 
 Nexus removes that detour:
 
@@ -37,7 +37,10 @@ No command palette, no temporary shelf, and no extra window to manage.
   - File URL
   - Home-relative Path
 - **Multi-item support**: drop more than one item and Nexus formats the full set for the selected output style.
-- **Recent paths**: reopen the menu to copy recently grabbed paths again.
+- **Recent paths and operation timeline**: reuse recently copied paths and inspect recorded file-copy operations.
+- **Input statistics**: view local keyboard, mouse, and system-key usage counts when the required system permissions are granted.
+- **File-copy monitoring**: optionally record copied file URLs and related metadata.
+- **Network statistics sync**: optionally connect to a Nexus-compatible server to upload, query, and restore supported input statistics.
 - **Drop feedback**: quick visual confirmation when a path was copied.
 - **Launch at login**: keep Nexus ready without starting it manually.
 - **Sparkle updates**: release builds include update checking support.
@@ -69,7 +72,7 @@ That makes it useful for developers, designers, QA, support, and anyone else who
 - macOS 13 or newer
 - Website: [nexus.app](https://github.com/qssedalto/Nexus/)
 
-Download the latest `Nexus.dmg` directly from [GitHub Releases](https://github.com/qssedalto/Nexus/releases/latest/download/Nexus.dmg).
+Nexus has not yet published an official signed release. Check [GitHub Releases](https://github.com/qssedalto/Nexus/releases) for builds when they become available.
 
 The zip asset is used for Sparkle automatic updates.
 

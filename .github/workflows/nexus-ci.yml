@@ -5,7 +5,6 @@ on:
   push:
     branches:
       - main
-      - refactor/nexus-project-identity
 
 permissions:
   contents: read
@@ -39,4 +38,13 @@ jobs:
       - name: SwiftPM and Xcode test suites
         run: ./Scripts/test.sh
       - name: Verify unsigned-build packaging and bundle names
-        run: ./Scripts/build_and_run.sh --verify
+        run: |
+          ./Scripts/build_and_run.sh --verify
+          APP="Nexus Dev.app"
+          APP_INFO="$APP/Contents/Info.plist"
+          EXT_INFO="$APP/Contents/PlugIns/NexusFinderSync.appex/Contents/Info.plist"
+          test -f "$APP_INFO"
+          test -f "$EXT_INFO"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_INFO")" = "com.qssedalto.nexus.dev"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$EXT_INFO")" = "com.qssedalto.nexus.dev.findersync"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :NexusBuildVariant' "$APP_INFO")" = "dev"
