@@ -1,4 +1,5 @@
 import AppKit
+import Charts
 import CoreGraphics
 import SwiftUI
 import SlashgrabCore
@@ -7,6 +8,14 @@ import SlashgrabCore
 final class InputStatisticsController: ObservableObject {
     static let shared = InputStatisticsController()
     @Published private(set) var counts: [InputCount] = []
+    @Published private(set) var categoryCounts: [InputCategoryCount] = []
+    @Published private(set) var overview = InputStatisticsOverview(
+        keyboard: 0, mouse: 0, specialKeys: 0, shortcuts: 0,
+        scrolls: 0, firstEventMS: nil)
+    @Published private(set) var trend: [InputTrendBucket] = []
+    @Published var trendResolution: InputTrendResolution = .day
+    @Published var selectedCategory = ""
+    @Published var selectedKeyName = ""
     @Published private(set) var permissionGranted = false
     @Published var paused: Bool {
         didSet {
@@ -47,7 +56,22 @@ final class InputStatisticsController: ObservableObject {
     }
 
     func refresh(from startMS: Int64, to endMS: Int64) {
-        counts = (try? store?.counts(from: startMS, to: endMS)) ?? []
+        guard startMS >= 0, endMS > startMS, let store else {
+            dataStatus = localized("Invalid time range")
+            return
+        }
+        do {
+            counts = try store.counts(from: startMS, to: endMS)
+            categoryCounts = try store.categoryCounts(from: startMS, to: endMS)
+            overview = try store.overview(from: startMS, to: endMS)
+            trend = try store.trend(from: startMS, to: endMS,
+                                    resolution: trendResolution,
+                                    category: selectedCategory.isEmpty ? nil : selectedCategory,
+                                    name: selectedKeyName.isEmpty ? nil : selectedKeyName)
+            dataStatus = localized("Statistics query complete")
+        } catch {
+            dataStatus = error.localizedDescription
+        }
         permissionGranted = monitor?.hasPermission ?? false
         if !permissionGranted { monitor?.stop() }
     }
@@ -71,8 +95,13 @@ final class InputStatisticsController: ObservableObject {
         panel.nameFieldStringValue = "NexusStatistics.csv"
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
-            let rows = try store?.counts(from: 0, to: Int64.max) ?? []
-            let csv = "name,count\n" + rows.map { "\($0.name),\($0.count)" }.joined(separator: "\n") + "\n"
+            let rows = try store?.categoryCounts(from: 0, to: Int64.max) ?? []
+            func escaped(_ text: String) -> String {
+                "\"" + text.replacingOccurrences(of: "\"", with: "\"\"") + "\""
+            }
+            let csv = "category,name,count\n" + rows.map {
+                "\(escaped($0.category)),\(escaped($0.name)),\($0.count)"
+            }.joined(separator: "\n") + "\n"
             try csv.write(to: url, atomically: true, encoding: .utf8)
             dataStatus = localized("Export complete")
         } catch { dataStatus = error.localizedDescription }
@@ -99,6 +128,7 @@ struct InputStatisticsView: View {
     @State private var endMS = 999
     @State private var deleteConfirmation = 0
     @State private var showingDeleteAlert = false
+    @State private var selectedPreset = "today"
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -108,6 +138,23 @@ struct InputStatisticsView: View {
                 if !controller.permissionGranted { Button(localized("Grant input permission")) { controller.requestPermission() } }
             }
             Toggle(localized("Pause statistics"), isOn: $controller.paused)
+            Toggle(localized("Count held-key repeats"), isOn: Binding(
+                get: { UserDefaults.standard.bool(forKey: "nexusCountKeyRepeats") },
+                set: { UserDefaults.standard.set($0, forKey: "nexusCountKeyRepeats") }
+            ))
+            Picker(localized("Time range"), selection: $selectedPreset) {
+                Text(localized("Today")).tag("today")
+                Text(localized("Yesterday")).tag("yesterday")
+                Text(localized("Last 7 days")).tag("week")
+                Text(localized("Last 30 days")).tag("month")
+                Text(localized("This month")).tag("this_month")
+                Text(localized("This year")).tag("year")
+                Text(localized("All history")).tag("all")
+                Text(localized("Custom")).tag("custom")
+            }
+            .onChange(of: selectedPreset) { _ in
+                applyPreset()
+            }
             HStack {
                 DatePicker(localized("From"), selection: $start, displayedComponents: [.date, .hourAndMinute])
                 TextField("ss", value: $startSecond, format: .number).frame(width: 34)
@@ -117,12 +164,87 @@ struct InputStatisticsView: View {
                 TextField("ms", value: $endMS, format: .number).frame(width: 44)
                 Button(localized("Query"), action: query)
             }.font(.caption)
-            List(controller.counts) { count in
-                HStack {
-                    Text(count.name)
-                    Spacer()
-                    Text(count.count.formatted()).monospacedDigit()
+            HStack(spacing: 8) {
+                statCard(localized("Keyboard presses"), controller.overview.keyboard, "keyboard")
+                statCard(localized("Mouse clicks"), controller.overview.mouse, "cursorarrow.click")
+                statCard(localized("Special keys"), controller.overview.specialKeys, "command")
+            }
+            HStack(spacing: 8) {
+                statCard(localized("Shortcuts"), controller.overview.shortcuts, "keyboard.badge.ellipsis")
+                statCard(localized("Scroll events"), controller.overview.scrolls, "arrow.up.arrow.down")
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(localized("First recorded")).font(.caption).foregroundStyle(.secondary)
+                    Text(controller.overview.firstEventMS.map {
+                        Date(timeIntervalSince1970: TimeInterval($0)/1000)
+                            .formatted(date: .abbreviated, time: .shortened)
+                    } ?? localized("Unknown"))
+                    .font(.caption).fontWeight(.medium)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            HStack {
+                Text(localized("Time trend")).font(.headline)
+                Spacer()
+                Picker(localized("Resolution"), selection: $controller.trendResolution) {
+                    Text(localized("Hourly")).tag(InputTrendResolution.hour)
+                    Text(localized("Daily")).tag(InputTrendResolution.day)
+                    Text(localized("Weekly")).tag(InputTrendResolution.week)
+                    Text(localized("Monthly")).tag(InputTrendResolution.month)
+                }
+                .frame(width: 120)
+                .onChange(of: controller.trendResolution) { _ in query() }
+            }
+            Chart(controller.trend) { bucket in
+                BarMark(
+                    x: .value(localized("Time"), Date(timeIntervalSince1970: TimeInterval(bucket.startMS) / 1000)),
+                    y: .value(localized("Count"), bucket.count)
+                )
+                .foregroundStyle(by: .value(localized("Category"), bucket.category))
+            }
+            .chartLegend(position: .bottom, alignment: .leading)
+            .frame(height: 165)
+            HStack {
+                Text(localized("Key and shortcut ranking")).font(.headline)
+                Spacer()
+                Picker(localized("Event category"), selection: $controller.selectedCategory) {
+                    Text(localized("All")).tag("")
+                    ForEach(["keyboard","modifier","system","shortcut","mouse","scroll","ordinary"], id: \.self) { category in
+                        Text(localized(category)).tag(category)
+                    }
+                }
+                .frame(width: 150)
+                .onChange(of: controller.selectedCategory) { _ in
+                    controller.selectedKeyName = ""
+                    query()
+                }
+            }
+            List(controller.categoryCounts.filter {
+                controller.selectedCategory.isEmpty || $0.category == controller.selectedCategory
+            }) { count in
+                Button {
+                    controller.selectedCategory = count.category
+                    controller.selectedKeyName = count.name
+                    query()
+                } label: {
+                    HStack {
+                        Text(count.name)
+                        Text(count.category).foregroundStyle(.secondary).font(.caption)
+                        Spacer()
+                        Text(count.count.formatted()).monospacedDigit()
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+            .frame(minHeight: 95, idealHeight: 150)
+            if !controller.selectedKeyName.isEmpty {
+                HStack {
+                    Text("\(localized("Selected key")): \(controller.selectedKeyName)")
+                    Button(localized("Show all keys")) {
+                        controller.selectedKeyName = ""
+                        query()
+                    }
+                }
+                .font(.caption)
             }
             HStack {
                 Button(localized("Export CSV")) { controller.exportCSV() }
@@ -137,7 +259,7 @@ struct InputStatisticsView: View {
                 .font(.caption).foregroundStyle(.secondary)
         }
         .padding()
-        .onAppear { controller.startIfPermitted(); query() }
+        .onAppear { controller.startIfPermitted(); applyPreset() }
         .alert("\(localized("Confirm deletion")) \(deleteConfirmation)/5", isPresented: $showingDeleteAlert) {
             Button(localized("Cancel"), role: .cancel) { deleteConfirmation = 0 }
             Button(localized("Confirm"), role: .destructive) {
@@ -153,6 +275,40 @@ struct InputStatisticsView: View {
         } message: {
             Text(localized("This deletes statistics in the selected time range."))
         }
+    }
+
+    private func statCard(_ label: String, _ count: Int64, _ symbol: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Label(label, systemImage: symbol).font(.caption).foregroundStyle(.secondary)
+            Text(count.formatted())
+                .font(.title3.weight(.semibold)).monospacedDigit()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(8)
+        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func applyPreset() {
+        let calendar = Calendar.current
+        let now = Date()
+        let today = calendar.startOfDay(for: now)
+        switch selectedPreset {
+        case "today": start = today; end = now
+        case "yesterday":
+            start = calendar.date(byAdding: .day, value: -1, to: today) ?? today
+            end = today.addingTimeInterval(-0.001)
+        case "week": start = calendar.date(byAdding: .day, value: -7, to: now) ?? today; end = now
+        case "month": start = calendar.date(byAdding: .day, value: -30, to: now) ?? today; end = now
+        case "this_month": start = calendar.dateInterval(of: .month, for: now)?.start ?? today; end = now
+        case "year": start = calendar.dateInterval(of: .year, for: now)?.start ?? today; end = now
+        case "all": start = Date(timeIntervalSince1970: 0); end = now
+        default: return
+        }
+        startSecond = calendar.component(.second, from: start)
+        startMS = 0
+        endSecond = calendar.component(.second, from: end)
+        endMS = 999
+        query()
     }
 
     private func query() {
