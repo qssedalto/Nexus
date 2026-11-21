@@ -57,8 +57,7 @@ public enum ClipboardRemoteWebTitlePolicy {
                 of: escaped, with: literal, options: .caseInsensitive
             )
         }
-        guard !title.contains("<"), !title.contains(">"),
-              !title.contains("&") else { return nil }
+        guard !title.contains("<"), !title.contains(">") else { return nil }
         title = title.trimmingCharacters(in: .whitespacesAndNewlines)
         return ClipboardLinkTitlePolicy.sanitized(
             title, copiedText: copiedText
