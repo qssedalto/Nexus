@@ -1,0 +1,34 @@
+name: Nexus macOS regression checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  swift:
+    name: Swift tests and unsigned Xcode build
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Swift package
+        run: swift test -q
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: ./Scripts/generate_project.sh
+      - name: Build app and Finder extension in isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          source version.env
+          xcodebuild -project Slashgrab.xcodeproj -scheme Slashgrab \
+            -configuration Debug -derivedDataPath "$RUNNER_TEMP/nexus-derived" \
+            -destination 'platform=macOS' \
+            CODE_SIGNING_ALLOWED=NO ENABLE_DEBUG_DYLIB=NO \
+            MARKETING_VERSION="$MARKETING_VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            build -quiet
