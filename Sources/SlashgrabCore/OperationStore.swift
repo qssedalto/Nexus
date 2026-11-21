@@ -416,7 +416,10 @@ public final class OperationStore: @unchecked Sendable {
     /// Separate, bounded and opt-in link title metadata. This method
     /// verifies the operation still contains a standalone HTTP(S) URL.
     /// No network request is ever made to resolve or validate the title.
-    public func recordLinkTitle(operationID: String, title: String) throws {
+    public func recordLinkTitle(
+        operationID: String, title: String,
+        expectedCopiedText: String? = nil
+    ) throws {
         lock.lock()
         defer { lock.unlock() }
         let lookup = try prepare("""
@@ -427,6 +430,7 @@ public final class OperationStore: @unchecked Sendable {
         bind(operationID, to: 1, in: lookup)
         guard sqlite3_step(lookup) == SQLITE_ROW,
               let copiedText = string(lookup, 0),
+              expectedCopiedText == nil || expectedCopiedText == copiedText,
               let safeTitle = ClipboardLinkTitlePolicy.sanitized(
                 title, copiedText: copiedText
               ) else { throw StoreError.write }

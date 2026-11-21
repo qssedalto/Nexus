@@ -539,3 +539,9 @@
 "Include one small original file (up to 8 MB)" = "包含单个小型文件原件（最多 8 MB）";
 "Image and single-file originals use independent iCloud permissions. Files are exported only when you request it; Nexus does not inspect the clipboard in the background." = "图片与单文件原件分别授权。只有你主动选择时才会导出文件，Nexus 不会在后台检查剪贴板。";
 "Export file" = "导出文件";
+"Clipboard-provided titles are saved locally when permitted, without network activity." = "如果允许，剪贴板自带的标题会仅保存在本机，不会发起网络请求。";
+"Allow explicit website title lookup (HTTPS only)" = "允许手动获取网页标题（仅 HTTPS）";
+"Off by default. After enabling, right-click a link card and choose Fetch website title once. This contacts that public website and reveals the selected URL; query parameters, URL credentials, local hosts and redirects are refused. No automatic requests." = "默认关闭。开启后，可右键点击链接卡片并选择“获取一次网页标题”。操作会访问该网站并向其透露所选 URL；带查询参数、账户凭据、本地主机的地址和重定向都会被拒绝。不会自动请求。";
+"Fetch website title once" = "获取一次网页标题";
+"Website title unavailable" = "无法获取网页标题";
+"Website title saved locally" = "网页标题已保存到本机";

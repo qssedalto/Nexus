@@ -481,3 +481,9 @@
 "Include one small original file (up to 8 MB)" = "Include one small original file (up to 8 MB)";
 "Image and single-file originals use independent iCloud permissions. Files are exported only when you request it; Nexus does not inspect the clipboard in the background." = "Image and single-file originals use independent iCloud permissions. Files are exported only when you request it; Nexus does not inspect the clipboard in the background.";
 "Export file" = "Export file";
+"Clipboard-provided titles are saved locally when permitted, without network activity." = "Clipboard-provided titles are saved locally when permitted, without network activity.";
+"Allow explicit website title lookup (HTTPS only)" = "Allow explicit website title lookup (HTTPS only)";
+"Off by default. After enabling, right-click a link card and choose Fetch website title once. This contacts that public website and reveals the selected URL; query parameters, URL credentials, local hosts and redirects are refused. No automatic requests." = "Off by default. After enabling, right-click a link card and choose Fetch website title once. This contacts that public website and reveals the selected URL; query parameters, URL credentials, local hosts and redirects are refused. No automatic requests.";
+"Fetch website title once" = "Fetch website title once";
+"Website title unavailable" = "Website title unavailable";
+"Website title saved locally" = "Website title saved locally";
