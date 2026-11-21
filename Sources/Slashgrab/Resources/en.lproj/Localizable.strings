@@ -84,3 +84,6 @@
 "Records detected clipboard changes, not confirmed file transfers or paste completion." = "Records detected clipboard changes, not confirmed file transfers or paste completion.";
 "Text copy" = "Text copy";
 "Image copy" = "Image copy";
+"Clipboard files detected" = "Clipboard file references detected";
+"Clipboard image detected" = "Clipboard image detected";
+"Clipboard text detected" = "Clipboard text detected";
