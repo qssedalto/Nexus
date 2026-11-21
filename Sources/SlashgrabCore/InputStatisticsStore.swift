@@ -11,6 +11,7 @@ public struct InputCategoryCount: Sendable, Identifiable, Equatable {
     public let category: String
     public let name: String
     public let count: Int64
+    public let lastTimeMS: Int64
     public var id: String { category + ":" + name }
 }
 
@@ -177,7 +178,7 @@ public final class InputStatisticsStore: @unchecked Sendable {
             try flushOnQueue()
             var statement: OpaquePointer?
             let sql = """
-                SELECT category, name, SUM(count)
+                SELECT category, name, SUM(count), MAX(time_ms)
                 FROM input_events
                 WHERE time_ms >= ? AND time_ms < ?
                 GROUP BY category, name
@@ -194,7 +195,8 @@ public final class InputStatisticsStore: @unchecked Sendable {
                       let name = sqlite3_column_text(statement, 1) else { continue }
                 records.append(InputCategoryCount(
                     category: String(cString: category), name: String(cString: name),
-                    count: sqlite3_column_int64(statement, 2)))
+                    count: sqlite3_column_int64(statement, 2),
+                    lastTimeMS: sqlite3_column_int64(statement, 3)))
             }
             return records
         }
