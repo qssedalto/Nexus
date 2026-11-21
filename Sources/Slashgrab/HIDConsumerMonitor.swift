@@ -88,7 +88,29 @@ final class HIDConsumerMonitor: @unchecked Sendable {
         // Count the rising edge, not every HID report while held.
         guard pressedUsages.insert(physicalKey).inserted else { return }
         let timestampMS = Self.timestamp(for: IOHIDValueGetTimeStamp(value))
-        eventHandler(keyName, timestampMS, page == 0x0C ? "iohid_consumer" : "iohid_function")
+        let source = Self.sourceName(
+            for: IOHIDElementGetDevice(element),
+            category: page == 0x0C ? "iohid_consumer" : "iohid_function"
+        )
+        eventHandler(keyName, timestampMS, source)
+    }
+
+    /// Vendor/product IDs describe a *device model*, not an individual
+    /// physical device. A stable nonzero location ID can distinguish two
+    /// attached models sharing vendor/product without retaining serials.
+    /// No UDID, serial number, BT MAC address or typed text is collected.
+    private static func sourceName(for device: IOHIDDevice, category: String) -> String {
+        let vendor = (IOHIDDeviceGetProperty(device, kIOHIDVendorIDKey as CFString) as? NSNumber)?.intValue
+        let product = (IOHIDDeviceGetProperty(device, kIOHIDProductIDKey as CFString) as? NSNumber)?.intValue
+        guard let vendor, let product else {
+            return category + ":unknown_device"
+        }
+        let prefix = "\(category):vendor_\(vendor)_product_\(product)"
+        if let location = (IOHIDDeviceGetProperty(device, kIOHIDLocationIDKey as CFString) as? NSNumber)?.intValue,
+           location > 0 {
+            return prefix + "_location_\(location)"
+        }
+        return prefix + "_location_unknown"
     }
 
     private static func timestamp(for rawTicks: UInt64) -> Int64 {

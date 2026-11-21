@@ -274,3 +274,10 @@
 
 "Delete all statistics" = "Delete all statistics";
 "This deletes every locally stored input statistic. Existing cloud backups and uploads are not deleted." = "This deletes every locally stored input statistic. Existing cloud backups and uploads are not deleted.";
+
+"Device or event source" = "Device or event source";
+"All sources" = "All sources";
+"Reset source filter" = "Reset source filter";
+"Source and HID device statistics" = "Source and HID device statistics";
+"Only HID vendor/product and optional connection location identify a device model. Quartz and AppKit sources cannot identify a physical keyboard or mouse; location-free HID entries may represent several identical devices." = "Only HID vendor/product and optional connection location identify a device model. Quartz and AppKit sources cannot identify a physical keyboard or mouse; location-free HID entries may represent several identical devices.";
+"Device unknown" = "Device unknown";
