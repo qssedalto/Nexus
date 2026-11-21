@@ -1,0 +1,677 @@
+diff --git a/README.md b/README.md
+index add73d8..0a336da 100644
+--- a/README.md
++++ b/README.md
+@@ -46,7 +46,15 @@ No command palette, no temporary shelf, and no extra window to manage.
+ 
+ Slashgrab lives in the macOS menu bar. Click the icon to change the output format, copy recent paths again, open Settings, or quit. Launch-at-login, Finder integration, updates, and app information live in the Settings window.
+ 
+-The bundled Finder extension adds **Copy Path** to Finder's contextual menu. It uses the same **Copy As** format selected in Slashgrab, including its multi-item separator. macOS requires Finder extensions to be enabled by the user: open Slashgrab's menu, choose **Settings…**, then open the Finder Extension settings from the General tab and enable Slashgrab.
++The bundled Finder extension adds a copy command named for the selection, such as **Copy Folder Path** or **Copy PDF document Path**. It copies the full path in the **Copy As** format selected in Slashgrab. Open **Settings… → Finder** to put Slashgrab’s commands in a submenu or manage the Finder extensions registered on your Mac.
++
++**简体中文使用说明**
++
++将 Slashgrab 拖入「应用程序」并打开。点击菜单栏的 Slashgrab 图标，选择「设置…」→「访达」→「打开系统扩展设置…」，在系统设置中启用 Slashgrab 的访达扩展。扩展随应用提供。
++
++「访达」设置页可刷新本机扩展列表、逐项启用或停用扩展，也可将 Slashgrab 的拷贝命令统一放进同名子菜单。右键单个文件时，菜单会尽量显示系统提供的文件类型名称，例如「拷贝 PDF 文稿路径」。
++
++默认在访达一级右键菜单显示拷贝命令。iCloud 云盘等位置是否显示该命令取决于访达是否在该目录加载扩展。
+ 
+ The default workflow is intentionally small:
+ 
+diff --git a/Sources/Slashgrab/AboutView.swift b/Sources/Slashgrab/AboutView.swift
+index 3400fd4..1297208 100644
+--- a/Sources/Slashgrab/AboutView.swift
++++ b/Sources/Slashgrab/AboutView.swift
+@@ -37,7 +37,7 @@ struct AboutView: View {
+                             .font(.custom("Avenir Next", size: 26, relativeTo: .title).weight(.bold))
+ 
+                         if buildInfo.isDevBuild {
+-                            Text("DEV")
++                            Text(localized("DEV"))
+                                 .font(.custom("Avenir Next", size: 9, relativeTo: .caption2).weight(.heavy))
+                                 .foregroundStyle(.white)
+                                 .padding(.horizontal, 6)
+@@ -51,7 +51,7 @@ struct AboutView: View {
+                 }
+             }
+ 
+-            Text("Drop files on the menu bar and copy clean filesystem paths instantly.")
++            Text(localized("Drop files on the menu bar and copy clean filesystem paths instantly."))
+                 .foregroundStyle(.secondary)
+                 .multilineTextAlignment(.center)
+ 
+@@ -63,7 +63,7 @@ struct AboutView: View {
+                 }
+             }
+ 
+-            Button("Check for Updates", action: onCheckForUpdates)
++            Button(localized("Check for Updates"), action: onCheckForUpdates)
+                 .disabled(!canCheckForUpdates)
+ 
+             if let copyright {
+@@ -84,7 +84,7 @@ struct AboutView: View {
+             ),
+             makeLink(
+                 id: "website",
+-                title: "Website",
++                title: localized("Website"),
+                 systemImage: "globe",
+                 rawURL: "https://slashgrab.app/"
+             ),
+@@ -114,7 +114,7 @@ struct AboutView: View {
+     }
+ 
+     private var versionLine: String {
+-        "Version \(shortVersion) (\(buildNumber))"
++        String.localizedStringWithFormat(localized("Version %@ (%@)"), shortVersion, buildNumber)
+     }
+ 
+     private var shortVersion: String {
+@@ -126,6 +126,6 @@ struct AboutView: View {
+     }
+ 
+     private var copyright: String? {
+-        Bundle.main.object(forInfoDictionaryKey: "NSHumanReadableCopyright") as? String
++        (Bundle.main.object(forInfoDictionaryKey: "NSHumanReadableCopyright") as? String).map { localized($0) }
+     }
+ }
+diff --git a/Sources/Slashgrab/AppDelegate.swift b/Sources/Slashgrab/AppDelegate.swift
+index aa3d4e9..cdba4da 100644
+--- a/Sources/Slashgrab/AppDelegate.swift
++++ b/Sources/Slashgrab/AppDelegate.swift
+@@ -11,10 +11,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
+ 
+     func applicationDidFinishLaunching(_ notification: Notification) {
+         NSApp.setActivationPolicy(.accessory)
+-        if let version = SharedSettings.finderExtensionVersion() {
+-            SharedSettings.makeFinderExtensionVersionStore()?.activate(version: version)
++        if FinderExtensionController.embeddedExtensionURL != nil {
++            if let version = SharedSettings.finderExtensionVersion() {
++                SharedSettings.makeFinderExtensionVersionStore()?.activate(version: version)
++            }
++            finderExtensionMigrationController.migrateIfNeeded()
+         }
+-        finderExtensionMigrationController.migrateIfNeeded()
+ 
+         let controller = StatusItemController(appState: appState)
+         controller.install()
+diff --git a/Sources/Slashgrab/AppState.swift b/Sources/Slashgrab/AppState.swift
+index 90c1a9c..b15f90d 100644
+--- a/Sources/Slashgrab/AppState.swift
++++ b/Sources/Slashgrab/AppState.swift
+@@ -8,6 +8,7 @@ final class AppState: ObservableObject {
+     @Published var selectedFormat: PathFormat
+     @Published private(set) var launchAtLoginEnabled: Bool
+     @Published private(set) var finderExtensionEnabled: Bool
++    @Published private(set) var useFinderSubmenu: Bool
+ 
+     private let settings: AppSettingsStore
+     private let sharedSettings: AppSettingsStore?
+@@ -42,6 +43,7 @@ final class AppState: ObservableObject {
+         let currentLaunchAtLoginEnabled = launchAtLoginController.isEnabled
+         launchAtLoginEnabled = currentLaunchAtLoginEnabled
+         finderExtensionEnabled = finderExtensionController.isEnabled
++        useFinderSubmenu = (sharedSettings ?? settings).useFinderSubmenu
+         settings.launchAtLoginEnabled = currentLaunchAtLoginEnabled
+         persistHistory()
+     }
+@@ -68,16 +70,16 @@ final class AppState: ObservableObject {
+     @discardableResult
+     func handleDroppedURLs(_ urls: [URL]) -> Bool {
+         guard !urls.isEmpty else {
+-            showFeedback(.failure("Unsupported drop"))
++            showFeedback(.failure(localized("Unsupported drop")))
+             return false
+         }
+ 
+         let output = formatter.format(urls: urls, as: selectedFormat)
+-        return copyOutput(output, successMessage: "Path copied")
++        return copyOutput(output, successMessage: localized("Path copied"))
+     }
+ 
+     func copyAgain(_ output: String) {
+-        copyOutput(output, successMessage: "Copied again")
++        copyOutput(output, successMessage: localized("Copied again"))
+     }
+ 
+     func refreshHistory() {
+@@ -109,11 +111,11 @@ final class AppState: ObservableObject {
+             try launchAtLoginController.setEnabled(enabled)
+             launchAtLoginEnabled = launchAtLoginController.isEnabled
+             settings.launchAtLoginEnabled = launchAtLoginEnabled
+-            showFeedback(launchAtLoginEnabled ? .success("Launch at login on") : .success("Launch at login off"))
++            showFeedback(launchAtLoginEnabled ? .success(localized("Launch at login on")) : .success(localized("Launch at login off")))
+         } catch {
+             launchAtLoginEnabled = launchAtLoginController.isEnabled
+             settings.launchAtLoginEnabled = launchAtLoginEnabled
+-            showFeedback(.failure("Launch at login failed"))
++            showFeedback(.failure(localized("Launch at login failed")))
+         }
+     }
+ 
+@@ -121,6 +123,11 @@ final class AppState: ObservableObject {
+         finderExtensionEnabled = finderExtensionController.isEnabled
+     }
+ 
++    func setUseFinderSubmenu(_ enabled: Bool) {
++        (sharedSettings ?? settings).useFinderSubmenu = enabled
++        useFinderSubmenu = enabled
++    }
++
+     func refreshLaunchAtLoginStatus() {
+         launchAtLoginEnabled = launchAtLoginController.isEnabled
+         settings.launchAtLoginEnabled = launchAtLoginEnabled
+@@ -140,7 +147,7 @@ final class AppState: ObservableObject {
+             showFeedback(.success(successMessage, detail: output))
+             return true
+         } catch {
+-            showFeedback(.failure("Clipboard write failed"))
++            showFeedback(.failure(localized("Clipboard write failed")))
+             return false
+         }
+     }
+diff --git a/Sources/Slashgrab/DropTargetStatusView.swift b/Sources/Slashgrab/DropTargetStatusView.swift
+index bfbda4e..2a1024c 100644
+--- a/Sources/Slashgrab/DropTargetStatusView.swift
++++ b/Sources/Slashgrab/DropTargetStatusView.swift
+@@ -120,7 +120,7 @@ final class DropTargetStatusView: NSView {
+         layer?.zPosition = 999
+         registerForDraggedTypes(URLDropReader.readableTypes)
+         setAccessibilityRole(.button)
+-        setAccessibilityLabel("Slashgrab path drop target")
++        setAccessibilityLabel(localized("Slashgrab path drop target"))
+     }
+ 
+     private func configureStatusButton() {
+diff --git a/Sources/Slashgrab/DropZoneView.swift b/Sources/Slashgrab/DropZoneView.swift
+index e09ded8..c67fe08 100644
+--- a/Sources/Slashgrab/DropZoneView.swift
++++ b/Sources/Slashgrab/DropZoneView.swift
+@@ -52,7 +52,7 @@ final class DropZoneNSView: NSView {
+         (hovering ? NSColor.controlAccentColor : NSColor.separatorColor).setStroke()
+         border.stroke()
+ 
+-        let title = hovering ? "Release to copy path" : "Drop files or folders here"
++        let title = hovering ? localized("Release to copy path") : localized("Drop files or folders here")
+         let attributes: [NSAttributedString.Key: Any] = [
+             .font: NSFont.systemFont(ofSize: 12, weight: .semibold),
+             .foregroundColor: hovering ? NSColor.controlAccentColor : NSColor.secondaryLabelColor,
+@@ -103,6 +103,6 @@ final class DropZoneNSView: NSView {
+     private func commonInit() {
+         registerForDraggedTypes(URLDropReader.readableTypes)
+         setAccessibilityRole(.button)
+-        setAccessibilityLabel("Slashgrab popover drop target")
++        setAccessibilityLabel(localized("Slashgrab popover drop target"))
+     }
+ }
+diff --git a/Sources/Slashgrab/FeedbackPopoverView.swift b/Sources/Slashgrab/FeedbackPopoverView.swift
+index cb1824d..c3ee348 100644
+--- a/Sources/Slashgrab/FeedbackPopoverView.swift
++++ b/Sources/Slashgrab/FeedbackPopoverView.swift
+@@ -18,8 +18,8 @@ struct DropReadyPopoverView: View {
+         StatusPopoverContentView(
+             systemImage: "arrow.down.circle.fill",
+             iconColor: .accentColor,
+-            title: "Ready to drop",
+-            detail: "Release to copy path"
++            title: localized("Ready to drop"),
++            detail: localized("Release to copy path")
+         )
+     }
+ }
+diff --git a/Sources/Slashgrab/FinderExtensionController.swift b/Sources/Slashgrab/FinderExtensionController.swift
+index 8f1a497..c0a7cf3 100644
+--- a/Sources/Slashgrab/FinderExtensionController.swift
++++ b/Sources/Slashgrab/FinderExtensionController.swift
+@@ -1,4 +1,5 @@
+ import FinderSync
++import Foundation
+ 
+ @MainActor
+ protocol FinderExtensionManaging {
+@@ -8,6 +9,14 @@ protocol FinderExtensionManaging {
+ 
+ @MainActor
+ struct FinderExtensionController: FinderExtensionManaging {
++    static var embeddedExtensionURL: URL? {
++        guard let url = Bundle.main.builtInPlugInsURL?.appendingPathComponent("SlashgrabFinderSync.appex"),
++              FileManager.default.fileExists(atPath: url.path) else {
++            return nil
++        }
++        return url
++    }
++
+     var isEnabled: Bool {
+         FIFinderSyncController.isExtensionEnabled
+     }
+diff --git a/Sources/Slashgrab/MenuPopoverView.swift b/Sources/Slashgrab/MenuPopoverView.swift
+index a4b3b27..132477a 100644
+--- a/Sources/Slashgrab/MenuPopoverView.swift
++++ b/Sources/Slashgrab/MenuPopoverView.swift
+@@ -12,19 +12,19 @@ struct MenuPopoverView: View {
+         VStack(alignment: .leading, spacing: 14) {
+             header
+ 
+-            Picker("Copy As", selection: Binding(
++            Picker(localized("Copy As"), selection: Binding(
+                 get: { appState.selectedFormat },
+                 set: { appState.setSelectedFormat($0) }
+             )) {
+                 ForEach(PathFormat.allCases) { format in
+-                    Text(format.displayName).tag(format)
++                    Text(localized(format.displayName)).tag(format)
+                 }
+             }
+             .pickerStyle(.menu)
+ 
+             if let output = appState.lastCopiedOutput {
+                 VStack(alignment: .leading, spacing: 6) {
+-                    Text("Last copied")
++                    Text(localized("Last copied"))
+                         .font(.custom("Avenir Next", size: 11).weight(.semibold))
+                         .foregroundStyle(.secondary)
+                     RecentPathRow(output: output) {
+@@ -47,7 +47,7 @@ struct MenuPopoverView: View {
+                 Button(role: .destructive) {
+                     onQuit()
+                 } label: {
+-                    Label("Quit", systemImage: "power")
++                    Label(localized("Quit"), systemImage: "power")
+                 }
+             }
+         }
+@@ -62,7 +62,7 @@ struct MenuPopoverView: View {
+             OpenSettingsButton(onBeforeOpen: onPrepareSettings)
+         } else {
+             Button(action: onOpenLegacySettings) {
+-                Label("Settings…", systemImage: "gearshape")
++                Label(localized("Settings…"), systemImage: "gearshape")
+             }
+         }
+     }
+@@ -70,9 +70,9 @@ struct MenuPopoverView: View {
+     private var historyMenu: some View {
+         Menu {
+             if appState.history.entries.isEmpty {
+-                Text("No copied paths yet")
++                Text(localized("No copied paths yet"))
+             } else {
+-                Section("Copy again") {
++                Section(localized("Copy again")) {
+                     ForEach(appState.history.entries, id: \.self) { output in
+                         Button {
+                             appState.copyAgain(output)
+@@ -88,12 +88,12 @@ struct MenuPopoverView: View {
+                 Button(role: .destructive) {
+                     appState.clearHistory()
+                 } label: {
+-                    Label("Clear History", systemImage: "trash")
++                    Label(localized("Clear History"), systemImage: "trash")
+                 }
+             }
+         } label: {
+             HStack(spacing: 8) {
+-                Label("Recently grabbed", systemImage: "clock.arrow.circlepath")
++                Label(localized("Recently grabbed"), systemImage: "clock.arrow.circlepath")
+                     .font(.custom("Avenir Next", size: 12).weight(.semibold))
+                 Spacer()
+                 Text(historyCountTitle)
+@@ -114,7 +114,7 @@ struct MenuPopoverView: View {
+ 
+     private var historyCountTitle: String {
+         let count = appState.history.entries.count
+-        return count == 1 ? "1 item" : "\(count) items"
++        return count == 1 ? localized("1 item") : String.localizedStringWithFormat(localized("%lld items"), Int64(count))
+     }
+ 
+     private func historyMenuTitle(for output: String) -> String {
+@@ -144,7 +144,7 @@ struct MenuPopoverView: View {
+                         .font(.custom("Avenir Next", size: 16).weight(.bold))
+ 
+                     if buildInfo.isDevBuild {
+-                        Text("DEV")
++                        Text(localized("DEV"))
+                             .font(.custom("Avenir Next", size: 9).weight(.heavy))
+                             .foregroundStyle(.white)
+                             .padding(.horizontal, 5)
+@@ -152,7 +152,7 @@ struct MenuPopoverView: View {
+                             .background(.orange, in: RoundedRectangle(cornerRadius: 4))
+                     }
+                 }
+-                Text(buildInfo.isDevBuild ? "Development build" : "Drop files. Grab paths.")
++                Text(buildInfo.isDevBuild ? localized("Development build") : localized("Drop files. Grab paths."))
+                     .font(.custom("Avenir Next", size: 11))
+                     .foregroundStyle(.secondary)
+             }
+@@ -182,7 +182,7 @@ private struct OpenSettingsButton: View {
+             onBeforeOpen()
+             openSettings()
+         } label: {
+-            Label("Settings…", systemImage: "gearshape")
++            Label(localized("Settings…"), systemImage: "gearshape")
+         }
+     }
+ }
+diff --git a/Sources/Slashgrab/RecentPathRow.swift b/Sources/Slashgrab/RecentPathRow.swift
+index 9096e5f..657b091 100644
+--- a/Sources/Slashgrab/RecentPathRow.swift
++++ b/Sources/Slashgrab/RecentPathRow.swift
+@@ -18,10 +18,10 @@ struct RecentPathRow: View {
+                 onCopy()
+             } label: {
+                 Image(systemName: "doc.on.doc")
+-                    .accessibilityLabel("Copy")
++                    .accessibilityLabel(localized("Copy"))
+             }
+             .buttonStyle(.borderless)
+-            .help("Copy again")
++            .help(localized("Copy again"))
+         }
+         .padding(.vertical, 5)
+         .padding(.horizontal, 7)
+diff --git a/Sources/Slashgrab/SettingsView.swift b/Sources/Slashgrab/SettingsView.swift
+index ea0a4e6..648293a 100644
+--- a/Sources/Slashgrab/SettingsView.swift
++++ b/Sources/Slashgrab/SettingsView.swift
+@@ -10,7 +10,12 @@ struct SettingsView<Updater: UpdaterControlling>: View {
+         TabView {
+             generalSettings
+                 .tabItem {
+-                    Label("General", systemImage: "gearshape")
++                    Label(localized("General"), systemImage: "gearshape")
++                }
++
++            FinderSettingsView(appState: appState)
++                .tabItem {
++                    Label(localized("Finder"), systemImage: "folder")
+                 }
+ 
+             AboutView(
+@@ -19,7 +24,7 @@ struct SettingsView<Updater: UpdaterControlling>: View {
+                 onCheckForUpdates: updater.checkForUpdates
+             )
+             .tabItem {
+-                Label("About", systemImage: "info.circle")
++                Label(localized("About"), systemImage: "info.circle")
+             }
+         }
+         .frame(minWidth: 520, idealWidth: 520, minHeight: 340, idealHeight: 340)
+@@ -36,31 +41,13 @@ struct SettingsView<Updater: UpdaterControlling>: View {
+ 
+     private var generalSettings: some View {
+         Form {
+-            Section("Startup") {
+-                Toggle("Launch Slashgrab at login", isOn: Binding(
++            Section(localized("Startup")) {
++                Toggle(localized("Launch Slashgrab at login"), isOn: Binding(
+                     get: { appState.launchAtLoginEnabled },
+                     set: { appState.setLaunchAtLoginEnabled($0) }
+                 ))
+ 
+-                Text("Keeps Slashgrab ready in the menu bar after you sign in.")
+-                    .font(.caption)
+-                    .foregroundStyle(.secondary)
+-            }
+-
+-            Section("Finder") {
+-                LabeledContent("Copy Path extension") {
+-                    Label(
+-                        appState.finderExtensionEnabled ? "Enabled" : "Not enabled",
+-                        systemImage: appState.finderExtensionEnabled ? "checkmark.circle.fill" : "circle.dashed"
+-                    )
+-                    .foregroundStyle(appState.finderExtensionEnabled ? .green : .secondary)
+-                }
+-
+-                Button("Open Finder Extension Settings…") {
+-                    appState.showFinderExtensionSettings()
+-                }
+-
+-                Text("Enable the extension to add Copy Path to Finder’s right-click menu.")
++                Text(localized("Keeps Slashgrab ready in the menu bar after you sign in."))
+                     .font(.caption)
+                     .foregroundStyle(.secondary)
+             }
+diff --git a/Sources/Slashgrab/StatusItemController.swift b/Sources/Slashgrab/StatusItemController.swift
+index d416b21..0ab1c9e 100644
+--- a/Sources/Slashgrab/StatusItemController.swift
++++ b/Sources/Slashgrab/StatusItemController.swift
+@@ -27,8 +27,8 @@ final class StatusItemController {
+         statusItem.length = buildInfo.isDevBuild ? NSStatusItem.variableLength : NSStatusItem.squareLength
+         button.image = StatusIconProvider.image(for: .idle)
+         button.image?.size = NSSize(width: 22, height: 22)
+-        button.title = buildInfo.isDevBuild ? " DEV" : ""
+-        button.toolTip = buildInfo.isDevBuild ? "Slashgrab Dev Build" : "Slashgrab"
++        button.title = buildInfo.isDevBuild ? localized(" DEV") : ""
++        button.toolTip = buildInfo.isDevBuild ? localized("Slashgrab Dev Build") : "Slashgrab"
+         button.imagePosition = buildInfo.isDevBuild ? .imageLeft : .imageOnly
+         button.contentTintColor = nil
+ 
+diff --git a/Sources/SlashgrabCore/AppSettingsStore.swift b/Sources/SlashgrabCore/AppSettingsStore.swift
+index 04f9231..2dfeb1d 100644
+--- a/Sources/SlashgrabCore/AppSettingsStore.swift
++++ b/Sources/SlashgrabCore/AppSettingsStore.swift
+@@ -5,6 +5,7 @@ public final class AppSettingsStore: @unchecked Sendable {
+         static let historyEntries = "historyEntries"
+         static let historyLimit = "historyLimit"
+         static let launchAtLoginEnabled = "launchAtLoginEnabled"
++        static let useFinderSubmenu = "useFinderSubmenu"
+     }
+ 
+     static let selectedFormatKey = "selectedPathFormat"
+@@ -47,6 +48,11 @@ public final class AppSettingsStore: @unchecked Sendable {
+         }
+     }
+ 
++    public var useFinderSubmenu: Bool {
++        get { defaults.bool(forKey: Key.useFinderSubmenu) }
++        set { defaults.set(newValue, forKey: Key.useFinderSubmenu) }
++    }
++
+     public func loadHistory() -> PathHistory {
+         PathHistory(entries: defaults.stringArray(forKey: Key.historyEntries) ?? [], limit: historyLimit)
+     }
+diff --git a/Sources/SlashgrabFinderSync/FinderSync.swift b/Sources/SlashgrabFinderSync/FinderSync.swift
+index abf2105..5d20e57 100644
+--- a/Sources/SlashgrabFinderSync/FinderSync.swift
++++ b/Sources/SlashgrabFinderSync/FinderSync.swift
+@@ -1,12 +1,10 @@
+ import AppKit
+ import FinderSync
+ import SlashgrabCore
++import UniformTypeIdentifiers
+ 
+ final class FinderSync: FIFinderSync {
+-    private let copyAction = PathCopyAction(
+-        clipboardWriter: FinderClipboardWriter(),
+-        historyStore: SharedSettings.makeStore()
+-    )
++    private let settings = SharedSettings.makeStore()
+     private let pathFormatReader = SharedSettings.makePathFormatReader()
+     private let versionStore = SharedSettings.makeFinderExtensionVersionStore()
+     private let version = SharedSettings.finderExtensionVersion()
+@@ -14,11 +12,26 @@ final class FinderSync: FIFinderSync {
+     override init() {
+         super.init()
+ 
+-        // Monitoring the filesystem root makes the contextual command available for
+-        // local files, external volumes, and network mounts without inspecting files.
+-        FIFinderSyncController.default().directoryURLs = [
+-            URL(fileURLWithPath: "/", isDirectory: true),
+-        ]
++        updateMonitoredVolumes()
++        let workspaceNotifications = NSWorkspace.shared.notificationCenter
++        for notification in [NSWorkspace.didMountNotification, NSWorkspace.didUnmountNotification, NSWorkspace.didRenameVolumeNotification] {
++            workspaceNotifications.addObserver(self, selector: #selector(mountedVolumesChanged), name: notification, object: nil)
++        }
++    }
++
++    @objc
++    private func mountedVolumesChanged(_ notification: Notification) {
++        updateMonitoredVolumes()
++    }
++
++    private func updateMonitoredVolumes() {
++        // Finder routes requests by volume. A registration for "/" only covers its own volume.
++        var roots = Set(FileManager.default.mountedVolumeURLs(
++            includingResourceValuesForKeys: nil,
++            options: [.skipHiddenVolumes]
++        ) ?? [])
++        roots.insert(URL(fileURLWithPath: "/", isDirectory: true))
++        FIFinderSyncController.default().directoryURLs = roots
+     }
+ 
+     override func menu(for menuKind: FIMenuKind) -> NSMenu? {
+@@ -27,24 +40,80 @@ final class FinderSync: FIFinderSync {
+             return nil
+         }
+ 
++        let urls = selectedURLs()
++        guard !urls.isEmpty else { return nil }
++
+         let menu = NSMenu(title: "Slashgrab")
+         let copyItem = NSMenuItem(
+-            title: "Copy Path",
++            title: Self.copyTitle(for: urls),
+             action: #selector(copySelectedPaths),
+             keyEquivalent: ""
+         )
+         copyItem.target = self
+-        menu.addItem(copyItem)
++        if settings?.useFinderSubmenu == true {
++            let group = NSMenuItem(title: "Slashgrab", action: nil, keyEquivalent: "")
++            let submenu = NSMenu(title: "Slashgrab")
++            submenu.addItem(copyItem)
++            group.submenu = submenu
++            menu.addItem(group)
++        } else {
++            menu.addItem(copyItem)
++        }
+         return menu
+     }
+ 
++    private func selectedURLs() -> [URL] {
++        let controller = FIFinderSyncController.default()
++        if let selection = controller.selectedItemURLs(), !selection.isEmpty {
++            return selection
++        }
++        return controller.targetedURL().map { [$0] } ?? []
++    }
++
++    private static func copyTitle(for urls: [URL]) -> String {
++        let kinds = Set(urls.map(itemKind))
++        switch (kinds.count == 1 ? kinds.first : nil, urls.count == 1) {
++        case (.folder, true):
++            return String(localized: "Copy Folder Path")
++        case (.folder, false):
++            return String(localized: "Copy Folder Paths")
++        case let (.file(type?), single):
++            let format = single
++                ? String(localized: "Copy %@ Path")
++                : String(localized: "Copy %@ Paths")
++            return String.localizedStringWithFormat(format, type)
++        case (.file, true):
++            return String(localized: "Copy File Path")
++        case (.file, false):
++            return String(localized: "Copy File Paths")
++        default:
++            return String(localized: "Copy Selected Paths")
++        }
++    }
++
++    private enum ItemKind: Hashable {
++        case folder
++        case file(String?)
++    }
++
++    private static func itemKind(for url: URL) -> ItemKind {
++        let metadata = try? url.resourceValues(forKeys: [.isDirectoryKey, .isPackageKey, .contentTypeKey])
++        if (metadata?.isDirectory ?? url.hasDirectoryPath), metadata?.isPackage != true {
++            return .folder
++        }
++
++        let candidates = [metadata?.contentType, UTType(filenameExtension: url.pathExtension)]
++        let type = candidates.compactMap { $0 }.first {
++            $0.isDeclared && $0 != .item && $0 != .content && $0 != .data
++        }
++        return .file(type?.localizedDescription)
++    }
++
+     @objc
+     private func copySelectedPaths() {
+-        let controller = FIFinderSyncController.default()
+-        let selectedURLs = controller.selectedItemURLs() ?? []
+-        let urls = selectedURLs.isEmpty ? controller.targetedURL().map { [$0] } ?? [] : selectedURLs
+         let format = pathFormatReader?.selectedFormat ?? .shellEscaped
+-        _ = try? copyAction.copy(urls: urls, as: format)
++        let copyAction = PathCopyAction(clipboardWriter: FinderClipboardWriter(), historyStore: settings)
++        _ = try? copyAction.copy(urls: selectedURLs(), as: format)
+     }
+ }
+ 
+diff --git a/Tests/SlashgrabTests/AppStateTests.swift b/Tests/SlashgrabTests/AppStateTests.swift
+index 8fa1101..d0f573a 100644
+--- a/Tests/SlashgrabTests/AppStateTests.swift
++++ b/Tests/SlashgrabTests/AppStateTests.swift
+@@ -90,7 +90,7 @@ struct AppStateTests {
+         #expect(clipboard.writtenStrings.isEmpty)
+         #expect(appState.history.entries.isEmpty)
+         #expect(appState.feedback?.kind == .failure)
+-        #expect(appState.feedback?.message == "Unsupported drop")
++        #expect(appState.feedback?.message == localized("Unsupported drop"))
+     }
+ 
+     @Test("Clipboard failures do not persist history")
+@@ -112,7 +112,7 @@ struct AppStateTests {
+         #expect(appState.history.entries.isEmpty)
+         #expect(settings.loadHistory().entries.isEmpty)
+         #expect(appState.feedback?.kind == .failure)
+-        #expect(appState.feedback?.message == "Clipboard write failed")
++        #expect(appState.feedback?.message == localized("Clipboard write failed"))
+     }
+ 
+     @Test("Launch at login writes actual controller state")
+@@ -131,7 +131,7 @@ struct AppStateTests {
+         #expect(appState.launchAtLoginEnabled)
+         #expect(settings.launchAtLoginEnabled)
+         #expect(appState.feedback?.kind == .success)
+-        #expect(appState.feedback?.message == "Launch at login on")
++        #expect(appState.feedback?.message == localized("Launch at login on"))
+ 
+         controller.errorToThrow = TestError.expected
+         controller.isEnabled = false
+@@ -140,7 +140,7 @@ struct AppStateTests {
+         #expect(!appState.launchAtLoginEnabled)
+         #expect(!settings.launchAtLoginEnabled)
+         #expect(appState.feedback?.kind == .failure)
+-        #expect(appState.feedback?.message == "Launch at login failed")
++        #expect(appState.feedback?.message == localized("Launch at login failed"))
+     }
+ 
+     @Test("Launch at login refresh uses the live service state")
+@@ -185,6 +185,25 @@ struct AppStateTests {
+         #expect(finderController.showManagementInterfaceCallCount == 1)
+     }
+ 
++    @Test("Finder submenu preference is saved for the extension")
++    func finderSubmenuPreferenceIsShared() {
++        let settings = AppSettingsStore(defaults: makeDefaults())
++        let sharedSettings = AppSettingsStore(defaults: makeDefaults())
++        sharedSettings.useFinderSubmenu = true
++        let appState = AppState(
++            settings: settings,
++            sharedSettings: sharedSettings,
++            clipboardWriter: SpyClipboardWriter(),
++            launchAtLoginController: FakeLaunchAtLoginController(),
++            finderExtensionController: FakeFinderExtensionController()
++        )
++
++        #expect(appState.useFinderSubmenu)
++        appState.setUseFinderSubmenu(false)
++        #expect(!appState.useFinderSubmenu)
++        #expect(!sharedSettings.useFinderSubmenu)
++    }
++
+     private func makeDefaults() -> UserDefaults {
+         let suiteName = "com.prof18.slashgrab.app-tests.\(UUID().uuidString)"
+         let defaults = UserDefaults(suiteName: suiteName)!
