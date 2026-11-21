@@ -443,11 +443,14 @@ struct InputStatisticsView: View {
                 }
             }
         } message: {
-            Text("\(localized(StatisticsDeletionConfirmationPolicy.prompt(
-                forStep: deleteConfirmation
-            ) ?? "Review the time range to be deleted."))\n\n\(localized(deleteAllRequested
+            let prompt = localized(
+                StatisticsDeletionConfirmationPolicy.prompt(forStep: deleteConfirmation)
+                    ?? "Review the time range to be deleted."
+            )
+            let scope = localized(deleteAllRequested
                 ? "This deletes every locally stored input statistic. Existing cloud backups and uploads are not deleted."
-                : "This deletes statistics in the selected time range."))")
+                : "This deletes statistics in the selected time range.")
+            Text(prompt + "\n\n" + scope)
         }
     }
 
