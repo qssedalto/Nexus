@@ -283,17 +283,20 @@ public final class InputStatisticsStore: @unchecked Sendable {
     private func trendOnQueue(startMS: Int64, endMS: Int64,
                               resolution: InputTrendResolution,
                               category: String?, name: String?) throws -> [InputTrendBucket] {
-            // SQLite's UTC grouping avoids DST-dependent double counting.
-            // Long-term aggregate rows are already stored by event timestamps.
-            // To return a stable millisecond key for all resolutions, bucket
-            // in the Swift UTC calendar after selecting aggregate UTC times.
+            // Push the potentially massive event-range scan/grouping into
+            // SQLite. Swift sees only hourly/daily UTC buckets, even when
+            // many years of input events are stored.
+            let periodMS: Int64 = resolution == .hour ? 3_600_000 : 86_400_000
             var statement: OpaquePointer?
             let sql = """
-                SELECT time_ms, category, count FROM input_events
+                SELECT (time_ms / \(periodMS)) * \(periodMS) AS bucket_ms,
+                       category, SUM(count)
+                FROM input_events
                 WHERE time_ms >= ? AND time_ms < ?
                   AND (? IS NULL OR category = ?)
                   AND (? IS NULL OR name = ?)
-                ORDER BY time_ms
+                GROUP BY bucket_ms, category
+                ORDER BY bucket_ms, category
                 """
             guard sqlite3_prepare_v2(database, sql, -1, &statement, nil) == SQLITE_OK,
                   let statement else { throw InputStoreError.read }
