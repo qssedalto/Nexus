@@ -20,6 +20,7 @@ struct ClipboardShelfView: View {
     @State private var endDate = Date()
     @State private var searchedOperations: [RecordedOperation] = []
     @State private var searchGeneration = 0
+    @State private var searchPageCount = 1
     @State private var message: String?
     @State private var confirmClear = false
     @State private var collections: [ClipboardCollection] = []
@@ -55,8 +56,12 @@ struct ClipboardShelfView: View {
             || filterByDate || (filter != .all && filter != .pinned)
     }
 
+    private var filterFingerprint: String {
+        "\(search)|\(sourceFilter)|\(filter.rawValue)|\(filterByDate)|\(startDate.timeIntervalSince1970)|\(endDate.timeIntervalSince1970)"
+    }
+
     private var searchFingerprint: String {
-        "\(search)|\(sourceFilter)|\(filter.rawValue)|\(filterByDate)|\(startDate.timeIntervalSince1970)|\(endDate.timeIntervalSince1970)|\(searchGeneration)"
+        "\(filterFingerprint)|\(searchGeneration)|\(searchPageCount)"
     }
 
     private var searchKind: ClipboardHistoryKind {
@@ -136,8 +141,9 @@ struct ClipboardShelfView: View {
             let rhs = $1.eventTimeMS ?? $1.detectedTimeMS
             return lhs == rhs ? $0.id > $1.id : lhs > rhs
         }
+        let maximumCards = shouldQueryDatabase ? min(5_000, searchPageCount * 200) : 200
         return Array((ordered.filter { pins.contains($0.id) }
-                    + ordered.filter { !pins.contains($0.id) }).prefix(200))
+                    + ordered.filter { !pins.contains($0.id) }).prefix(maximumCards))
     }
 
     var body: some View {
@@ -294,9 +300,19 @@ struct ClipboardShelfView: View {
                 .frame(height: 270)
             }
 
-            if shouldQueryDatabase && searchedOperations.count >= 200 {
-                Text(localized("Showing the latest 200 matching records; narrow the search to find older ones."))
-                    .font(.caption2).foregroundStyle(.secondary)
+            if shouldQueryDatabase && selectedCollectionID.isEmpty
+                && searchedOperations.count >= searchPageCount * 200 {
+                HStack {
+                    Text("\(searchedOperations.count) " + localized("matching records loaded"))
+                        .font(.caption2).foregroundStyle(.secondary)
+                    Spacer()
+                    if searchPageCount < 25 {
+                        Button(localized("Load 200 older matching records")) {
+                            searchPageCount += 1
+                        }
+                        .font(.caption)
+                    }
+                }
             }
 
             HStack(spacing: 6) {
@@ -326,6 +342,7 @@ struct ClipboardShelfView: View {
         .onChange(of: clipboard.savedRevision) { _ in
             refreshShelf()
         }
+        .onChange(of: filterFingerprint) { _ in searchPageCount = 1 }
         .task(id: searchFingerprint) {
             guard shouldQueryDatabase else {
                 searchedOperations = []
@@ -340,14 +357,23 @@ struct ClipboardShelfView: View {
                 let lower = searchStartMS
                 let upper = searchEndMS
                 let store = OperationStore.shared()
+                let pageCount = min(25, searchPageCount)
                 let found = await Task.detached(priority: .utility) {
-                    try? store?.searchClipboard(
-                        query: query, kind: kind, sourceApplication: source,
-                        from: lower, to: upper, limit: 200
-                    )
+                    var accumulated: [RecordedOperation] = []
+                    for page in 0..<pageCount {
+                        if Task.isCancelled { break }
+                        let batch = (try? store?.searchClipboard(
+                            query: query, kind: kind, sourceApplication: source,
+                            from: lower, to: upper, limit: 200,
+                            offset: page * 200
+                        )) ?? []
+                        accumulated.append(contentsOf: batch)
+                        if batch.count < 200 { break }
+                    }
+                    return accumulated
                 }.value
                 guard !Task.isCancelled else { return }
-                searchedOperations = found ?? []
+                searchedOperations = found
             } catch {
                 // A newer query superseded this keystroke.
             }
