@@ -32,7 +32,7 @@ struct ClipboardShelfView: View {
     private var operations: [RecordedOperation] {
         let pins = pinned
         let matches = appState.operations.filter { operation in
-            guard ["copy", "path_copy", "text_copy"].contains(operation.type) else { return false }
+            guard ["copy", "path_copy", "text_copy", "image_copy"].contains(operation.type) else { return false }
             let kind = operation.items.first?.kind
             switch filter {
             case .all: break
