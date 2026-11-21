@@ -6,6 +6,9 @@ import SlashgrabCore
 @MainActor
 struct ClipboardCloudSettingsView: View {
     @ObservedObject private var cloud = ClipboardCloudController.shared
+    @State private var confirmLocalCacheRemoval = false
+    @State private var showCloudEraseSheet = false
+    @State private var cloudEraseConfirmation = ""
 
     var body: some View {
         Form {
@@ -89,6 +92,23 @@ struct ClipboardCloudSettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
+            Section(localized("iCloud clipboard data removal")) {
+                Text(localized("Removing local cache preserves your original clipboard history. Erasing the private iCloud zone deletes Nexus clipboard cloud records for this Apple account, but another device can upload its own older copies if sync remains enabled there."))
+                    .font(.caption).foregroundStyle(.secondary)
+                HStack {
+                    Button(localized("Clear local iCloud clipboard cache…"), role: .destructive) {
+                        confirmLocalCacheRemoval = true
+                    }
+                    .disabled(cloud.running)
+                    Button(localized("Erase Nexus clipboard data from iCloud…"),
+                           role: .destructive) {
+                        cloudEraseConfirmation = ""
+                        showCloudEraseSheet = true
+                    }
+                    .disabled(cloud.running || !cloud.containerConfigured)
+                }
+            }
+
             Section(localized("Locally cached cloud history")) {
                 HStack {
                     Text(localized("Remote records are a local preview, not a verified paste. Only plain text entries with authorized content may be copied again."))
@@ -145,5 +165,38 @@ struct ClipboardCloudSettingsView: View {
         }
         .formStyle(.grouped)
         .padding(.horizontal, 8)
+        .confirmationDialog(
+            localized("Clear only the local iCloud clipboard cache?"),
+            isPresented: $confirmLocalCacheRemoval
+        ) {
+            Button(localized("Clear local iCloud clipboard cache"), role: .destructive) {
+                Task { await cloud.clearLocalCloudData() }
+            }
+        } message: {
+            Text(localized("The local cloud outbox, cached records, cloud cursors and imported mirrors will be removed. Original locally copied entries are preserved; no network request is made."))
+        }
+        .sheet(isPresented: $showCloudEraseSheet) {
+            VStack(alignment: .leading, spacing: 16) {
+                Text(localized("Erase private Nexus iCloud clipboard zone"))
+                    .font(.headline)
+                Text(localized("This permanently deletes the entire dedicated NexusClipboard zone from the signed-in Apple account. Disable sync on other devices before proceeding to prevent re-upload. Your original local clipboard history is preserved."))
+                    .font(.callout)
+                TextField(localized("Type DELETE to confirm"), text: $cloudEraseConfirmation)
+                    .textFieldStyle(.roundedBorder)
+                HStack {
+                    Spacer()
+                    Button(localized("Cancel")) {
+                        showCloudEraseSheet = false
+                    }
+                    Button(localized("Erase Nexus iCloud records"), role: .destructive) {
+                        showCloudEraseSheet = false
+                        Task { await cloud.erasePrivateNexusCloudZone() }
+                    }
+                    .disabled(cloudEraseConfirmation != "DELETE" || cloud.running)
+                }
+            }
+            .padding(24)
+            .frame(minWidth: 460, idealWidth: 520)
+        }
     }
 }
