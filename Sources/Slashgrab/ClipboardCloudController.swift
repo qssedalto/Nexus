@@ -260,6 +260,76 @@ final class ClipboardCloudController: ObservableObject {
         }
     }
 
+    /// Removes cached iCloud-derived data from this Mac only. It never
+    /// contacts iCloud and preserves original clipboard history/collections.
+    /// The user must confirm from Settings before this method is invoked.
+    func clearLocalCloudData() async {
+        guard !running, let journal, let store else { return }
+        enabled = false
+        running = true
+        defer { running = false }
+        do {
+            try await Self.discardLocalCloudData(journal: journal, store: store)
+            resetCloudPreferencesAfterPurge()
+            refreshLocalCache()
+            status = localized("Local iCloud clipboard cache cleared; original local history preserved")
+        } catch {
+            status = localized("Local cloud cache removal failed") + ": "
+                + error.localizedDescription
+        }
+    }
+
+    /// Erases the dedicated NexusClipboard private CloudKit zone ONLY after
+    /// a separate typed confirmation in the settings sheet. Sync is disabled
+    /// before network access to prevent any new local uploads during cleanup.
+    /// If the network fails, the local journal remains available for retry.
+    func erasePrivateNexusCloudZone() async {
+        guard !running, let journal, let store else { return }
+        enabled = false
+        running = true
+        defer { running = false }
+        do {
+            let transport = try await makeTransport()
+            let purge = ClipboardCloudPurgeCoordinator(
+                transport: transport, journal: journal
+            )
+            try await purge.purgeCloudZoneAndLocalCache(
+                explicitlyConfirmed: true
+            )
+            // The coordinator clears only the cloud journal after the server
+            // acknowledges deletion. Locally imported mirrors are separate.
+            _ = try await Task.detached(priority: .utility) {
+                try store.discardImportedCloudMirrors()
+            }.value
+            resetCloudPreferencesAfterPurge()
+            refreshLocalCache()
+            status = localized("Nexus private iCloud clipboard zone deleted. Disable sync on other devices to prevent recreation.")
+        } catch {
+            status = localized("Cloud deletion failed; sync remains disabled and local recovery data may remain")
+                + ": " + error.localizedDescription
+        }
+    }
+
+    private static func discardLocalCloudData(
+        journal: ClipboardCloudJournal, store: OperationStore
+    ) async throws {
+        try await Task.detached(priority: .utility) {
+            // Keep the journal for retry if local mirror removal fails.
+            _ = try store.discardImportedCloudMirrors()
+            try journal.discardAllLocalCloudData()
+        }.value
+    }
+
+    private func resetCloudPreferencesAfterPurge() {
+        includeText = false
+        includeNames = false
+        includePaths = false
+        nextHistoryOffset = 0
+        defaults.removeObject(forKey: "nexusCloudClipboardHistoryOffset")
+        lastSuccessfulSync = nil
+        defaults.removeObject(forKey: "nexusCloudClipboardLastSuccess")
+    }
+
     private func makeTransport() async throws -> ClipboardCloudKitPrivateTransport {
         enum Availability: Error { case missingContainer, unavailableAccount }
         guard let id = configuredContainerID else { throw Availability.missingContainer }

@@ -1268,6 +1268,35 @@ public final class OperationStore: @unchecked Sendable {
         }
     }
 
+    /// Delete *only* locally imported CloudKit mirrors, leaving original
+    /// macOS clipboard operations, pinned items and user-created collections
+    /// untouched. SQLite foreign keys clean up membership and card metadata.
+    /// This is an explicit local privacy action, not a CloudKit network call.
+    @discardableResult
+    public func discardImportedCloudMirrors() throws -> Int {
+        lock.lock()
+        defer { lock.unlock() }
+        try execute("BEGIN IMMEDIATE")
+        do {
+            try execute("""
+                DELETE FROM clipboard_collections
+                WHERE id GLOB 'cloudkit:*'
+                """)
+            let collectionsDeleted = Int(sqlite3_changes(database))
+            try execute("""
+                DELETE FROM operations
+                WHERE id GLOB 'cloudkit:*'
+                  AND detection_method='cloudkit_remote_restore'
+                """)
+            let operationsDeleted = Int(sqlite3_changes(database))
+            try execute("COMMIT")
+            return collectionsDeleted + operationsDeleted
+        } catch {
+            try? execute("ROLLBACK")
+            throw error
+        }
+    }
+
     /// Explicitly mirror consent-approved cloud history without restoring
     /// remote file paths as local URLs. Entries are excluded from outbound
     /// queues; tombstones remove only mirrors, never original local copies.

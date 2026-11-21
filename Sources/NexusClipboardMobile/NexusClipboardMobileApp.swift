@@ -8,6 +8,9 @@ struct MobileHomeView: View {
     @State private var collectionName = ""
     @State private var showCreateCollection = false
     @State private var search = ""
+    @State private var showLocalCloudClear = false
+    @State private var showCloudEraseSheet = false
+    @State private var cloudEraseConfirmation = ""
 
     private var collections: [ClipboardCloudRecord] {
         cloud.records.filter { !$0.isDeleted && $0.kind == .collection }
@@ -159,6 +162,20 @@ struct MobileHomeView: View {
                         }
                         .disabled(!cloud.cloudEnabled || cloud.running)
                     }
+                    Section("Cloud clipboard data removal") {
+                        Text("Local cache removal preserves offline clipboard history. Deleting the Nexus iCloud zone removes its cloud records, but another device can re-upload old copies unless sync is disabled there.")
+                            .font(.caption).foregroundStyle(.secondary)
+                        Button("Clear local iCloud cache", role: .destructive) {
+                            showLocalCloudClear = true
+                        }
+                        .disabled(cloud.running)
+                        Button("Erase Nexus clipboard data from iCloud…",
+                               role: .destructive) {
+                            cloudEraseConfirmation = ""
+                            showCloudEraseSheet = true
+                        }
+                        .disabled(cloud.running || !cloud.containerConfigured)
+                    }
                     Section("Status") {
                         Text(cloud.status).foregroundStyle(.secondary)
                         Text("A signed build with the matching Apple CloudKit container and account is required for actual cross-device synchronization. The app cannot auto-paste into other iOS apps.")
@@ -166,6 +183,43 @@ struct MobileHomeView: View {
                     }
                 }
                 .navigationTitle("Settings")
+                .confirmationDialog(
+                    "Clear only this device's iCloud clipboard cache?",
+                    isPresented: $showLocalCloudClear,
+                    titleVisibility: .visible
+                ) {
+                    Button("Clear local iCloud cache", role: .destructive) {
+                        Task { await cloud.clearLocalCloudData() }
+                    }
+                } message: {
+                    Text("Your offline clipboard history stays on this device. Cloud cache, queued changes and server cursor are cleared without network access.")
+                }
+                .sheet(isPresented: $showCloudEraseSheet) {
+                    NavigationStack {
+                        Form {
+                            Section("Erase private Nexus iCloud clipboard zone") {
+                                Text("This permanently deletes the NexusClipboard zone for the signed-in Apple account. Disable sync on other devices before erasing, or they may upload old content again. Offline clipboard history is preserved.")
+                                    .font(.callout)
+                                TextField("Type DELETE to confirm",
+                                          text: $cloudEraseConfirmation)
+                                    .autocorrectionDisabled()
+                                Button("Erase Nexus iCloud records",
+                                       role: .destructive) {
+                                    showCloudEraseSheet = false
+                                    Task { await cloud.erasePrivateNexusCloudZone() }
+                                }
+                                .disabled(cloudEraseConfirmation != "DELETE" || cloud.running)
+                            }
+                        }
+                        .navigationTitle("Erase iCloud Data")
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button("Cancel") { showCloudEraseSheet = false }
+                            }
+                        }
+                    }
+                    .presentationDetents([.medium, .large])
+                }
             }
             .tabItem { Label("Settings", systemImage: "gearshape") }
         }

@@ -312,6 +312,63 @@ final class MobileClipboardController: ObservableObject {
         }
     }
 
+    /// Explicit offline-only removal of CloudKit cache/outbox/cursors.
+    /// The separately saved iPhone/iPad local clipboard history is retained.
+    func clearLocalCloudData() async {
+        guard !running, let journal else { return }
+        cloudEnabled = false
+        running = true
+        defer { running = false }
+        do {
+            try await Task.detached(priority: .utility) {
+                try journal.discardAllLocalCloudData()
+            }.value
+            resetCloudPreferencesAfterPurge()
+            refresh()
+            status = NSLocalizedString(
+                "Local cloud cache cleared; offline clipboard history preserved",
+                comment: ""
+            )
+        } catch {
+            status = "Cloud cache deletion failed: \(error.localizedDescription)"
+        }
+    }
+
+    /// Explicitly erases the dedicated Nexus private iCloud zone after the
+    /// UI obtains a separate typed confirmation. No background invocation.
+    func erasePrivateNexusCloudZone() async {
+        guard !running, let journal else { return }
+        cloudEnabled = false
+        running = true
+        defer { running = false }
+        do {
+            let transport = try await makeTransport()
+            let purge = ClipboardCloudPurgeCoordinator(
+                transport: transport, journal: journal
+            )
+            try await purge.purgeCloudZoneAndLocalCache(
+                explicitlyConfirmed: true
+            )
+            resetCloudPreferencesAfterPurge()
+            refresh()
+            status = NSLocalizedString(
+                "Nexus iCloud zone deleted. Disable syncing on other devices.",
+                comment: ""
+            )
+        } catch {
+            status = "Cloud deletion failed; sync remains disabled: "
+                + error.localizedDescription
+        }
+    }
+
+    private func resetCloudPreferencesAfterPurge() {
+        includeText = false
+        includeNames = false
+        includePaths = false
+        lastSuccessfulSync = nil
+        defaults.removeObject(forKey: "nexusMobileCloudLastSuccess")
+    }
+
     private func makeTransport() async throws -> ClipboardCloudKitPrivateTransport {
         enum Unavailable: Error { case missingContainer, signedOut }
         guard let id = containerID else { throw Unavailable.missingContainer }

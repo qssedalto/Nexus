@@ -52,3 +52,34 @@ Privacy and scope:
   access, CloudKit server permissions or end-to-end device synchronization.
 - This integration does not create an iPhone/iPadOS binary or automatically
   install any application on another device.
+
+
+## Explicit cloud data removal (manual)
+
+The macOS and iOS/iPadOS Settings screens now present TWO different, destructive
+actions. Neither runs on app launch, disable-sync, sign-out or automatic history
+retention.
+
+- **Clear local iCloud cache**: clears only the current device's CloudKit
+  journal, queued changes, cursors and (on Mac) imported cloud history/collection
+  mirrors. Independently saved clipboard history and user-created collections
+  remain intact. This does not delete records from Apple iCloud.
+- **Erase Nexus clipboard data from iCloud**: requires a separate confirmation
+  sheet and the literal text `DELETE`. Before connecting to Apple, the app
+  persistently disables synchronization on this device. The dedicated private
+  `NexusClipboard` CKRecordZone is deleted. If remote deletion succeeds, its
+  local cloud journal/cursors and mirrors are discarded. If network deletion
+  fails, locally queued data is preserved for retry, with sync left disabled.
+  Repeating the command after a partial success treats an already-missing
+  zone as success.
+
+Before using cloud erasure, disable Nexus cloud sync on **every** previously
+paired device. A different signed-in device holding old local records can later
+create a new zone and re-upload those records when its user manually enables
+sync. The application cannot remotely disable other devices.
+
+This action deletes only Nexus's dedicated CloudKit zone in the configured
+Apple private database; it does not touch iCloud Drive, photos, unrelated apps,
+or independently saved local clipboard entries. Cloud-side behavior requires
+a signed Apple Developer build and live-account verification. SQLite logical
+deletion does not guarantee forensic overwriting of SSD/WAL snapshots or backups.
