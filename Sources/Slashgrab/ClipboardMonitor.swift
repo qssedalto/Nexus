@@ -21,6 +21,17 @@ final class ClipboardMonitor: ObservableObject {
         }
     }
 
+    /// Optional repeat policy. Existing users keep every text copy until
+    /// they explicitly choose a consolidation strategy.
+    @Published var textDuplicatePolicy: ClipboardTextDuplicatePolicy {
+        didSet {
+            UserDefaults.standard.set(
+                textDuplicatePolicy.rawValue,
+                forKey: "nexusClipboardTextDuplicatePolicy"
+            )
+        }
+    }
+
     /// Opt-in storage of screenshot/image bytes is independent from
     /// file URL observations and text capture. Default is off.
     /// Separately opted-in sanitized RTF formatting; requires text capture.
@@ -77,6 +88,11 @@ final class ClipboardMonitor: ObservableObject {
         textEnabled = UserDefaults.standard.bool(forKey: "nexusMonitorTextCopies")
         imageEnabled = UserDefaults.standard.bool(forKey: "nexusClipboardImageCapture")
         richTextEnabled = UserDefaults.standard.bool(forKey: "nexusClipboardRichTextCapture")
+        textDuplicatePolicy = ClipboardTextDuplicatePolicy(
+            rawValue: UserDefaults.standard.string(
+                forKey: "nexusClipboardTextDuplicatePolicy"
+            ) ?? ""
+        ) ?? .keepAll
         paused = UserDefaults.standard.bool(forKey: "nexusClipboardHistoryPaused")
         retentionDays = max(0, UserDefaults.standard.integer(forKey: "nexusClipboardRetentionDays"))
         maximumHistoryRecords = max(0, UserDefaults.standard.integer(forKey: "nexusClipboardHistoryMaximum"))
@@ -249,6 +265,7 @@ final class ClipboardMonitor: ObservableObject {
         // allowlist, never rendered as a webpage or loaded by WebKit.
         let richRTF = richTextEnabled ? pasteboard.data(forType: .rtf) : nil
         let richHTML = richTextEnabled ? pasteboard.data(forType: .html) : nil
+        let duplicatePolicy = textDuplicatePolicy
         persist {
             let original = text.trimmingCharacters(in: .whitespacesAndNewlines)
             var sanitized: ClipboardRichTextPreview?
@@ -271,10 +288,11 @@ final class ClipboardMonitor: ObservableObject {
                     sourceFormat: format
                 )
             } else {
-                try store.record(type: "text_copy", urls: [],
-                                 sourceApplication: observedForegroundID,
-                                 detectionMethod: "clipboard_frontmost_observed",
-                                 detectedTimeMS: detected, clipboardText: text)
+                try store.recordTextCopy(
+                    text, detectedTimeMS: detected,
+                    observedForegroundBundleID: observedForegroundID,
+                    policy: duplicatePolicy
+                )
             }
         }
     }
