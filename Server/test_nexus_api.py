@@ -61,6 +61,35 @@ class NexusAPITests(unittest.TestCase):
         self.assertEqual(sum(item["count"] for item in full["statistics"]), 5)
         self.assertEqual(len(self.request("/api/nexus/v1/statistics/events?start_ms=0&end_ms=2000")["events"]), 2)
 
+    def test_lost_ack_retry_updates_aggregate_without_double_count(self):
+        endpoint = "/api/nexus/v1/statistics/events"
+        old = {
+            "schema_version": 1, "device_id": "device-aggregate",
+            "events": [{"id": 42, "time_ms": 3600000,
+                        "category": "ordinary", "name": "character_total",
+                        "count": 2}],
+        }
+        # The first server write succeeds but the client never gets its ACK.
+        self.assertEqual(self.request(endpoint, "POST", old)["accepted_ids"], [42])
+        # Another keypress joins that hourly bucket before the retry.
+        newer = {
+            **old,
+            "events": [{**old["events"][0], "count": 3, "time_ms": 3600500}],
+        }
+        self.assertEqual(self.request(endpoint, "POST", newer)["accepted_ids"], [42])
+        # An out-of-order stale retry must never reduce the server count.
+        self.assertEqual(self.request(endpoint, "POST", old)["accepted_ids"], [42])
+        restored = self.request(endpoint + "?start_ms=3600000&end_ms=3601000")
+        self.assertEqual(len(restored["events"]), 1)
+        self.assertEqual(restored["events"][0]["count"], 3)
+        self.assertEqual(restored["events"][0]["time_ms"], 3600000)
+        summary = self.request(
+            "/api/nexus/v1/statistics/summary?start_ms=3600000&end_ms=7200000"
+        )
+        self.assertEqual(summary["statistics"], [
+            {"category": "ordinary", "name": "character_total", "count": 3}
+        ])
+
     def test_authentication_and_invalid_data(self):
         with self.assertRaises(HTTPError) as unauthorized:
             self.request("/api/nexus/v1/me", token="wrong")
