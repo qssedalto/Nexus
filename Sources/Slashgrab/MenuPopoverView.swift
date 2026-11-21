@@ -6,6 +6,7 @@ struct MenuPopoverView: View {
     let buildInfo: AppBuildInfo
     let onPrepareSettings: () -> Void
     let onOpenLegacySettings: () -> Void
+    let onOpenClipboardShelf: () -> Void
     let onQuit: () -> Void
 
     var body: some View {
@@ -34,6 +35,18 @@ struct MenuPopoverView: View {
             }
 
             Divider()
+
+            Button {
+                onOpenClipboardShelf()
+            } label: {
+                HStack {
+                    Label(localized("Clipboard Shelf"), systemImage: "square.stack.3d.up")
+                    Spacer()
+                    Image(systemName: "arrow.up.right")
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .buttonStyle(.borderless)
 
             historyMenu
 
