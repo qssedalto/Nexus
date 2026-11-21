@@ -1,4 +1,4 @@
-import SlashgrabCore
+import NexusCore
 import SwiftUI
 
 struct MenuPopoverView: View {
@@ -70,7 +70,11 @@ struct MenuPopoverView: View {
 
             HStack {
                 settingsButton
-
+                Button {
+                    NotificationCenter.default.post(name: .nexusShowWelcomeGuide, object: nil)
+                } label: {
+                    Label(localized("Help"), systemImage: "questionmark.circle")
+                }
                 Spacer()
 
                 Button(role: .destructive) {

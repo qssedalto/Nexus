@@ -60,6 +60,8 @@ targets:
     settings:
       base:
         PRODUCT_NAME: NexusCore
+    dependencies:
+      - sdk: CloudKit.framework
 
   NexusFinderSync:
     type: app-extension
@@ -118,6 +120,7 @@ targets:
         NSHumanReadableCopyright: Copyright © 2026 qssedalto. Portions © 2026 Marco Gomiero.
         NSPrincipalClass: NSApplication
         NexusAppGroupIdentifier: $(APP_GROUP_ID)
+        NexusCloudKitContainerIdentifier: $(NEXUS_CLOUDKIT_CONTAINER_ID)
     entitlements:
       path: Config/Nexus.entitlements
       properties:

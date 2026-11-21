@@ -1,6 +1,6 @@
 import AppKit
 import SwiftUI
-import SlashgrabCore
+import NexusCore
 
 struct SettingsView<Updater: UpdaterControlling>: View {
     @ObservedObject var appState: AppState
@@ -77,6 +77,13 @@ struct SettingsView<Updater: UpdaterControlling>: View {
                 Text(localized("Keeps Nexus ready in the menu bar after you sign in."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+            Section(localized("Welcome")) {
+                Button {
+                    NotificationCenter.default.post(name: .nexusShowWelcomeGuide, object: nil)
+                } label: {
+                    Label(localized("Show Welcome Guide…"), systemImage: "questionmark.circle")
+                }
             }
             Section(localized("Clipboard shortcut")) {
                 Picker(localized("Show or hide clipboard shelf"), selection: Binding(

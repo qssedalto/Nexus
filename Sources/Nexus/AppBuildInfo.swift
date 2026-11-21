@@ -20,9 +20,9 @@ struct AppBuildInfo: Equatable {
             ?? "Nexus"
 
         return AppBuildInfo(
-            bundleIdentifier: bundle.bundleIdentifier ?? "com.prof18.slashgrab",
+            bundleIdentifier: bundle.bundleIdentifier ?? "com.qssedalto.nexus",
             displayName: displayName,
-            variant: bundle.object(forInfoDictionaryKey: "SlashgrabBuildVariant") as? String
+            variant: bundle.object(forInfoDictionaryKey: "NexusBuildVariant") as? String
         )
     }
 }

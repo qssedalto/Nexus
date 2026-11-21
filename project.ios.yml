@@ -25,19 +25,19 @@ targets:
     platform: iOS
     sources:
       - Sources/NexusMobileCore/MobileRecordedOperation.swift
-      - Sources/SlashgrabCore/ClipboardCloudSyncModel.swift
-      - Sources/SlashgrabCore/MobileClipboardLocalStore.swift
-      - Sources/SlashgrabCore/ClipboardCloudJournal.swift
-      - Sources/SlashgrabCore/ClipboardCloudSyncCoordinator.swift
-      - Sources/SlashgrabCore/ClipboardCloudPurgeCoordinator.swift
-      - Sources/SlashgrabCore/ClipboardCloudRunSummary.swift
-      - Sources/SlashgrabCore/ClipboardCloudKitCodec.swift
-      - Sources/SlashgrabCore/ClipboardCloudKitPrivateTransport.swift
-      - Sources/SlashgrabCore/ClipboardCloudImageAsset.swift
-      - Sources/SlashgrabCore/ClipboardCloudFileAsset.swift
-      - Sources/SlashgrabCore/ClipboardFilePreviewPolicy.swift
-      - Sources/SlashgrabCore/ClipboardCloudUploadDecision.swift
-      - Sources/SlashgrabCore/ClipboardCloudForegroundSyncPolicy.swift
+      - Sources/NexusCore/ClipboardCloudSyncModel.swift
+      - Sources/NexusCore/MobileClipboardLocalStore.swift
+      - Sources/NexusCore/ClipboardCloudJournal.swift
+      - Sources/NexusCore/ClipboardCloudSyncCoordinator.swift
+      - Sources/NexusCore/ClipboardCloudPurgeCoordinator.swift
+      - Sources/NexusCore/ClipboardCloudRunSummary.swift
+      - Sources/NexusCore/ClipboardCloudKitCodec.swift
+      - Sources/NexusCore/ClipboardCloudKitPrivateTransport.swift
+      - Sources/NexusCore/ClipboardCloudImageAsset.swift
+      - Sources/NexusCore/ClipboardCloudFileAsset.swift
+      - Sources/NexusCore/ClipboardFilePreviewPolicy.swift
+      - Sources/NexusCore/ClipboardCloudUploadDecision.swift
+      - Sources/NexusCore/ClipboardCloudForegroundSyncPolicy.swift
     dependencies:
       - sdk: CloudKit.framework
     settings:
