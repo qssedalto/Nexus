@@ -88,4 +88,38 @@ final class ClipboardHistorySearchTests: XCTestCase {
         XCTAssertEqual(try store.searchClipboard(query: "", from: 2_002, to: 2_002).count, 0)
         XCTAssertEqual(try store.searchClipboard(query: "", sourceApplication: "finder").count, 2)
     }
+
+    func testRecentClipboardShelfQueryIsNotCrowdedOutByOtherOperations() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try OperationStore(url: root.appendingPathComponent("shelf.sqlite"))
+
+        for index in 0..<230 {
+            try store.record(type: "text_copy", urls: [], sourceApplication: nil,
+                             detectionMethod: "clipboard",
+                             detectedTimeMS: Int64(index + 1),
+                             clipboardText: "history \\(index)")
+        }
+        // A general operation timeline can be dominated by paste requests.
+        // Those events must not consume the shelf's 200-card budget.
+        for index in 0..<240 {
+            try store.record(type: "paste_request", urls: [],
+                             sourceApplication: nil,
+                             detectionMethod: "quartz_shortcut",
+                             detectedTimeMS: Int64(index + 1_000))
+        }
+
+        let timeline = try store.query(from: 0, to: Int64.max, limit: 200)
+        XCTAssertEqual(timeline.count, 200)
+        XCTAssertTrue(timeline.allSatisfy { $0.type == "paste_request" })
+
+        let shelf = try store.searchClipboard(query: "", limit: 200)
+        XCTAssertEqual(shelf.count, 200)
+        XCTAssertTrue(shelf.allSatisfy { $0.type == "text_copy" })
+        XCTAssertEqual(shelf.first?.clipboardText, "history 229")
+        XCTAssertEqual(shelf.last?.clipboardText, "history 30")
+        XCTAssertEqual(Set(shelf.map(\\.id)).count, 200)
+    }
+
 }
