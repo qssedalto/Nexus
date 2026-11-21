@@ -13,7 +13,7 @@ enum ClipboardThumbnailMaker {
         ) else { return nil }
         // Check dimensions from image headers before asking ImageIO to decode.
         // A tiny compressed file can otherwise expand into enormous pixels.
-        guard let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? NSDictionary,
+        guard let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as NSDictionary?,
               let width = properties[kCGImagePropertyPixelWidth] as? NSNumber,
               let height = properties[kCGImagePropertyPixelHeight] as? NSNumber,
               width.int64Value > 0, height.int64Value > 0,

@@ -117,7 +117,6 @@ struct ClipboardShelfView: View {
         let matches = candidates.filter { operation in
             guard ["copy", "path_copy", "text_copy", "image_copy", "drop_copy"].contains(operation.type) else { return false }
             if !selectedCollectionID.isEmpty && !collectionMembers.contains(operation.id) { return false }
-            let kind = operation.items.first?.kind
             switch filter {
             case .all: break
             case .files:

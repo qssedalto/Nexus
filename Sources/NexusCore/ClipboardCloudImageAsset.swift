@@ -74,7 +74,7 @@ public enum ClipboardCloudImagePreview {
               ),
               let properties = CGImageSourceCopyPropertiesAtIndex(
                 source, 0, nil
-              ) as? NSDictionary,
+              ) as NSDictionary?,
               let width = properties[kCGImagePropertyPixelWidth] as? NSNumber,
               let height = properties[kCGImagePropertyPixelHeight] as? NSNumber,
               width.int64Value > 0, height.int64Value > 0,
