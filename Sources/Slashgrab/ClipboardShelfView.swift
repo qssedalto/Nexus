@@ -220,7 +220,9 @@ struct ClipboardShelfView: View {
                         .help(localized("Delete collection only"))
                 }
                 Spacer()
-                Text(localized("Collections protect their entries from history cleanup."))
+                Text(localized(selectedCollectionID.isEmpty
+                    ? "Collections protect their entries from history cleanup."
+                    : "Drag cards to reorder this collection."))
                     .font(.caption2).foregroundStyle(.secondary)
             }
 
