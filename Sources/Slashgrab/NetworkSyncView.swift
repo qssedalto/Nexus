@@ -23,6 +23,7 @@ final class NetworkSyncController: ObservableObject {
         didSet {
             defaults.set(serverAddress, forKey: "nexusSyncServer")
             serverOperationsSupported = false
+            serverStatisticsAggregatesSupported = false
             cancelInFlightUploads()
         }
     }
@@ -47,6 +48,7 @@ final class NetworkSyncController: ObservableObject {
     }
     @Published private(set) var status = "Idle"
     @Published private(set) var serverOperationsSupported = false
+    @Published private(set) var serverStatisticsAggregatesSupported = false
     @Published private(set) var lastSync: Date?
     @Published private(set) var remoteSummary: [String: Int64] = [:]
     @Published var operationSyncEnabled: Bool {
@@ -141,11 +143,13 @@ final class NetworkSyncController: ObservableObject {
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: keychainService, kSecAttrAccount as String: "api-token"]
         SecItemDelete(query as CFDictionary)
         serverOperationsSupported = false
+        serverStatisticsAggregatesSupported = false
         status = "Token removed"
     }
 
     func testConnection() async {
         serverOperationsSupported = false
+        serverStatisticsAggregatesSupported = false
         do {
             let request = try makeRequest(path: "/api/nexus/v1/me", method: "GET")
             let hello: ServerHello = try await fetch(request)
@@ -155,6 +159,11 @@ final class NetworkSyncController: ObservableObject {
                 return
             }
             serverOperationsSupported = (hello.capabilities ?? []).contains("operations.events")
+            serverStatisticsAggregatesSupported = (hello.capabilities ?? []).contains("statistics.monotonic_aggregates")
+            if !serverStatisticsAggregatesSupported {
+                status = localized("Server connected but safe aggregate statistics retry is unavailable")
+                return
+            }
             status = localized(serverOperationsSupported
                 ? "Connected: statistics and operation history APIs available"
                 : "Connected: operation history API unavailable or not advertised")
@@ -187,8 +196,10 @@ final class NetworkSyncController: ObservableObject {
             let hello: ServerHello = try await fetch(
                 try makeRequest(path: "/api/nexus/v1/me", method: "GET")
             )
-            guard hello.authenticated, hello.schemaVersion == 1,
-                  hello.capabilities?.contains("statistics.monotonic_aggregates") == true else {
+            serverStatisticsAggregatesSupported =
+                hello.authenticated && hello.schemaVersion == 1
+                && hello.capabilities?.contains("statistics.monotonic_aggregates") == true
+            guard serverStatisticsAggregatesSupported else {
                 status = localized("Statistics server requires aggregate retry support before upload")
                 return
             }
