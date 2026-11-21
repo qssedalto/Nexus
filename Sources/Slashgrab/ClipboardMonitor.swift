@@ -126,11 +126,19 @@ final class ClipboardMonitor: ObservableObject {
         timer = nil
         retentionTimer = nil
         lastChangeCount = NSPasteboard.general.changeCount
-        guard !paused, enabled || textEnabled || imageEnabled else { return }
-        timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.checkPasteboard() }
+        if ClipboardRetentionActivityPolicy.shouldObserve(
+            paused: paused, files: enabled, text: textEnabled, images: imageEnabled
+        ) {
+            timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+                MainActor.assumeIsolated { self?.checkPasteboard() }
+            }
         }
-        if retentionDays > 0 || maximumHistoryRecords > 0 {
+        // Never suspend the user-selected expiry policy merely because
+        // clipboard observation is disabled or paused.
+        if ClipboardRetentionActivityPolicy.shouldRunCleanup(
+            retentionDays: retentionDays,
+            maximumHistoryRecords: maximumHistoryRecords
+        ) {
             retentionTimer = Timer.scheduledTimer(withTimeInterval: 3600, repeats: true) { [weak self] _ in
                 MainActor.assumeIsolated { self?.cleanupNow() }
             }
@@ -193,9 +201,8 @@ final class ClipboardMonitor: ObservableObject {
         let count = pasteboard.changeCount
         guard count != lastChangeCount else { return }
         lastChangeCount = count
-        // Check metadata from *every* pasteboard item before accessing
-        // text, image bytes or file URLs. NSPasteboard.types may describe
-        // only the first item, missing a concealed marker in a later item.
+        // Inspect type metadata from every item, before reading any body.
+        // A concealed/transient marker on a later item must block capture.
         let firstTypes = pasteboard.types?.map(\.rawValue) ?? []
         let itemTypes = (pasteboard.pasteboardItems ?? []).map {
             $0.types.map(\.rawValue)

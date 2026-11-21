@@ -152,8 +152,10 @@ export default {
         return json({ deleted: result.meta.changes });
       }
       return json({ error: "not_found" }, 404);
-    } catch (error) {
-      console.error(JSON.stringify({ event: "nexus_api_error", message: String(error) }));
+    } catch {
+      // Driver exceptions may embed SQL values or personal clipboard text.
+      // Never include raw exception strings in shared Worker logs.
+      console.error(JSON.stringify({ event: "nexus_api_error", code: "internal_error" }));
       return json({ error: "internal_error" }, 500);
     }
   },

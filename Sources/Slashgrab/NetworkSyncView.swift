@@ -3,9 +3,8 @@ import Security
 import SwiftUI
 import SlashgrabCore
 
-/// Never follow server redirects with the user's API bearer token or
-/// clipboard/statistics request body. A 3xx response is treated as a failed
-/// request rather than forwarding sensitive data to a different origin.
+/// Never follow a redirect carrying the user's bearer token or private
+/// statistics/clipboard payload to an unexpected host or downgraded URL.
 private final class NexusRejectHTTPRedirects: NSObject, URLSessionTaskDelegate {
     func urlSession(
         _ session: URLSession, task: URLSessionTask,
@@ -24,26 +23,58 @@ final class NetworkSyncController: ObservableObject {
         didSet {
             defaults.set(serverAddress, forKey: "nexusSyncServer")
             serverOperationsSupported = false
+            cancelInFlightUploads()
         }
     }
     @Published var automatic: Bool {
-        didSet { defaults.set(automatic, forKey: "nexusSyncAutomatic"); schedule() }
+        didSet {
+            defaults.set(automatic, forKey: "nexusSyncAutomatic")
+            if !automatic {
+                if statisticsUploadWasAutomatic { statisticsUploadTask?.cancel() }
+                if operationUploadWasAutomatic { operationUploadTask?.cancel() }
+            }
+            schedule()
+        }
     }
     @Published var preciseEvents: Bool {
-        didSet { defaults.set(preciseEvents, forKey: "nexusSyncPreciseEvents") }
+        didSet {
+            defaults.set(preciseEvents, forKey: "nexusSyncPreciseEvents")
+            if !preciseEvents {
+                statisticsTransferRevision &+= 1
+                statisticsUploadTask?.cancel()
+            }
+        }
     }
     @Published private(set) var status = "Idle"
     @Published private(set) var serverOperationsSupported = false
     @Published private(set) var lastSync: Date?
     @Published private(set) var remoteSummary: [String: Int64] = [:]
     @Published var operationSyncEnabled: Bool {
-        didSet { defaults.set(operationSyncEnabled, forKey: "nexusOperationSyncEnabled") }
+        didSet {
+            defaults.set(operationSyncEnabled, forKey: "nexusOperationSyncEnabled")
+            if !operationSyncEnabled {
+                operationConsentRevision &+= 1
+                operationUploadTask?.cancel()
+            }
+        }
     }
     @Published var operationSyncPaths: Bool {
-        didSet { defaults.set(operationSyncPaths, forKey: "nexusOperationSyncPaths") }
+        didSet {
+            defaults.set(operationSyncPaths, forKey: "nexusOperationSyncPaths")
+            if !operationSyncPaths {
+                operationConsentRevision &+= 1
+                operationUploadTask?.cancel()
+            }
+        }
     }
     @Published var operationSyncText: Bool {
-        didSet { defaults.set(operationSyncText, forKey: "nexusOperationSyncText") }
+        didSet {
+            defaults.set(operationSyncText, forKey: "nexusOperationSyncText")
+            if !operationSyncText {
+                operationConsentRevision &+= 1
+                operationUploadTask?.cancel()
+            }
+        }
     }
     @Published private(set) var operationSyncStatus = "Not enabled"
     @Published private(set) var operationPreview = ""
@@ -53,19 +84,25 @@ final class NetworkSyncController: ObservableObject {
     private let store = InputStatisticsStore.shared()
     private let operationStore = OperationStore.shared()
     private var timer: Timer?
-    private var statisticsRequestRunning = false
-    private var operationRequestRunning = false
+    // A narrower permission cancels the underlying URLSession request when
+    // possible. Already-delivered server requests cannot be recalled.
+    private var operationConsentRevision: UInt64 = 0
+    private var statisticsTransferRevision: UInt64 = 0
+    private var operationUploadTask: Task<OperationSyncConfirmation, Error>?
+    private var operationUploadWasAutomatic = false
+    private var statisticsUploadTask: Task<UploadConfirmation, Error>?
+    private var statisticsUploadWasAutomatic = false
+    private var statisticsDeletionInProgress = false
+    private var operationDeletionInProgress = false
     private let keychainService = "com.prof18.slashgrab.nexus-sync"
     private let session: URLSession = {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.httpShouldSetCookies = false
         configuration.httpCookieStorage = nil
         configuration.urlCache = nil
-        return URLSession(
-            configuration: configuration,
-            delegate: NexusRejectHTTPRedirects(),
-            delegateQueue: nil
-        )
+        return URLSession(configuration: configuration,
+                          delegate: NexusRejectHTTPRedirects(),
+                          delegateQueue: nil)
     }()
 
     private init() {
@@ -83,6 +120,8 @@ final class NetworkSyncController: ObservableObject {
     var hasToken: Bool { token() != nil }
 
     func saveToken(_ value: String) -> Bool {
+        // In-flight HTTP requests may carry the previous credential.
+        cancelInFlightUploads()
         let data = Data(value.utf8)
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: keychainService, kSecAttrAccount as String: "api-token"]
         let update = SecItemUpdate(query as CFDictionary, [kSecValueData as String: data] as CFDictionary)
@@ -97,6 +136,7 @@ final class NetworkSyncController: ObservableObject {
     }
 
     func removeToken() {
+        cancelInFlightUploads()
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: keychainService, kSecAttrAccount as String: "api-token"]
         SecItemDelete(query as CFDictionary)
         serverOperationsSupported = false
@@ -122,46 +162,70 @@ final class NetworkSyncController: ObservableObject {
         }
     }
 
-    func syncNow() async {
-        guard !statisticsRequestRunning else {
-            status = "A statistics request is already in progress"
+    func syncNow(automaticRun: Bool = false) async {
+        guard !statisticsDeletionInProgress else {
+            status = "Statistics deletion in progress; upload blocked"
             return
         }
-        statisticsRequestRunning = true
-        defer { statisticsRequestRunning = false }
+        if automaticRun && !automatic { return }
+        guard statisticsUploadTask == nil else {
+            status = "Statistics upload already in progress"
+            return
+        }
         guard let store else { status = "Statistics database unavailable"; return }
+        let transferRevision = statisticsTransferRevision
         do {
             let pending = try store.pendingSync()
             guard !pending.isEmpty else { status = "Up to date"; return }
             let deviceID = persistentDeviceID()
-            // Minimize network metadata: ordinary character presses become
-            // hourly UTC totals, other inputs minute totals unless precise
-            // non-text events were separately enabled by the user.
+            // Ordinary character events are aggregated per UTC hour,
+            // independently of the optional precise non-text event toggle.
             let plan = try InputUploadPrivacyPolicy.prepare(
                 pending, preciseNonTextEvents: preciseEvents
             )
             let events = plan.events.map { event in
-                UploadEvent(
-                    id: event.id, timeMS: event.timeMS, category: event.category,
-                    name: event.name, count: event.count
-                )
+                UploadEvent(id: event.id, timeMS: event.timeMS,
+                            category: event.category, name: event.name,
+                            count: event.count)
             }
             var request = try makeRequest(path: "/api/nexus/v1/statistics/events", method: "POST")
             request.httpBody = try JSONEncoder().encode(UploadBatch(schemaVersion: 1, deviceID: deviceID, events: events))
+            guard transferRevision == statisticsTransferRevision,
+                  (!automaticRun || automatic) else {
+                status = "Statistics upload cancelled because settings changed"
+                return
+            }
+            let submittedRequest = request
+            let uploadTask = Task<UploadConfirmation, Error> {
+                try await self.fetch(submittedRequest)
+            }
+            statisticsUploadTask = uploadTask
+            statisticsUploadWasAutomatic = automaticRun
+            defer {
+                statisticsUploadTask = nil
+                statisticsUploadWasAutomatic = false
+            }
             status = "Uploading"
-            let (data, response) = try await session.data(for: request)
-            guard let http = response as? HTTPURLResponse else { throw SyncError.invalidResponse }
-            guard (200..<300).contains(http.statusCode) else { throw SyncError.http(http.statusCode) }
-            let confirmation = try JSONDecoder().decode(UploadConfirmation.self, from: data)
+            let confirmation = try await uploadTask.value
+            // Revocation must not mark a stale request as successfully synced.
+            guard transferRevision == statisticsTransferRevision,
+                  !uploadTask.isCancelled, (!automaticRun || automatic) else {
+                status = "Statistics request cancelled; check server before retrying"
+                return
+            }
             guard let acknowledgedSourceIDs = plan.sourceIDs(
                 forAcknowledgedUploadIDs: confirmation.acceptedIDs
             ) else { throw SyncError.invalidResponse }
-            // A server receipt for one aggregate acknowledges all and only
-            // the original local event IDs used to calculate that aggregate.
+            // Only the source IDs represented by a confirmed aggregate may
+            // be marked as synchronized. A revoked permission still leaves
+            // the originals pending via the revision/cancellation guard above.
             try store.markSynced(ids: acknowledgedSourceIDs, deviceID: deviceID)
             lastSync = Date()
             defaults.set(lastSync, forKey: "nexusSyncLastSuccess")
             status = "Uploaded \(acknowledgedSourceIDs.count) local events in \(confirmation.acceptedIDs.count) aggregated records"
+            appendLog(status)
+        } catch is CancellationError {
+            status = "Statistics request cancelled; an in-flight server request may already have arrived"
             appendLog(status)
         } catch { status = error.localizedDescription; appendLog(status) }
     }
@@ -175,17 +239,23 @@ final class NetworkSyncController: ObservableObject {
         }
     }
 
-    func syncOperationsNow() async {
-        guard !operationRequestRunning else {
-            operationSyncStatus = "An operation-history request is already in progress"
+    func syncOperationsNow(automaticRun: Bool = false) async {
+        guard !operationDeletionInProgress else {
+            operationSyncStatus = "Remote operation deletion in progress; upload blocked"
             return
         }
-        operationRequestRunning = true
-        defer { operationRequestRunning = false }
+        if automaticRun && !automatic { return }
         guard operationSyncEnabled else {
             operationSyncStatus = "Operation history upload requires separate consent"
             return
         }
+        guard operationUploadTask == nil else {
+            operationSyncStatus = "Operation upload already in progress"
+            return
+        }
+        let consentRevision = operationConsentRevision
+        let includePaths = operationSyncPaths
+        let includeText = operationSyncText
         guard let operationStore else {
             operationSyncStatus = "Operation history database unavailable"
             return
@@ -203,8 +273,8 @@ final class NetworkSyncController: ObservableObject {
                 return
             }
             let upload = pending.map { record in
-                SyncOperation(record: record, includePaths: operationSyncPaths,
-                              includeText: operationSyncText && (record.clipboardText?.count ?? 0) <= 100_000)
+                SyncOperation(record: record, includePaths: includePaths,
+                              includeText: includeText && (record.clipboardText?.count ?? 0) <= 100_000)
             }
             let body = try JSONEncoder().encode(OperationSyncBatch(
                 deviceID: persistentDeviceID(), operations: upload))
@@ -214,8 +284,36 @@ final class NetworkSyncController: ObservableObject {
             }
             var request = try makeRequest(path: "/api/nexus/v1/operations/events", method: "POST")
             request.httpBody = body
+            // Re-read all live permission toggles immediately before starting
+            // the HTTP task, not just while building the queued payload.
+            guard operationSyncEnabled, operationConsentRevision == consentRevision,
+                  (!automaticRun || automatic),
+                  (!includePaths || operationSyncPaths),
+                  (!includeText || operationSyncText) else {
+                operationSyncStatus = "Operation upload cancelled because consent changed"
+                return
+            }
+            let submittedRequest = request
+            let uploadTask = Task<OperationSyncConfirmation, Error> {
+                try await self.fetch(submittedRequest)
+            }
+            operationUploadTask = uploadTask
+            operationUploadWasAutomatic = automaticRun
+            defer {
+                operationUploadTask = nil
+                operationUploadWasAutomatic = false
+            }
             operationSyncStatus = "Uploading operation metadata"
-            let confirmation: OperationSyncConfirmation = try await fetch(request)
+            let confirmation = try await uploadTask.value
+            // A server may have processed an already-started request despite
+            // cancellation. Never treat a revoked-consent response as approval.
+            guard operationSyncEnabled, operationConsentRevision == consentRevision,
+                  !uploadTask.isCancelled, (!automaticRun || automatic),
+                  (!includePaths || operationSyncPaths),
+                  (!includeText || operationSyncText) else {
+                operationSyncStatus = "Consent changed or request cancelled; check server history for data already received"
+                return
+            }
             let expected = Set(pending.map(\.id))
             let accepted = Set(confirmation.acceptedIDs)
             guard !accepted.isEmpty && accepted.isSubset(of: expected) else {
@@ -223,6 +321,9 @@ final class NetworkSyncController: ObservableObject {
             }
             try operationStore.markSynced(operationIDs: Array(accepted))
             operationSyncStatus = "Uploaded \(accepted.count) operation records"
+            appendLog(operationSyncStatus)
+        } catch is CancellationError {
+            operationSyncStatus = "Operation upload cancelled; an in-flight server request may already have arrived"
             appendLog(operationSyncStatus)
         } catch {
             // Leave records pending after timeout, auth failure, 4xx or 5xx.
@@ -236,6 +337,9 @@ final class NetworkSyncController: ObservableObject {
             operationSyncStatus = "Enable operation history sync to restore"
             return
         }
+        let consentRevision = operationConsentRevision
+        let includePaths = operationSyncPaths
+        let includeText = operationSyncText
         guard startMS >= 0 && endMS > startMS else {
             operationSyncStatus = "Invalid time range"
             return
@@ -249,9 +353,20 @@ final class NetworkSyncController: ObservableObject {
                     method: "GET"
                 )
                 let page: RemoteOperationPage = try await fetch(request)
+                // Do not persist previously authorized remote text or paths
+                // after the user revokes a permission during network latency.
+                guard operationSyncEnabled, consentRevision == operationConsentRevision,
+                      (!includePaths || operationSyncPaths),
+                      (!includeText || operationSyncText) else {
+                    operationSyncStatus = "Operation restore cancelled because consent changed"
+                    return
+                }
+                let redacted = page.operations.map {
+                    $0.redacted(includePaths: includePaths, includeText: includeText)
+                }
                 // Imported records use stable device-qualified IDs. They can
                 // never enter the outbound local operation sync queue.
-                inserted += try operationStore.importRemote(page.operations)
+                inserted += try operationStore.importRemote(redacted)
                 guard let next = page.nextOffset else { break }
                 guard next > offset else { throw SyncError.invalidResponse }
                 offset = next
@@ -265,18 +380,18 @@ final class NetworkSyncController: ObservableObject {
     }
 
     func deleteRemoteOperations() async {
-        // Deletion is a distinct data right; it must not require granting
-        // upload permission again. Disable any future automated upload first.
+        // Deletion never requires turning upload back on. Revoke future
+        // automatic and category-specific permissions before network access.
         automatic = false
         operationSyncEnabled = false
-        operationSyncText = false
         operationSyncPaths = false
-        guard !operationRequestRunning else {
-            operationSyncStatus = "An upload is still running. Retry deletion after it completes."
+        operationSyncText = false
+        guard operationUploadTask == nil && !operationDeletionInProgress else {
+            operationSyncStatus = "An operation upload is still running; retry deletion once it completes"
             return
         }
-        operationRequestRunning = true
-        defer { operationRequestRunning = false }
+        operationDeletionInProgress = true
+        defer { operationDeletionInProgress = false }
         do {
             let request = try makeRequest(
                 path: "/api/nexus/v1/operations/events?device_id=\(persistentDeviceID())",
@@ -330,15 +445,13 @@ final class NetworkSyncController: ObservableObject {
     }
 
     func deleteRemoteDevice() async {
-        // Deleting statistics must not be immediately undone by the
-        // five-minute automatic uploader on this Mac.
         automatic = false
-        guard !statisticsRequestRunning else {
-            status = "An upload is still running. Retry deletion after it completes."
+        guard statisticsUploadTask == nil && !statisticsDeletionInProgress else {
+            status = "A statistics upload is still running; retry deletion once it completes"
             return
         }
-        statisticsRequestRunning = true
-        defer { statisticsRequestRunning = false }
+        statisticsDeletionInProgress = true
+        defer { statisticsDeletionInProgress = false }
         do {
             let request = try makeRequest(path: "/api/nexus/v1/statistics/events?device_id=\(persistentDeviceID())", method: "DELETE")
             let response: DeleteResponse = try await fetch(request)
@@ -393,14 +506,21 @@ final class NetworkSyncController: ObservableObject {
         return value
     }
 
+    private func cancelInFlightUploads() {
+        statisticsTransferRevision &+= 1
+        operationConsentRevision &+= 1
+        statisticsUploadTask?.cancel()
+        operationUploadTask?.cancel()
+    }
+
     private func schedule() {
         timer?.invalidate()
         guard automatic else { return }
         timer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                await self?.syncNow()
-                if self?.operationSyncEnabled == true {
-                    await self?.syncOperationsNow()
+                await self?.syncNow(automaticRun: true)
+                if self?.automatic == true && self?.operationSyncEnabled == true {
+                    await self?.syncOperationsNow(automaticRun: true)
                 }
             }
         }

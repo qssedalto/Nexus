@@ -102,6 +102,12 @@ def valid_operation(operation):
 class NexusAPI(BaseHTTPRequestHandler):
     server_version = "NexusAPI/1"
 
+    def log_message(self, format, *args):
+        # The base handler logs the raw request URL including its query.
+        # A caller might inadvertently supply sensitive file names or text
+        # in query arguments. Do not emit request paths, headers or bodies.
+        pass
+
     def do_GET(self):
         if not self.authorized():
             return

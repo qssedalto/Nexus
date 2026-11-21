@@ -122,6 +122,9 @@ final class InputMonitor: @unchecked Sendable {
     }
 
     private func classifySystemDefined(_ event: NSEvent) {
+        // Secure Event Input is enforced consistently for Quartz, AppKit
+        // media keys and HID callbacks. Keyboard diagnostic sampling stops too.
+        guard !IsSecureEventInputEnabled() else { return }
         guard event.subtype.rawValue == 8 else { return }
         let keyType = (event.data1 >> 16) & 0xffff
         let keyState = (event.data1 >> 8) & 0xff
@@ -142,6 +145,9 @@ final class InputMonitor: @unchecked Sendable {
     /// NSEvent.systemDefined. Keep the first observation; suppress only
     /// cross-source duplicates within 80ms, never two presses from one source.
     private func recordSystemEvent(name: String, timestampMS: Int64, source: String) {
+        // The HID monitor can run independently of the Quartz event tap.
+        // Never count or diagnose keys while Secure Event Input is active.
+        guard !IsSecureEventInputEnabled() else { return }
         if let previous = recentSystemEvents[name],
            previous.source != source,
            abs(timestampMS - previous.timeMS) < 80 {

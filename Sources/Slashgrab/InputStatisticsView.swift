@@ -159,6 +159,7 @@ struct InputStatisticsView: View {
     @State private var endMS = 999
     @State private var deleteConfirmation = 0
     @State private var showingDeleteAlert = false
+    @State private var diagnosticsExpanded = false
     @State private var deleteAllRequested = false
     @State private var selectedPreset = "today"
 
@@ -316,7 +317,8 @@ struct InputStatisticsView: View {
                 .frame(height: 145)
             }
 
-            DisclosureGroup(localized("Special key detection")) {
+            DisclosureGroup(localized("Special key detection"),
+                            isExpanded: $diagnosticsExpanded) {
                 Toggle(localized("Enable diagnostic key recognition"), isOn: $controller.diagnosticsEnabled)
                 Text(localized("Diagnostics show only recognized functional keys and input categories. Unknown system key types are marked unsupported; ordinary text is never captured. Closing this section disables diagnostics."))
                     .font(.caption).foregroundStyle(.secondary)
@@ -384,6 +386,11 @@ struct InputStatisticsView: View {
         }
         .padding()
         .onAppear { controller.startIfPermitted(); applyPreset() }
+        // Diagnostics are voluntary and scoped to the open test section.
+        // Collapsing the section stops live diagnostic callbacks immediately.
+        .onChange(of: diagnosticsExpanded) { expanded in
+            if !expanded { controller.diagnosticsEnabled = false }
+        }
         .onDisappear { controller.diagnosticsEnabled = false }
         .alert("\(localized("Confirm deletion")) \(deleteConfirmation)/5", isPresented: $showingDeleteAlert) {
             Button(localized("Cancel"), role: .cancel) {

@@ -27,12 +27,19 @@ public actor ClipboardCloudPurgeCoordinator {
     }
 
     public func purgeCloudZoneAndLocalCache(
-        explicitlyConfirmed: Bool = false
+        confirmation: String = "",
+        afterRemoteDeletion: @Sendable () async throws -> Void = {}
     ) async throws {
-        guard explicitlyConfirmed else {
+        // A boolean from a controller can be passed as 'true' without
+        // checking whether the user typed the destructive confirmation.
+        // Require the exact confirmation text again at the deletion boundary.
+        guard confirmation == "DELETE" else {
             throw ClipboardCloudPurgeError.explicitConfirmationRequired
         }
         try await transport.deletePrivateNexusZone()
+        // Keep the outbox and cursor until additional local mirror cleanup
+        // completes successfully. An interrupted local step can be retried.
+        try await afterRemoteDeletion()
         try journal.discardAllLocalCloudData()
     }
 }
