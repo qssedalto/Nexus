@@ -465,3 +465,19 @@
 "Last successful manual sync:" = "最近成功的手动同步：";
 "More changes pending" = "仍有待同步变更";
 "Synchronized at last run" = "上次运行时已同步";
+
+"iCloud clipboard data removal" = "iCloud 剪贴板数据清理";
+"Removing local cache preserves your original clipboard history. Erasing the private iCloud zone deletes Nexus clipboard cloud records for this Apple account, but another device can upload its own older copies if sync remains enabled there." = "清理本地缓存不会删除原始剪贴板历史。删除 iCloud 私有存储区将清除该 Apple 账户中的 Nexus 云端剪贴板记录；如果其他设备仍开启同步，旧记录可能再次上传。";
+"Clear local iCloud clipboard cache…" = "清理本机 iCloud 剪贴板缓存…";
+"Erase Nexus clipboard data from iCloud…" = "删除 iCloud 中的 Nexus 剪贴板数据…";
+"Clear only the local iCloud clipboard cache?" = "仅清理本机 iCloud 剪贴板缓存？";
+"Clear local iCloud clipboard cache" = "清理本机 iCloud 剪贴板缓存";
+"The local cloud outbox, cached records, cloud cursors and imported mirrors will be removed. Original locally copied entries are preserved; no network request is made." = "将删除本机的云端待上传队列、缓存记录、同步游标和导入的镜像，保留原始本地复制记录。此操作不会联网。";
+"Erase private Nexus iCloud clipboard zone" = "删除 Nexus 的 iCloud 私有剪贴板存储区";
+"This permanently deletes the entire dedicated NexusClipboard zone from the signed-in Apple account. Disable sync on other devices before proceeding to prevent re-upload. Your original local clipboard history is preserved." = "将永久删除当前 Apple 账户中 NexusClipboard 专用存储区的全部云端数据。请先关闭其他设备的同步，避免旧数据再次上传。原始本地剪贴板历史会保留。";
+"Type DELETE to confirm" = "输入 DELETE 以确认";
+"Erase Nexus iCloud records" = "删除 Nexus 的 iCloud 记录";
+"Local iCloud clipboard cache cleared; original local history preserved" = "已清理本机 iCloud 剪贴板缓存；原始本地历史已保留";
+"Local cloud cache removal failed" = "清理本机云端缓存失败";
+"Nexus private iCloud clipboard zone deleted. Disable sync on other devices to prevent recreation." = "Nexus 私有 iCloud 剪贴板存储区已删除。请关闭其他设备的同步，避免重新建立数据。";
+"Cloud deletion failed; sync remains disabled and local recovery data may remain" = "云端删除失败；同步仍保持关闭，本地恢复数据可能仍在";
