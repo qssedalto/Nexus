@@ -375,3 +375,15 @@
 
 "Switch collections while shelf is open" = "Switch collections while shelf is open";
 "0 shows all history; 1–9 select named collections in display order. Command-F focuses clipboard search. These shortcuts work only while the shelf is focused." = "0 shows all history; 1–9 select named collections in display order. Command-F focuses clipboard search. These shortcuts work only while the shelf is focused.";
+
+"Mark card color" = "Mark card color";
+"Custom card color" = "Custom card color";
+"Unable to update card color" = "Unable to update card color";
+"Automatic color" = "Automatic color";
+"Red" = "Red";
+"Orange" = "Orange";
+"Yellow" = "Yellow";
+"Green" = "Green";
+"Blue" = "Blue";
+"Purple" = "Purple";
+"Gray" = "Gray";
