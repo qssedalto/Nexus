@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import SQLite3
 
@@ -47,6 +48,11 @@ public struct RecordedOperation: Sendable, Equatable, Identifiable {
 /// Safe, allowlisted filters for SQLite-backed clipboard history search.
 public enum ClipboardHistoryKind: String, Sendable {
     case all, files, images, text
+}
+
+public struct ClipboardImageContent: Sendable {
+    public let pasteboardType: String
+    public let data: Data
 }
 
 public final class OperationStore: @unchecked Sendable {
@@ -101,6 +107,20 @@ public final class OperationStore: @unchecked Sendable {
             try execute("CREATE TABLE IF NOT EXISTS clipboard_collections (id TEXT PRIMARY KEY, name TEXT NOT NULL COLLATE NOCASE UNIQUE, created_time_ms INTEGER NOT NULL)")
             try execute("CREATE TABLE IF NOT EXISTS clipboard_collection_entries (collection_id TEXT NOT NULL REFERENCES clipboard_collections(id) ON DELETE CASCADE, operation_id TEXT NOT NULL REFERENCES operations(id) ON DELETE CASCADE, position INTEGER NOT NULL, PRIMARY KEY(collection_id, operation_id))")
             try execute("CREATE INDEX IF NOT EXISTS clipboard_collection_order ON clipboard_collection_entries(collection_id, position)")
+            // Separate payload table: operation metadata/history queries never
+            // deserialize image bytes, while identical images share one blob.
+            try execute("CREATE TABLE IF NOT EXISTS clipboard_image_blobs (hash TEXT PRIMARY KEY, pasteboard_type TEXT NOT NULL, byte_count INTEGER NOT NULL, payload BLOB NOT NULL, thumbnail BLOB NOT NULL)")
+            try execute("CREATE TABLE IF NOT EXISTS clipboard_image_records (operation_id TEXT PRIMARY KEY REFERENCES operations(id) ON DELETE CASCADE, blob_hash TEXT NOT NULL REFERENCES clipboard_image_blobs(hash))")
+            try execute("CREATE INDEX IF NOT EXISTS clipboard_image_records_hash ON clipboard_image_records(blob_hash)")
+            try execute("""
+                CREATE TRIGGER IF NOT EXISTS clipboard_image_unref
+                AFTER DELETE ON clipboard_image_records BEGIN
+                    DELETE FROM clipboard_image_blobs
+                    WHERE hash = OLD.blob_hash
+                      AND NOT EXISTS (SELECT 1 FROM clipboard_image_records WHERE blob_hash = OLD.blob_hash);
+                END
+                """)
+            try execute("PRAGMA user_version=3")
         } catch {
             sqlite3_close(database)
             throw error
@@ -295,6 +315,131 @@ public final class OperationStore: @unchecked Sendable {
             results.append(try readOperation(from: statement))
         }
         return results
+    }
+
+
+    /// Only called after separate opt-in and safe image-type classification.
+    /// Store original image bytes (for actual copy-again) separately from a
+    /// small thumbnail (for cards). Repeated copies reuse the same SHA-256
+    /// blob while preserving separate event timestamps and UUIDs.
+    @discardableResult
+    public func recordClipboardImage(
+        data: Data,
+        thumbnail: Data,
+        pasteboardType: String,
+        detectedTimeMS: Int64
+    ) throws -> String {
+        let allowed = Set(["public.png", "public.tiff", "public.jpeg", "public.heic",
+                           "com.compuserve.gif"])
+        guard allowed.contains(pasteboardType), !data.isEmpty,
+              data.count <= 8 * 1_024 * 1_024,
+              !thumbnail.isEmpty, thumbnail.count <= 256 * 1_024,
+              detectedTimeMS >= 0 else { throw StoreError.write }
+        let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+        let id = UUID().uuidString
+        lock.lock()
+        defer { lock.unlock() }
+        try execute("BEGIN IMMEDIATE")
+        do {
+            let operation = try prepare("""
+                INSERT INTO operations
+                (id,type,event_time_ms,detected_time_ms,completed_time_ms,
+                 source_application,detection_method,status,target,duration_ms,clipboard_text)
+                VALUES(?,'image_copy',NULL,?,NULL,NULL,'clipboard_image','clipboard_detected',NULL,NULL,NULL)
+                """)
+            bind(id, to: 1, in: operation)
+            bind(detectedTimeMS, to: 2, in: operation)
+            let operationOK = sqlite3_step(operation) == SQLITE_DONE
+            sqlite3_finalize(operation)
+            guard operationOK else { throw StoreError.write }
+
+            let item = try prepare("""
+                INSERT INTO operation_items
+                (operation_id,position,name,source,extension,kind,size)
+                VALUES(?,0,'Clipboard image',NULL,NULL,'image',?)
+                """)
+            bind(id, to: 1, in: item)
+            bind(Int64(data.count), to: 2, in: item)
+            let itemOK = sqlite3_step(item) == SQLITE_DONE
+            sqlite3_finalize(item)
+            guard itemOK else { throw StoreError.write }
+
+            let blob = try prepare("""
+                INSERT OR IGNORE INTO clipboard_image_blobs
+                (hash,pasteboard_type,byte_count,payload,thumbnail) VALUES(?,?,?,?,?)
+                """)
+            bind(digest, to: 1, in: blob)
+            bind(pasteboardType, to: 2, in: blob)
+            bind(Int64(data.count), to: 3, in: blob)
+            bindBlob(data, to: 4, in: blob)
+            bindBlob(thumbnail, to: 5, in: blob)
+            let blobOK = sqlite3_step(blob) == SQLITE_DONE
+            sqlite3_finalize(blob)
+            guard blobOK else { throw StoreError.write }
+
+            let link = try prepare("""
+                INSERT INTO clipboard_image_records(operation_id,blob_hash) VALUES(?,?)
+                """)
+            bind(id, to: 1, in: link)
+            bind(digest, to: 2, in: link)
+            let linkOK = sqlite3_step(link) == SQLITE_DONE
+            sqlite3_finalize(link)
+            guard linkOK else { throw StoreError.write }
+            try execute("COMMIT")
+            return id
+        } catch {
+            try? execute("ROLLBACK")
+            throw error
+        }
+    }
+
+    /// Read only the bounded preview; lazy cards must not load original bytes.
+    public func imageThumbnail(operationID: String) throws -> Data? {
+        lock.lock()
+        defer { lock.unlock() }
+        let stmt = try prepare("""
+            SELECT b.thumbnail FROM clipboard_image_records r
+            JOIN clipboard_image_blobs b ON b.hash = r.blob_hash
+            WHERE r.operation_id = ?
+            """)
+        defer { sqlite3_finalize(stmt) }
+        bind(operationID, to: 1, in: stmt)
+        guard sqlite3_step(stmt) == SQLITE_ROW else { return nil }
+        let count = Int(sqlite3_column_bytes(stmt, 0))
+        guard count > 0, count <= 256 * 1_024,
+              let bytes = sqlite3_column_blob(stmt, 0) else { return nil }
+        return Data(bytes: bytes, count: count)
+    }
+
+    /// Restore a copied screenshot with the original pasteboard data type.
+    /// No payload is included in the operation metadata network API.
+    public func imageContent(operationID: String) throws -> ClipboardImageContent? {
+        lock.lock()
+        defer { lock.unlock() }
+        let stmt = try prepare("""
+            SELECT b.pasteboard_type, b.payload FROM clipboard_image_records r
+            JOIN clipboard_image_blobs b ON b.hash = r.blob_hash
+            WHERE r.operation_id = ?
+            """)
+        defer { sqlite3_finalize(stmt) }
+        bind(operationID, to: 1, in: stmt)
+        guard sqlite3_step(stmt) == SQLITE_ROW,
+              let type = string(stmt, 0) else { return nil }
+        let count = Int(sqlite3_column_bytes(stmt, 1))
+        guard count > 0, count <= 8 * 1_024 * 1_024,
+              let bytes = sqlite3_column_blob(stmt, 1) else { return nil }
+        return ClipboardImageContent(pasteboardType: type,
+                                     data: Data(bytes: bytes, count: count))
+    }
+
+    /// Diagnostic count for deduplication and deletion regression tests.
+    public func imageBlobCount() throws -> Int {
+        lock.lock()
+        defer { lock.unlock() }
+        let stmt = try prepare("SELECT COUNT(*) FROM clipboard_image_blobs")
+        defer { sqlite3_finalize(stmt) }
+        guard sqlite3_step(stmt) == SQLITE_ROW else { throw StoreError.write }
+        return Int(sqlite3_column_int64(stmt, 0))
     }
 
     public func listCollections() throws -> [ClipboardCollection] {
@@ -724,6 +869,13 @@ public final class OperationStore: @unchecked Sendable {
         if let value { sqlite3_bind_text(statement, column, value, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self)) }
         else { sqlite3_bind_null(statement, column) }
     }
+    private func bindBlob(_ data: Data, to column: Int32, in statement: OpaquePointer) {
+        data.withUnsafeBytes { raw in
+            _ = sqlite3_bind_blob(statement, column, raw.baseAddress, Int32(data.count),
+                                  unsafeBitCast(-1, to: sqlite3_destructor_type.self))
+        }
+    }
+
     private func bind(_ value: Int64?, to column: Int32, in statement: OpaquePointer) {
         if let value { sqlite3_bind_int64(statement, column, value) }
         else { sqlite3_bind_null(statement, column) }
