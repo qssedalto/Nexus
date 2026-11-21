@@ -368,3 +368,6 @@
 "Image capture is off by default. Stored image bytes stay local, share duplicate storage, and are removed when the last history reference is deleted. Oversized or unreadable images retain metadata only." = "默认不保存图片像素。原始图片仅保存在本地，相同内容共享存储；最后一条引用被删除后也会删除图片数据。过大的图片或无法读取的图片仅保存元数据。";
 
 "Original clipboard image unavailable" = "原始剪贴板图片不可用";
+
+"Preview local copied files using Quick Look (opt-in)" = "使用快速查看预览本地复制的文件（需主动开启）";
+"File previews read only local supported files up to 24 MB. Cloud-only files and File Provider folders show an icon, without a requested download." = "文件缩略图只读取最大 24 MB 的受支持本地文件；仅云端的文件与文件提供程序目录只显示图标，不主动下载。";
