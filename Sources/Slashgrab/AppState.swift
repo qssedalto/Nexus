@@ -110,6 +110,12 @@ final class AppState: ObservableObject {
         persistHistory()
     }
 
+    // Reuse the single existing status-bar feedback popover for passive
+    // clipboard changes. Detection does not imply successful paste.
+    func clipboardDidChange(_ key: String) {
+        showFeedback(.success(localized(key)))
+    }
+
     func finderCopyDidSucceed() {
         refreshHistory()
         showFeedback(.success(localized("Path copied")))
@@ -119,12 +125,12 @@ final class AppState: ObservableObject {
         let queryID = UUID()
         operationQueryID = queryID
         let store = operationStore
-        Task.detached(priority: .utility) { [weak self] in
-            let results = (try? store?.query(from: startMS, to: endMS)) ?? []
-            await MainActor.run {
-                guard self?.operationQueryID == queryID else { return }
-                self?.operations = results
-            }
+        Task { [weak self] in
+            let results = await Task.detached(priority: .utility) {
+                (try? store?.query(from: startMS, to: endMS)) ?? []
+            }.value
+            guard self?.operationQueryID == queryID else { return }
+            self?.operations = results
         }
     }
 
@@ -171,18 +177,30 @@ final class AppState: ObservableObject {
 
     @discardableResult
     private func copyOutput(_ output: String, successMessage: String, urls: [URL] = [], eventTimeMS: Int64? = nil) -> Bool {
+        let startedTimeMS = eventTimeMS ?? Int64(Date().timeIntervalSince1970 * 1000)
         do {
             try clipboardWriter.writeString(output)
             let completedTimeMS = Int64(Date().timeIntervalSince1970 * 1000)
+            // The dedicated Nexus operation is recorded below. Prevent the
+            // passive clipboard observer from adding a duplicate text event.
+            ClipboardMonitor.shared.ignoreCurrentChange()
             refreshHistory()
             history.add(output)
             persistHistory()
-            if !urls.isEmpty {
-                let operationStore = self.operationStore
-                Task.detached(priority: .utility) { [weak self] in
-                    try? operationStore?.record(type: "path_copy", urls: urls, sourceApplication: "Nexus", detectionMethod: "drop", eventTimeMS: eventTimeMS, completedTimeMS: completedTimeMS, clipboardText: output)
-                    await MainActor.run { self?.refreshOperations() }
-                }
+
+            let operationStore = self.operationStore
+            let operationType = urls.isEmpty ? "text_copy" : "path_copy"
+            let method = urls.isEmpty ? "app_recopy" : "drop"
+            Task { [weak self] in
+                await Task.detached(priority: .utility) {
+                    try? operationStore?.record(type: operationType, urls: urls,
+                                                sourceApplication: "Nexus", detectionMethod: method,
+                                                eventTimeMS: startedTimeMS,
+                                                detectedTimeMS: completedTimeMS,
+                                                completedTimeMS: completedTimeMS,
+                                                clipboardText: output)
+                }.value
+                self?.refreshOperations()
             }
             let detail = urls.count == 1 ? urls[0].lastPathComponent : (urls.isEmpty ? nil : "\(urls.count) \(localized("items"))")
             showFeedback(.success(successMessage, detail: detail))

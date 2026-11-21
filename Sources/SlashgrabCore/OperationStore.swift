@@ -68,11 +68,20 @@ public final class OperationStore: @unchecked Sendable {
             let version = sqlite3_step(versionStatement) == SQLITE_ROW ? sqlite3_column_int(versionStatement, 0) : 0
             sqlite3_finalize(versionStatement)
             if version < 2 {
+                // Some local preview builds already added individual columns
+                // without bumping user_version. Never destroy their history.
+                let columns = try operationColumnNames()
                 try execute("BEGIN IMMEDIATE")
                 do {
-                    try execute("ALTER TABLE operations ADD COLUMN target TEXT")
-                    try execute("ALTER TABLE operations ADD COLUMN duration_ms INTEGER")
-                    try execute("ALTER TABLE operations ADD COLUMN clipboard_text TEXT")
+                    if !columns.contains("target") {
+                        try execute("ALTER TABLE operations ADD COLUMN target TEXT")
+                    }
+                    if !columns.contains("duration_ms") {
+                        try execute("ALTER TABLE operations ADD COLUMN duration_ms INTEGER")
+                    }
+                    if !columns.contains("clipboard_text") {
+                        try execute("ALTER TABLE operations ADD COLUMN clipboard_text TEXT")
+                    }
                     try execute("PRAGMA user_version=2")
                     try execute("COMMIT")
                 } catch {
@@ -92,11 +101,26 @@ public final class OperationStore: @unchecked Sendable {
     deinit { sqlite3_close(database) }
 
     public func record(type: String, urls: [URL], sourceApplication: String?, detectionMethod: String, eventTimeMS: Int64? = nil, detectedTimeMS: Int64? = nil, completedTimeMS: Int64? = nil, target: String? = nil, clipboardText: String? = nil) throws {
-        guard !urls.isEmpty else { return }
+        // Text-only clipboard changes have no file URL; keep them as one
+        // operation with a text item rather than silently dropping them.
+        guard !urls.isEmpty || (type == "text_copy" && clipboardText?.isEmpty == false) || type == "image_copy" else { return }
         let detected = detectedTimeMS ?? Int64(Date().timeIntervalSince1970 * 1000)
-        let completed = completedTimeMS ?? detected
         let operationID = UUID().uuidString
-        let items = urls.map(RecordedItem.init(url:))
+        var items = urls.map(RecordedItem.init(url:))
+        if urls.isEmpty, type == "text_copy", let clipboardText {
+            items.append(RecordedItem(name: "Text", source: nil, fileExtension: nil, kind: "text", size: Int64(clipboardText.utf8.count)))
+        } else if urls.isEmpty, type == "image_copy" {
+            // Raw clipboard image data has no reliable file name or source.
+            // Persist an observation only; never inspect pixels or persist bytes.
+            items.append(RecordedItem(name: "Clipboard image", source: nil, fileExtension: nil, kind: "image", size: nil))
+        }
+        // A clipboard reference is not a completed file transfer. Its
+        // completion/duration must remain NULL unless actually confirmed.
+        let status = completedTimeMS == nil ? "clipboard_detected" : "clipboard_written"
+        let duration: Int64? = {
+            guard let eventTimeMS, let completedTimeMS else { return nil }
+            return max(0, completedTimeMS - eventTimeMS)
+        }()
         lock.lock()
         defer { lock.unlock() }
         try execute("BEGIN IMMEDIATE")
@@ -107,12 +131,12 @@ public final class OperationStore: @unchecked Sendable {
             bind(type, to: 2, in: operation)
             bind(eventTimeMS, to: 3, in: operation)
             bind(detected, to: 4, in: operation)
-            bind(completed, to: 5, in: operation)
+            bind(completedTimeMS, to: 5, in: operation)
             bind(sourceApplication, to: 6, in: operation)
             bind(detectionMethod, to: 7, in: operation)
-            bind("clipboard_written", to: 8, in: operation)
+            bind(status, to: 8, in: operation)
             bind(target, to: 9, in: operation)
-            bind(eventTimeMS.map { max(0, completed - $0) }, to: 10, in: operation)
+            bind(duration, to: 10, in: operation)
             bind(clipboardText, to: 11, in: operation)
             guard sqlite3_step(operation) == SQLITE_DONE else { throw StoreError.write }
             let item = try prepare("INSERT INTO operation_items VALUES (?, ?, ?, ?, ?, ?, ?)")
@@ -156,6 +180,16 @@ public final class OperationStore: @unchecked Sendable {
             results.append(RecordedOperation(id: id, type: string(statement, 1) ?? "", eventTimeMS: integer(statement, 2), detectedTimeMS: sqlite3_column_int64(statement, 3), completedTimeMS: integer(statement, 4), sourceApplication: string(statement, 5), detectionMethod: string(statement, 6) ?? "", status: string(statement, 7) ?? "", target: string(statement, 8), durationMS: integer(statement, 9), clipboardText: string(statement, 10), items: items))
         }
         return results
+    }
+
+    private func operationColumnNames() throws -> Set<String> {
+        let statement = try prepare("PRAGMA table_info(operations)")
+        defer { sqlite3_finalize(statement) }
+        var names = Set<String>()
+        while sqlite3_step(statement) == SQLITE_ROW {
+            if let name = string(statement, 1) { names.insert(name) }
+        }
+        return names
     }
 
     private func execute(_ sql: String) throws {

@@ -121,3 +121,27 @@
 "Copy feedback" = "复制提示";
 "Show feedback for" = "提示显示时长";
 "Off" = "关闭";
+
+"Clipboard Shelf" = "剪贴板卡片";
+"Search, pin and copy your recorded clipboard history." = "搜索、固定并再次复制已经记录的剪贴板内容。";
+"Search clipboard" = "搜索剪贴板";
+"Files" = "文件";
+"Images" = "图片";
+"Text" = "文本";
+"Pinned" = "已固定";
+"Pin" = "固定";
+"Unpin" = "取消固定";
+"Folder" = "文件夹";
+"Copied text" = "复制的文本";
+"No clipboard history found" = "没有找到剪贴板历史";
+"Enable file or text monitoring in Settings, then copy something." = "请在设置中开启文件或文本监控，然后进行复制。";
+"Cards show metadata only for images and files; clipboard detection does not mean a file was pasted." = "图片和文件只显示元数据；检测到剪贴板变化不代表文件已粘贴。";
+"Source file unavailable" = "无法获取原始文件";
+"Record clipboard text (opt-in)" = "记录剪贴板文本（单独授权）";
+"Text history can include private information. Enable only when you want Nexus to store copied text locally." = "文本历史可能包含隐私信息。只有希望天枢在本机存储复制文本时才启用。";
+"Records detected clipboard changes, not confirmed file transfers or paste completion." = "此功能记录检测到的剪贴板变化，不代表文件传输或粘贴已完成。";
+"Text copy" = "复制文本";
+"Image copy" = "复制图片";
+"Clipboard files detected" = "检测到文件复制";
+"Clipboard image detected" = "检测到图片复制";
+"Clipboard text detected" = "检测到文本复制";
