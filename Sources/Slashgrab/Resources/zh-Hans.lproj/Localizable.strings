@@ -366,3 +366,5 @@
 
 "Save copied image pixels (opt-in, 8 MB maximum)" = "保存复制的图片内容（需授权，最大 8 MB）";
 "Image capture is off by default. Stored image bytes stay local, share duplicate storage, and are removed when the last history reference is deleted. Oversized or unreadable images retain metadata only." = "默认不保存图片像素。原始图片仅保存在本地，相同内容共享存储；最后一条引用被删除后也会删除图片数据。过大的图片或无法读取的图片仅保存元数据。";
+
+"Original clipboard image unavailable" = "原始剪贴板图片不可用";
