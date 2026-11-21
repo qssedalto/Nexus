@@ -41,6 +41,7 @@ struct OperationTimelineView: View {
                 Text(localized("File copy")).tag("copy")
                 Text(localized("Path copy")).tag("path_copy")
                 Text(localized("Text copy")).tag("text_copy")
+                Text(localized("Image copy")).tag("image_copy")
             }
             List(visible) { operation in
                 DisclosureGroup {
@@ -64,7 +65,7 @@ struct OperationTimelineView: View {
                     HStack {
                         Text(Self.timestamp(operation.eventTimeMS ?? operation.detectedTimeMS))
                             .monospacedDigit()
-                        Text(localized(operation.type == "text_copy" ? "Text copy" : operation.type == "copy" ? "File copy" : "Path copy"))
+                        Text(localized(operation.type == "text_copy" ? "Text copy" : operation.type == "image_copy" ? "Image copy" : operation.type == "copy" ? "File copy" : "Path copy"))
                         Text(operation.type == "text_copy" ? (operation.clipboardText ?? localized("Text")) : (operation.items.count == 1 ? operation.items[0].name : "\(operation.items.count) \(localized("items"))"))
                             .lineLimit(1)
                     }
