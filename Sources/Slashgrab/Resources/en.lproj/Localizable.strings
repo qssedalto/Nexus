@@ -63,3 +63,24 @@
 "Copy feedback" = "Copy feedback";
 "Show feedback for" = "Show feedback for";
 "Off" = "Off";
+
+"Clipboard Shelf" = "Clipboard Shelf";
+"Search, pin and copy your recorded clipboard history." = "Search, pin and copy your recorded clipboard history.";
+"Search clipboard" = "Search clipboard";
+"Files" = "Files";
+"Images" = "Images";
+"Text" = "Text";
+"Pinned" = "Pinned";
+"Pin" = "Pin";
+"Unpin" = "Unpin";
+"Folder" = "Folder";
+"Copied text" = "Copied text";
+"No clipboard history found" = "No clipboard history found";
+"Enable file or text monitoring in Settings, then copy something." = "Enable file or text monitoring in Settings, then copy something.";
+"Cards show metadata only for images and files; clipboard detection does not mean a file was pasted." = "Cards show metadata only for images and files; clipboard detection does not mean a file was pasted.";
+"Source file unavailable" = "Source file unavailable";
+"Record clipboard text (opt-in)" = "Record clipboard text (opt-in)";
+"Text history can include private information. Enable only when you want Nexus to store copied text locally." = "Text history can include private information. Enable only when you want Nexus to store copied text locally.";
+"Records detected clipboard changes, not confirmed file transfers or paste completion." = "Records detected clipboard changes, not confirmed file transfers or paste completion.";
+"Text copy" = "Text copy";
+"Image copy" = "Image copy";
