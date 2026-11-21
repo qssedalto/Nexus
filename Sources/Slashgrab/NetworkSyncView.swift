@@ -263,10 +263,10 @@ final class NetworkSyncController: ObservableObject {
             // A server may have processed an already-started request despite
             // cancellation. Never treat a revoked-consent response as approval.
             guard operationSyncEnabled, operationConsentRevision == consentRevision,
-                  (!automaticRun || automatic),
+                  !uploadTask.isCancelled, (!automaticRun || automatic),
                   (!includePaths || operationSyncPaths),
                   (!includeText || operationSyncText) else {
-                operationSyncStatus = "Consent changed during upload; check server history for data already received"
+                operationSyncStatus = "Consent changed or request cancelled; check server history for data already received"
                 return
             }
             let expected = Set(pending.map(\.id))
