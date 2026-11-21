@@ -20,7 +20,7 @@ permissions:
 
 jobs:
   build:
-    name: Nexus / arm64 / ${{ inputs.signing || 'adhoc' }}
+    name: Nexus / arm64 / ${{ inputs.signing || 'development' }}
     runs-on: macos-latest
     timeout-minutes: 45
     steps:
@@ -41,17 +41,29 @@ jobs:
       - name: Select signing and product identity
         shell: bash
         env:
-          REQUESTED_SIGNING: ${{ inputs.signing || 'adhoc' }}
+          REQUESTED_SIGNING: ${{ inputs.signing || 'development' }}
           EVENT_NAME: ${{ github.event_name }}
         run: |
           set -euo pipefail
+          # Pushes to main always use the configured Apple Development certificate.
+          # Manual runs default to development and may explicitly choose Ad Hoc.
+          case "$REQUESTED_SIGNING" in
+            development|adhoc) ;;
+            *) echo "::error::Unsupported signing mode: $REQUESTED_SIGNING"; exit 2 ;;
+          esac
+          if [[ "$EVENT_NAME" == push && "$REQUESTED_SIGNING" != development ]]; then
+            echo "::error::Automatic builds must use development signing."
+            exit 1
+          fi
+          echo "NEXUS_SIGNING=$REQUESTED_SIGNING" >> "$GITHUB_ENV"
           if [[ "$EVENT_NAME" == workflow_dispatch && "$REQUESTED_SIGNING" == development ]]; then
-            echo "NEXUS_SIGNING=development" >> "$GITHUB_ENV"
+            # Preserve the separately installable manual development flavor.
             echo "NEXUS_APP_NAME=Nexus Dev" >> "$GITHUB_ENV"
             echo "NEXUS_BUNDLE_ID=com.qssedalto.nexus.dev" >> "$GITHUB_ENV"
             echo "NEXUS_VARIANT=dev" >> "$GITHUB_ENV"
           else
-            echo "NEXUS_SIGNING=adhoc" >> "$GITHUB_ENV"
+            # Automatically build the real Nexus.app name, but development-signed:
+            # this is NOT a Developer ID / notarized release.
             echo "NEXUS_APP_NAME=Nexus" >> "$GITHUB_ENV"
             echo "NEXUS_BUNDLE_ID=com.qssedalto.nexus" >> "$GITHUB_ENV"
             echo "NEXUS_VARIANT=production" >> "$GITHUB_ENV"
@@ -93,8 +105,20 @@ jobs:
             exit 1
           fi
 
+          # Certificate display-name suffix is not always the codesign TeamIdentifier.
+          # Determine the actual team from a file signed with this exact identity.
+          PROBE_DIR="$(mktemp -d "$RUNNER_TEMP/nexus-team.XXXXXX")"
+          /bin/cp /usr/bin/true "$PROBE_DIR/probe"
+          /usr/bin/codesign --force --sign "$SIGNING_IDENTITY" "$PROBE_DIR/probe"
+          ACTUAL_TEAM="$(/usr/bin/codesign -dv --verbose=4 "$PROBE_DIR/probe" 2>&1 \
+            | /usr/bin/awk -F= '/^TeamIdentifier=/ { print $2; exit }')"
+          /bin/rm -rf "$PROBE_DIR"
+          if [[ ! "$ACTUAL_TEAM" =~ ^[A-Z0-9]{10}$ ]]; then
+            echo "::error::Cannot determine a valid TeamIdentifier from the imported signing identity."
+            exit 1
+          fi
           echo "NEXUS_SIGN_ID=$SIGNING_IDENTITY" >> "$GITHUB_ENV"
-          echo "NEXUS_SIGNING_TEAM=4QYM64TMA2" >> "$GITHUB_ENV"
+          echo "NEXUS_SIGNING_TEAM=$ACTUAL_TEAM" >> "$GITHUB_ENV"
 
       - name: Compile and sign Nexus
         shell: bash
@@ -110,7 +134,9 @@ jobs:
           ENABLE_SPARKLE_AUTOMATIC_CHECKS: "false"
         run: |
           set -euo pipefail
-          if [[ "$SIGNING_MODE" == development ]]; then
+          # Signing mode and product variant are independent: push => signed Nexus.app;
+          # manual development => separately installable Nexus Dev.app.
+          if [[ "$APP_VARIANT" == dev ]]; then
             ./Scripts/package_app.sh release --dev
           else
             ./Scripts/package_app.sh release --production
@@ -138,8 +164,21 @@ jobs:
           /usr/bin/codesign --verify --strict --verbose=2 "$EXT"
 
           if [[ "$NEXUS_SIGNING" == development ]]; then
-            /usr/bin/codesign -dv --verbose=4 "$APP" 2>&1 | grep -Fx "TeamIdentifier=4QYM64TMA2"
-            /usr/bin/codesign -dv --verbose=4 "$EXT" 2>&1 | grep -Fx "TeamIdentifier=4QYM64TMA2"
+            APP_TEAM="$(/usr/bin/codesign -dv --verbose=4 "$APP" 2>&1 \
+              | /usr/bin/awk -F= '/^TeamIdentifier=/ { print $2; exit }')"
+            EXT_TEAM="$(/usr/bin/codesign -dv --verbose=4 "$EXT" 2>&1 \
+              | /usr/bin/awk -F= '/^TeamIdentifier=/ { print $2; exit }')"
+            if [[ -z "$APP_TEAM" || "$APP_TEAM" != "$NEXUS_SIGNING_TEAM" || "$EXT_TEAM" != "$APP_TEAM" ]]; then
+              echo "::error::App and Finder extension were not signed by the imported Apple Development identity."
+              exit 1
+            fi
+            EXPECTED_GROUP="$APP_TEAM.$NEXUS_BUNDLE_ID.shared"
+            APP_GROUP="$(/usr/libexec/PlistBuddy -c 'Print :NexusAppGroupIdentifier' "$APP_INFO")"
+            EXT_GROUP="$(/usr/libexec/PlistBuddy -c 'Print :NexusAppGroupIdentifier' "$EXT_INFO")"
+            if [[ "$APP_GROUP" != "$EXPECTED_GROUP" || "$EXT_GROUP" != "$EXPECTED_GROUP" ]]; then
+              echo "::error::Nexus App Group identity differs from the code-signing team."
+              exit 1
+            fi
           fi
 
       - name: Create downloadable app ZIP

@@ -132,7 +132,8 @@ Nexus retains Apache-2.0 licensing for its upstream portions and contributions a
 Open [Build Nexus.app (macOS Apple Silicon)](https://github.com/qssedalto/Nexus/actions/workflows/build-nexus.yml), then choose **Run workflow**.
 
 - **development** (the manual default): produces `Nexus Dev.app`, bundle ID `com.qssedalto.nexus.dev`, signed with the Apple Development identity from the imported P12. This is for development/testing and does not replace `Nexus.app`.
-- **adhoc**: produces `Nexus.app` with Ad Hoc signing, without needing any Apple certificate. This also runs automatically on pushes to `main`.
+- **push to `main` (automatic)**: uses the Apple Development P12 from repository Secrets, producing `Nexus.app` with bundle ID `com.qssedalto.nexus`. Its updater is disabled when no Sparkle release key is configured. This is an **unnotarized development-signed test artifact**, not a Developer ID release.
+- **adhoc** (manual opt-in): produces `Nexus.app` with Ad Hoc signing, without needing an Apple certificate. Automatic pushes no longer fall back to Ad Hoc signing.
 - Both builds archive the `.app` and its Finder extension as a downloadable GitHub Actions **Artifact** (not a GitHub Release).
 
 For development signing, create three repository Actions Secrets: `BUILD_CERTIFICATE_BASE64` (Base64 of a `.p12` export containing its private key), `P12_PASSWORD` (password protecting the exported P12), and `KEYCHAIN_PASSWORD` (an independent temporary keychain password). The workflow imports the certificate into a temporary keychain, and cleans up the keychain afterward. Never commit certificate files or passwords.

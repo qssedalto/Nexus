@@ -168,8 +168,10 @@ if [[ "$APP_VARIANT" == "production" ]]; then
   fi
   if [[ -z "$SPARKLE_PUBLIC_ED_KEY" && -n "$SPARKLE_PRIVATE_KEY_FILE" ]]; then
     if [[ ! -f "$SPARKLE_PRIVATE_KEY_FILE" ]]; then
-      if [[ "$ALLOW_MISSING_SPARKLE_FOR_LOCAL_RUN" == "1" && "$SIGNING_MODE" == "adhoc" ]]; then
-        echo "WARN: SPARKLE_PRIVATE_KEY_FILE does not exist; building local ad-hoc production app with Sparkle disabled: $SPARKLE_PRIVATE_KEY_FILE" >&2
+      if [[ "$ALLOW_MISSING_SPARKLE_FOR_LOCAL_RUN" == "1" &&
+            "$SIGNING_MODE" != "developer-id" &&
+            "$ENABLE_SPARKLE_AUTOMATIC_CHECKS" == "false" ]]; then
+        echo "WARN: SPARKLE_PRIVATE_KEY_FILE does not exist; building test-only Nexus.app without Sparkle (not for distribution): $SPARKLE_PRIVATE_KEY_FILE" >&2
         SPARKLE_PRIVATE_KEY_FILE=""
       else
         echo "ERROR: SPARKLE_PRIVATE_KEY_FILE does not exist: $SPARKLE_PRIVATE_KEY_FILE" >&2
@@ -181,9 +183,12 @@ if [[ "$APP_VARIANT" == "production" ]]; then
     fi
   fi
   if [[ -z "$SPARKLE_PUBLIC_ED_KEY" ]]; then
-    if [[ "$ALLOW_MISSING_SPARKLE_FOR_LOCAL_RUN" == "1" && "$SIGNING_MODE" == "adhoc" ]]; then
+    if [[ "$ALLOW_MISSING_SPARKLE_FOR_LOCAL_RUN" == "1" &&
+            "$SIGNING_MODE" != "developer-id" &&
+            "$ENABLE_SPARKLE_AUTOMATIC_CHECKS" == "false" ]]; then
       ENABLE_SPARKLE_AUTOMATIC_CHECKS=false
-      echo "WARN: SPARKLE_PUBLIC_ED_KEY is missing; building local ad-hoc production app with Sparkle disabled." >&2
+      SPARKLE_FEED_URL=""
+      echo "WARN: SPARKLE_PUBLIC_ED_KEY is missing; building test-only Nexus.app without Sparkle (not for distribution)." >&2
     else
       echo "ERROR: SPARKLE_PUBLIC_ED_KEY is required for production packaging." >&2
       exit 1
