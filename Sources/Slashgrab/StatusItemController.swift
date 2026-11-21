@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 import Combine
 import SwiftUI
 
@@ -11,6 +12,7 @@ final class StatusItemController {
     private let feedbackPopover = NSPopover()
     private let dropReadyPopover = NSPopover()
     private var clipboardShelfPanel: NSPanel?
+    private var previousFrontmostApp: NSRunningApplication?
     private var statusView: DropTargetStatusView?
     private var dropReadyShowTask: DispatchWorkItem?
     private var feedbackDismissTask: Task<Void, Never>?
@@ -63,6 +65,10 @@ final class StatusItemController {
         ])
 
         statusView = view
+        ClipboardHotkeyController.shared.onToggle = { [weak self] in
+            self?.toggleClipboardShelf()
+        }
+        ClipboardHotkeyController.shared.install()
 
         popover.behavior = .transient
         popover.contentSize = NSSize(width: 360, height: menuPopoverHeight)
@@ -139,8 +145,20 @@ final class StatusItemController {
         appState.lastCopiedOutput == nil ? 285 : 347
     }
 
+    private func toggleClipboardShelf() {
+        if clipboardShelfPanel?.isVisible == true {
+            clipboardShelfPanel?.orderOut(nil)
+        } else {
+            showClipboardShelf()
+        }
+    }
+
     private func showClipboardShelf() {
         popover.performClose(nil)
+        if let frontmost = NSWorkspace.shared.frontmostApplication,
+           frontmost.bundleIdentifier != Bundle.main.bundleIdentifier {
+            previousFrontmostApp = frontmost
+        }
 
         let panel: NSPanel
         if let existing = clipboardShelfPanel {
@@ -158,13 +176,20 @@ final class StatusItemController {
             created.hidesOnDeactivate = false
             created.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
             created.contentViewController = NSHostingController(
-                rootView: ClipboardShelfView(appState: appState)
+                rootView: ClipboardShelfView(
+                    appState: appState,
+                    onPasteRequested: { [weak self] in self?.pasteIntoPreviousApp() },
+                    onCloseRequested: { [weak self] in self?.clipboardShelfPanel?.orderOut(nil) }
+                )
             )
             clipboardShelfPanel = created
             panel = created
         }
 
-        if let visible = NSScreen.main?.visibleFrame {
+        let mouseLocation = NSEvent.mouseLocation
+        let preferredScreen = NSScreen.screens.first(where: { $0.frame.contains(mouseLocation) })
+            ?? NSScreen.main
+        if let visible = preferredScreen?.visibleFrame {
             var frame = panel.frame
             frame.origin.x = visible.midX - frame.width / 2
             frame.origin.y = visible.minY + 20
@@ -173,6 +198,38 @@ final class StatusItemController {
         appState.refreshOperations()
         NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
+    }
+
+    /// Called only following an explicit double click or Return by the user.
+    /// The clipboard is already populated. When focus or permissions cannot
+    /// be verified we leave it copied rather than injecting into a wrong app.
+    private func pasteIntoPreviousApp() {
+        guard let target = previousFrontmostApp,
+              target.bundleIdentifier != Bundle.main.bundleIdentifier,
+              target.isTerminated == false else {
+            return
+        }
+        guard AXIsProcessTrusted() else {
+            let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
+            _ = AXIsProcessTrustedWithOptions([key: true] as CFDictionary)
+            return
+        }
+        clipboardShelfPanel?.orderOut(nil)
+        guard target.activate(options: [.activateIgnoringOtherApps]) else { return }
+        let expectedPID = target.processIdentifier
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(220)) {
+            // If focus changed since the click, do not type into that app.
+            guard NSWorkspace.shared.frontmostApplication?.processIdentifier == expectedPID else {
+                return
+            }
+            let source = CGEventSource(stateID: .hidSystemState)
+            let down = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: true)
+            let up = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: false)
+            down?.flags = .maskCommand
+            up?.flags = .maskCommand
+            down?.post(tap: .cghidEventTap)
+            up?.post(tap: .cghidEventTap)
+        }
     }
 
     private func prepareToOpenSettings() {
