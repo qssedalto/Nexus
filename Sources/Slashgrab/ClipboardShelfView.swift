@@ -27,6 +27,7 @@ struct ClipboardShelfView: View {
     @State private var showingCreateCollection = false
     @State private var showingDeleteCollection = false
     @AppStorage("nexusPinnedClipboardOperationIDs") private var pinnedRaw = ""
+    @AppStorage("nexusClipboardFileThumbnailPreviews") private var filePreviewEnabled = false
 
     private enum Category: String, CaseIterable, Identifiable {
         case all, files, images, text, pinned
@@ -372,8 +373,12 @@ struct ClipboardShelfView: View {
             .padding(.bottom, 2)
 
             Group {
-                if kind == "image" {
+                if kind == "image" && operation.type == "image_copy" {
                     ClipboardImagePreview(operationID: operation.id)
+                } else if filePreviewEnabled && operation.items.count == 1 &&
+                            ["image", "document", "video"].contains(kind) {
+                    ClipboardFilePreview(sourcePath: first?.source,
+                                         fallbackIcon: icon(for: kind))
                 } else {
                     Image(systemName: icon(for: kind))
                         .font(.system(size: 31, weight: .ultraLight))
