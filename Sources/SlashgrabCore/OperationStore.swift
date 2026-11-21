@@ -513,7 +513,13 @@ public final class OperationStore: @unchecked Sendable {
     /// Bounded direct lookup for older pinned/permanent-collection history.
     /// Avoids loading every operation just to show one old favorite card.
     public func query(ids: [String]) throws -> [RecordedOperation] {
-        let unique = Array(Set(ids.filter { !$0.isEmpty })).sorted().prefix(500)
+        // Respect caller priority before the 500-record safety bound.
+        // Sorting IDs lexicographically could arbitrarily omit a selected
+        // permanent-collection card when many cards are pinned.
+        var seen = Set<String>()
+        let unique = Array(ids.filter {
+            !$0.isEmpty && seen.insert($0).inserted
+        }.prefix(500))
         guard !unique.isEmpty else { return [] }
         lock.lock()
         defer { lock.unlock() }
