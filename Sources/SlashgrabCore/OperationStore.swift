@@ -930,6 +930,39 @@ public final class OperationStore: @unchecked Sendable {
         }
     }
 
+    /// User-authorized source for a single regular local clipboard file.
+    /// Reads bytes only after explicit CloudKit file permission, not merely
+    /// while loading history metadata. File Provider/cloud-only paths and
+    /// directories/packages/symlinks are refused by the shared local policy.
+    public func cloudFileAsset(operationID: String) throws -> ClipboardCloudFileAsset? {
+        let sourcePath: String? = try {
+            lock.lock()
+            defer { lock.unlock() }
+            let stmt = try prepare("""
+                SELECT i.source FROM operation_items i
+                JOIN operations o ON o.id=i.operation_id
+                WHERE o.id=? AND o.type IN ('copy','path_copy','drop_copy')
+                AND i.position=0
+                AND (SELECT COUNT(*) FROM operation_items WHERE operation_id=o.id)=1
+                """)
+            defer { sqlite3_finalize(stmt) }
+            bind(operationID, to: 1, in: stmt)
+            guard sqlite3_step(stmt) == SQLITE_ROW else { return nil }
+            return string(stmt, 0)
+        }()
+        guard let sourcePath,
+              let local = ClipboardFilePreviewPolicy.eligibleLocalURL(
+                path: sourcePath,
+                maximumBytes: Int64(ClipboardCloudFileReference.maximumBytes)
+              ) else { return nil }
+        // The second size validation below rejects files that grew while
+        // being read; never disclose the original absolute source path.
+        let bytes = try Data(contentsOf: local, options: .mappedIfSafe)
+        return ClipboardCloudFileAsset(
+            bytes: bytes, fileName: local.lastPathComponent
+        )
+    }
+
     /// Read only the bounded preview; lazy cards must not load original bytes.
     public func imageThumbnail(operationID: String) throws -> Data? {
         lock.lock()
