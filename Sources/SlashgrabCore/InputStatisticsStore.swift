@@ -559,11 +559,11 @@ public final class InputStatisticsStore: @unchecked Sendable {
 
         var check: OpaquePointer?
         guard sqlite3_prepare_v2(sourceDB, "PRAGMA quick_check(1)", -1, &check, nil) == SQLITE_OK,
-              let check else { throw InputStoreError.read }
+              let check else { throw InputStoreError.backupRead("integrity preflight: \(String(cString: sqlite3_errmsg(sourceDB)))") }
         let healthy = sqlite3_step(check) == SQLITE_ROW &&
             sqlite3_column_text(check, 0).map { String(cString: $0) } == "ok"
         sqlite3_finalize(check)
-        guard healthy else { throw InputStoreError.read }
+        guard healthy else { throw InputStoreError.backupRead("backup failed quick_check") }
 
         var cursor: OpaquePointer?
         let sql = """
@@ -572,7 +572,7 @@ public final class InputStatisticsStore: @unchecked Sendable {
             FROM input_events ORDER BY id
             """
         guard sqlite3_prepare_v2(sourceDB, sql, -1, &cursor, nil) == SQLITE_OK,
-              let cursor else { throw InputStoreError.read }
+              let cursor else { throw InputStoreError.backupRead("missing backup schema: \(String(cString: sqlite3_errmsg(sourceDB)))") }
         defer { sqlite3_finalize(cursor) }
 
         var rows: [BackupInputEvent] = []
@@ -584,7 +584,7 @@ public final class InputStatisticsStore: @unchecked Sendable {
                   let category = sqlite3_column_text(cursor, 2),
                   let name = sqlite3_column_text(cursor, 3),
                   let source = sqlite3_column_text(cursor, 4) else {
-                throw InputStoreError.read
+                throw InputStoreError.backupRead("invalid backup cursor row or unexpected SQLite result: \(step)")
             }
             let row = BackupInputEvent(
                 id: sqlite3_column_int64(cursor, 0),
@@ -603,7 +603,7 @@ public final class InputStatisticsStore: @unchecked Sendable {
                   (row.originDeviceID?.count ?? 0) <= 80,
                   (row.originEventID ?? 0) >= 0,
                   ["ordinary", "keyboard", "modifier", "shortcut", "mouse", "scroll", "system"].contains(row.category) else {
-                throw InputStoreError.read
+                throw InputStoreError.backupRead("invalid input record \(row.id) category=\(row.category)")
             }
             rows.append(row)
             if rows.count == 250 {
@@ -753,5 +753,5 @@ public final class InputStatisticsStore: @unchecked Sendable {
         sqlite3_bind_text(statement, column, value, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
     }
 
-    public enum InputStoreError: Error { case open, read, write }
+    public enum InputStoreError: Error { case open, read, write, backupRead(String) }
 }
