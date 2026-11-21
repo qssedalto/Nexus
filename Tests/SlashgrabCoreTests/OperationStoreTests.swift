@@ -252,4 +252,29 @@ final class OperationStoreTests: XCTestCase {
         XCTAssertEqual(operation.items[2].source, folder.path)
     }
 
+
+    func testBoundedRecentQueryAndOldPinnedUUIDLookup() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try OperationStore(url: root.appendingPathComponent("operations.sqlite"))
+        for index: Int64 in 1...240 {
+            try store.record(type: "text_copy", urls: [], sourceApplication: nil,
+                             detectionMethod: "clipboard", detectedTimeMS: index * 1000,
+                             clipboardText: "snippet \(index)")
+        }
+        let recent = try store.query(from: 0, to: Int64.max, limit: 35)
+        XCTAssertEqual(recent.count, 35)
+        XCTAssertEqual(recent.first?.detectedTimeMS, 240_000)
+        XCTAssertEqual(recent.last?.detectedTimeMS, 206_000)
+
+        let oldest = try XCTUnwrap(store.query(from: 1000, to: 1001).first)
+        XCTAssertFalse(recent.contains(where: { $0.id == oldest.id }))
+        let favorite = try store.query(ids: [oldest.id, oldest.id, "not-an-id"])
+        XCTAssertEqual(favorite.count, 1)
+        XCTAssertEqual(favorite.first?.clipboardText, "snippet 1")
+        XCTAssertTrue(try store.query(ids: []).isEmpty)
+        XCTAssertEqual(try store.query(from: 0, to: Int64.max).count, 240)
+    }
+
 }
