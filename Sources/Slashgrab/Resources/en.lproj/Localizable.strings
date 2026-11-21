@@ -269,3 +269,5 @@
 "Pinned records and permanent collections survive automated cleanup. Deleting local history does not erase previous cloud uploads." = "Pinned records and permanent collections survive automated cleanup. Deleting local history does not erase previous cloud uploads.";
 "Network consent" = "Network consent";
 "Operation uploads are off by default. Full paths and clipboard contents require separate consent even after metadata sync is enabled. Server-side deletion is controlled from Network sync." = "Operation uploads are off by default. Full paths and clipboard contents require separate consent even after metadata sync is enabled. Server-side deletion is controlled from Network sync.";
+
+"Drag/drop copy" = "Drag/drop copy";

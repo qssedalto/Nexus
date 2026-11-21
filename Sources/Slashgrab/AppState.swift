@@ -190,7 +190,10 @@ final class AppState: ObservableObject {
             persistHistory()
 
             let operationStore = self.operationStore
-            let operationType = urls.isEmpty ? "text_copy" : "path_copy"
+            // A menu-bar file drop is a distinct user action from
+            // Finder's native copy-path service, even though both write
+            // formatted paths into the system clipboard.
+            let operationType = urls.isEmpty ? "text_copy" : "drop_copy"
             let method = urls.isEmpty ? "app_recopy" : "drop"
             Task { [weak self] in
                 await Task.detached(priority: .utility) {
