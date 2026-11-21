@@ -136,6 +136,27 @@ public final class ClipboardCloudJournal: @unchecked Sendable {
         return try recordLocked(id: id)
     }
 
+    /// Recent cached cloud entries for an explicit, read-only UI preview.
+    /// This method never queries CloudKit or reads raw image payload tables.
+    public func cachedRecords(limit: Int = 100) throws -> [ClipboardCloudRecord] {
+        lock.lock()
+        defer { lock.unlock() }
+        let stmt = try prepare("""
+            SELECT document FROM cloud_records
+            ORDER BY counter DESC, record_id DESC LIMIT ?
+            """)
+        defer { sqlite3_finalize(stmt) }
+        bind(Int64(max(1, min(200, limit))), to: 1, in: stmt)
+        var rows: [ClipboardCloudRecord] = []
+        while true {
+            let code = sqlite3_step(stmt)
+            if code == SQLITE_DONE { break }
+            guard code == SQLITE_ROW else { throw JournalError.read }
+            rows.append(try decodeLocked(stmt, column: 0))
+        }
+        return rows
+    }
+
     /// Bounded batch for future CKModifyRecordsOperation. Retried local
     /// updates use their original mutationID until the server acknowledges.
     public func pending(limit: Int = 100) throws -> [ClipboardCloudRecord] {
