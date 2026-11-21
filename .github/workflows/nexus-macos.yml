@@ -54,3 +54,5 @@ jobs:
 
       - name: Verify isolated NSServices-only Finder prototype
         run: bash Scripts/test_services_prototype.sh
+      - name: Verify ServicesOnly replacement retains existing production IDs and one entry
+        run: bash Scripts/test_services_only_release.sh

@@ -13,6 +13,8 @@ configs:
   Local: release
   # Isolated alternate implementation: a single native NSServices command.
   ServicesPrototype: debug
+  # Optional final one-entry build, never used by default or auto-installed.
+  ServicesOnly: release
 
 packages:
   Sparkle:
@@ -48,6 +50,13 @@ settings:
       APP_ICON_NAME: AppIcon
       APP_GROUP_ID: $(DEVELOPMENT_TEAM).com.prof18.slashgrab.local.shared
       FINDER_EXTENSION_BUNDLE_ID: com.prof18.slashgrab.local.findersync
+      FINDER_EXTENSION_DISPLAY_NAME: Nexus Finder Extension
+    ServicesOnly:
+      APP_DISPLAY_NAME: Nexus
+      APP_BUNDLE_ID: com.prof18.slashgrab
+      APP_ICON_NAME: AppIcon
+      APP_GROUP_ID: $(DEVELOPMENT_TEAM).com.prof18.slashgrab.shared
+      FINDER_EXTENSION_BUNDLE_ID: com.prof18.slashgrab.findersync
       FINDER_EXTENSION_DISPLAY_NAME: Nexus Finder Extension
     ServicesPrototype:
       APP_DISPLAY_NAME: Nexus Services Prototype
@@ -99,6 +108,8 @@ targets:
       configs:
         ServicesPrototype:
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) NEXUS_SERVICE_PROTOTYPE"
+        ServicesOnly:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) NEXUS_SERVICE_PROTOTYPE"
     dependencies:
       - target: SlashgrabCore
       - sdk: AppKit.framework
@@ -139,6 +150,9 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: $(APP_ICON_NAME)
       configs:
         ServicesPrototype:
+          INFOPLIST_FILE: Config/Slashgrab-ServicesPrototype-Info.plist
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) NEXUS_SERVICE_PROTOTYPE"
+        ServicesOnly:
           INFOPLIST_FILE: Config/Slashgrab-ServicesPrototype-Info.plist
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) NEXUS_SERVICE_PROTOTYPE"
     dependencies:

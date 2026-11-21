@@ -233,3 +233,20 @@
 "Diagnostics show only recognized functional keys and input categories. Unknown system key types are marked unsupported; ordinary text is never captured. Closing this section disables diagnostics." = "Diagnostics show only recognized functional keys and input categories. Unknown system key types are marked unsupported; ordinary text is never captured. Closing this section disables diagnostics.";
 "Recognized" = "Recognized";
 "Unknown / unsupported" = "Unknown / unsupported";
+
+"This is a read-only catalog of Services declared by installed apps and workflows. macOS alone determines effective activation and menu placement." = "This is a read-only catalog of Services declared by installed apps and workflows. macOS alone determines effective activation and menu placement.";
+"Nexus copy-path service" = "Nexus copy-path service";
+"Finder Sync copy command" = "Finder Sync copy command";
+"Finder copy menu position" = "Finder copy menu position";
+"Direct context menu" = "Direct context menu";
+"Nexus submenu" = "Nexus submenu";
+"Manage Finder extension in macOS Settings…" = "Manage Finder extension in macOS Settings…";
+"Finder Sync is not bundled with this configuration" = "Finder Sync is not bundled with this configuration";
+"This build has no additional NSServices entry, preventing duplicate copy-path menus. The isolated ServicesPrototype build has a single native service instead of a Finder Sync copy menu." = "This build has no additional NSServices entry, preventing duplicate copy-path menus. The isolated ServicesPrototype build has a single native service instead of a Finder Sync copy menu.";
+"Manage native Services in macOS Settings…" = "Manage native Services in macOS Settings…";
+"Native Services titles and per-item menu levels are part of macOS registration and cannot be changed live through a supported public API." = "Native Services titles and per-item menu levels are part of macOS registration and cannot be changed live through a supported public API.";
+"Show only Nexus" = "Show only Nexus";
+"declared services" = "declared services";
+"Declared shortcut" = "Declared shortcut";
+"Show application in Finder" = "Show application in Finder";
+"Change service settings in macOS…" = "Change service settings in macOS…";

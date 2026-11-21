@@ -291,3 +291,20 @@
 "Diagnostics show only recognized functional keys and input categories. Unknown system key types are marked unsupported; ordinary text is never captured. Closing this section disables diagnostics." = "诊断仅显示功能键和输入分类。未识别的系统键类型标记为不支持；不会采集普通输入文本。关闭界面后结束诊断。";
 "Recognized" = "已识别";
 "Unknown / unsupported" = "未知／暂不支持";
+
+"This is a read-only catalog of Services declared by installed apps and workflows. macOS alone determines effective activation and menu placement." = "这里只读展示已安装应用和工作流程声明的系统服务。实际启用状态及菜单位置由 macOS 决定。";
+"Nexus copy-path service" = "天枢复制路径服务";
+"Finder Sync copy command" = "访达扩展复制路径命令";
+"Finder copy menu position" = "访达复制菜单位置";
+"Direct context menu" = "直接显示在右键菜单";
+"Nexus submenu" = "天枢子菜单";
+"Manage Finder extension in macOS Settings…" = "前往 macOS 设置管理访达扩展…";
+"Finder Sync is not bundled with this configuration" = "此版本未包含访达扩展";
+"This build has no additional NSServices entry, preventing duplicate copy-path menus. The isolated ServicesPrototype build has a single native service instead of a Finder Sync copy menu." = "本版本没有额外的 NSServices 条目，避免出现重复的复制路径菜单。独立 ServicesPrototype 版本只保留一个原生服务，而不使用 Finder Sync 复制菜单。";
+"Manage native Services in macOS Settings…" = "前往 macOS 设置管理原生服务…";
+"Native Services titles and per-item menu levels are part of macOS registration and cannot be changed live through a supported public API." = "原生服务名称和每项菜单层级由 macOS 注册机制决定，无法通过受支持的公开 API 实时修改。";
+"Show only Nexus" = "只显示天枢服务";
+"declared services" = "项已声明服务";
+"Declared shortcut" = "声明的默认快捷键";
+"Show application in Finder" = "在访达中显示所属应用";
+"Change service settings in macOS…" = "在 macOS 中调整服务设置…";
