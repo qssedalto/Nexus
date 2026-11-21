@@ -184,7 +184,9 @@ struct ClipboardShelfView: View {
             shelfFocused = true
         }
         .onChange(of: appState.shelfOperations.map(\.id)) { _ in
-            if selectedOperationID == nil { selectedOperationID = operations.first?.id }
+            if !operations.contains(where: { $0.id == selectedOperationID }) {
+                selectedOperationID = operations.first?.id
+            }
         }
         .onMoveCommand { direction in
             let entries = operations
@@ -360,6 +362,7 @@ struct ClipboardShelfView: View {
         let current = selectedCollectionID
         guard !current.isEmpty else {
             collectionMemberIDs = []
+            refreshShelf()
             return
         }
         let store = OperationStore.shared()
