@@ -141,6 +141,7 @@ final class InputStatisticsController: ObservableObject {
 
 struct InputStatisticsView: View {
     @ObservedObject private var controller = InputStatisticsController.shared
+    @ObservedObject private var cloudBackup = InputCloudBackupController.shared
     @State private var start = Calendar.current.startOfDay(for: Date())
     @State private var end = Date()
     @State private var startSecond = 0
@@ -297,6 +298,21 @@ struct InputStatisticsView: View {
                 Button(localized("Delete selected range")) {
                     deleteConfirmation = 1
                     showingDeleteAlert = true
+                }
+            }
+            DisclosureGroup(localized("iCloud Drive statistics backup")) {
+                Toggle(localized("Automatically back up statistics hourly"), isOn: $cloudBackup.enabled)
+                Text(localized("Backups are optional and contain detailed timing data. Choose an iCloud Drive folder explicitly; no backup is uploaded without your choice."))
+                    .font(.caption).foregroundStyle(.secondary)
+                HStack {
+                    Button(localized("Choose backup folder")) { cloudBackup.selectDestination() }
+                    Button(localized("Back up now")) { cloudBackup.backupNow() }
+                }
+                Text(cloudBackup.destinationSummary).font(.caption).textSelection(.enabled)
+                Text(cloudBackup.status).font(.caption).foregroundStyle(.secondary)
+                if let last = cloudBackup.lastBackup {
+                    Text("\(localized("Last backup")): \(last.formatted())")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
             }
             Text("\(localized("Database size")): \(controller.databaseSizeBytes.formatted()) B · \(controller.dataStatus)")
