@@ -1,4 +1,5 @@
 name: Refresh checked-in Nexus Xcode project (integration-only)
+# One-shot project synchronization on the dedicated integration branch only.
 on:
   push:
     branches:
