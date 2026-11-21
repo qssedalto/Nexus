@@ -204,14 +204,20 @@ final class ClipboardCloudImageAssetTests: XCTestCase {
             from: original, in: journal, deviceID: "MacA", consent: consent
         )
         let record = try XCTUnwrap(journal.pending().first)
+        // Simulate a different device downloading the cloud image. Applying
+        // an exact copy back onto the originating dirty journal intentionally
+        // keeps that local version and does not create a redundant cache.
+        let remote = try ClipboardCloudJournal(
+            url: root.appendingPathComponent("remote-cache.sqlite")
+        )
         let asset = try XCTUnwrap(ClipboardCloudImageAsset(
             bytes: png, pasteboardType: "public.png"
         ))
-        try journal.applyRemote([record], imageAssets: [record.id: asset])
-        XCTAssertNotNil(try journal.cachedImage(recordID: record.id))
-        try journal.discardAllLocalCloudData()
-        XCTAssertNil(try journal.cachedImage(recordID: record.id))
-        XCTAssertTrue(try journal.cachedRecords().isEmpty)
+        try remote.applyRemote([record], imageAssets: [record.id: asset])
+        XCTAssertNotNil(try remote.cachedImage(recordID: record.id))
+        try remote.discardAllLocalCloudData()
+        XCTAssertNil(try remote.cachedImage(recordID: record.id))
+        XCTAssertTrue(try remote.cachedRecords().isEmpty)
         XCTAssertEqual(try original.imageContent(operationID: id)?.data, png)
     }
 }
