@@ -531,6 +531,11 @@ struct ClipboardShelfView: View {
         }
         .onTapGesture {
             selectedOperationID = operation.id
+            if NSEvent.modifierFlags.contains(.control) {
+                // On macOS Control+click may open the native context menu
+                // instead; the menu also exposes Paste as plain text.
+                requestPaste(operation, plainText: true)
+            }
         }
         .onTapGesture(count: 2) {
             requestPaste(operation, plainText: NSEvent.modifierFlags.contains(.control))
