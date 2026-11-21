@@ -894,8 +894,11 @@ public final class OperationStore: @unchecked Sendable {
         return sqlite3_changes(database) > 0
     }
 
-    /// Bounded local retention. Defaults are unlimited; callers must opt in.
-    /// Pinned UUIDs are excluded from both age and count based cleanup.
+    /// Bounded *clipboard-only* retention. The shared operations table also
+    /// contains Finder transfers, input statistics and paste requests. Those
+    /// independent records must never be deleted by clipboard settings.
+    /// Defaults are unlimited; callers must opt in. Pinned UUIDs are
+    /// excluded from both age and count based cleanup.
     /// Existing history is always preserved when the operation is cancelled
     /// or the cleanup query fails.
     @discardableResult
@@ -922,7 +925,12 @@ public final class OperationStore: @unchecked Sendable {
             var candidates: [String] = []
             let scanLimit = max(1, min(10_000, maxDeletions * 4))
             if let cutoffMS {
-                let stmt = try prepare("SELECT id FROM operations WHERE detected_time_ms < ? ORDER BY detected_time_ms")
+                let stmt = try prepare("""
+                    SELECT id FROM operations
+                    WHERE detected_time_ms < ?
+                      AND type IN ('copy','path_copy','text_copy','image_copy','drop_copy')
+                    ORDER BY detected_time_ms
+                    """)
                 bind(cutoffMS, to: 1, in: stmt)
                 while sqlite3_step(stmt) == SQLITE_ROW {
                     if let id = string(stmt, 0), !protected.contains(id) { candidates.append(id) }
@@ -932,7 +940,11 @@ public final class OperationStore: @unchecked Sendable {
             }
             if let maxCount, maxCount > 0 {
                 // Count only unpinned rows toward the retention budget.
-                let stmt = try prepare("SELECT id FROM operations ORDER BY detected_time_ms DESC, id DESC")
+                let stmt = try prepare("""
+                    SELECT id FROM operations
+                    WHERE type IN ('copy','path_copy','text_copy','image_copy','drop_copy')
+                    ORDER BY detected_time_ms DESC, id DESC
+                    """)
                 var retained = 0
                 while sqlite3_step(stmt) == SQLITE_ROW {
                     guard let id = string(stmt, 0), !protected.contains(id) else { continue }

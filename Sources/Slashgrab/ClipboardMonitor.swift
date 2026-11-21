@@ -146,6 +146,11 @@ final class ClipboardMonitor: ObservableObject {
             switch result {
             case .success(let removed):
                 cleanupStatus = "\(removed) \(localized("old records removed locally"))"
+                if removed > 0 {
+                    // Refresh the visible shelf after retained history is
+                    // committed, not before the background cleanup finishes.
+                    savedRevision &+= 1
+                }
             case .failure(let error):
                 cleanupStatus = error.localizedDescription
             }
