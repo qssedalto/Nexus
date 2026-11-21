@@ -132,7 +132,7 @@ struct OperationTimelineView: View {
             }
         }
         .padding()
-        .onAppear { appState.refreshOperations() }
+        .onAppear { query() }
         .onDisappear { folderSizeTask?.cancel() }
     }
 
