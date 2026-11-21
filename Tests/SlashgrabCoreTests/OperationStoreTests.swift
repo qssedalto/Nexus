@@ -215,4 +215,41 @@ final class OperationStoreTests: XCTestCase {
         XCTAssertTrue(event.items.isEmpty)
     }
 
+
+    func testSingleDragDropWithSeveralTopLevelItemsHasOneOperationAndMeasuredDuration() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let document = root.appendingPathComponent("报告 \"2026\".pdf")
+        let photo = root.appendingPathComponent("照片.heic")
+        let folder = root.appendingPathComponent("Python 项目", isDirectory: true)
+        try Data(count: 32).write(to: document)
+        try Data(count: 64).write(to: photo)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let store = try OperationStore(url: root.appendingPathComponent("operations.sqlite"))
+
+        try store.record(type: "drop_copy", urls: [document, photo, folder],
+                         sourceApplication: "Nexus", detectionMethod: "drop",
+                         eventTimeMS: 7000, detectedTimeMS: 7004,
+                         completedTimeMS: 7011,
+                         clipboardText: "quoted path output")
+        let entries = try store.query(from: 7000, to: 7012)
+        XCTAssertEqual(entries.count, 1)
+        let operation = try XCTUnwrap(entries.first)
+        XCTAssertEqual(operation.type, "drop_copy")
+        XCTAssertEqual(operation.detectionMethod, "drop")
+        XCTAssertEqual(operation.items.count, 3)
+        XCTAssertEqual(operation.eventTimeMS, 7000)
+        XCTAssertEqual(operation.detectedTimeMS, 7004)
+        XCTAssertEqual(operation.completedTimeMS, 7011)
+        XCTAssertEqual(operation.durationMS, 11)
+        XCTAssertEqual(operation.items[0].name, document.lastPathComponent)
+        XCTAssertEqual(operation.items[0].source, document.path)
+        XCTAssertEqual(operation.items[1].kind, "image")
+        XCTAssertEqual(operation.items[1].size, 64)
+        XCTAssertEqual(operation.items[2].kind, "folder")
+        XCTAssertNil(operation.items[2].size)
+        XCTAssertEqual(operation.items[2].source, folder.path)
+    }
+
 }
