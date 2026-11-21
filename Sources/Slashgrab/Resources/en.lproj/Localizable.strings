@@ -271,3 +271,6 @@
 "Operation uploads are off by default. Full paths and clipboard contents require separate consent even after metadata sync is enabled. Server-side deletion is controlled from Network sync." = "Operation uploads are off by default. Full paths and clipboard contents require separate consent even after metadata sync is enabled. Server-side deletion is controlled from Network sync.";
 
 "Drag/drop copy" = "Drag/drop copy";
+
+"Delete all statistics" = "Delete all statistics";
+"This deletes every locally stored input statistic. Existing cloud backups and uploads are not deleted." = "This deletes every locally stored input statistic. Existing cloud backups and uploads are not deleted.";
