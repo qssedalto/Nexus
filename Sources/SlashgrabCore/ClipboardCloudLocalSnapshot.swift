@@ -25,9 +25,20 @@ public enum ClipboardCloudLocalSnapshot {
         let history = try store.cloudEligibleHistoryPage(offset: offset, limit: count)
         var staged = 0
         for record in history {
-            guard let payload = ClipboardCloudOperation(record: record, consent: consent) else {
-                continue
+            // Large image bytes are only loaded from the separate original
+            // image table after the user opts into CloudKit image transfer.
+            let imageReference: ClipboardCloudImageReference?
+            if consent.includeImages && record.type == "image_copy",
+               let content = try store.imageContent(operationID: record.id) {
+                imageReference = ClipboardCloudImageReference(
+                    bytes: content.data, pasteboardType: content.pasteboardType
+                )
+            } else {
+                imageReference = nil
             }
+            guard let payload = ClipboardCloudOperation(
+                record: record, consent: consent, image: imageReference
+            ) else { continue }
             let id = ClipboardCloudRecord.operationID(record.id)
             let previous = try journal.record(id: id)
             let desired = ClipboardCloudPayload.operation(payload)
