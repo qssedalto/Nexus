@@ -21,6 +21,8 @@ final class ClipboardMonitor: ObservableObject {
         }
     }
 
+    var onDetected: ((String) -> Void)?
+
     private let store = OperationStore.shared()
     private var timer: Timer?
     private var lastChangeCount: Int
@@ -61,6 +63,7 @@ final class ClipboardMonitor: ObservableObject {
         let urls = URLDropReader.fileURLs(from: pasteboard)
         if !urls.isEmpty {
             guard enabled, let store else { return }
+            onDetected?("Clipboard files detected")
             Task.detached(priority: .utility) {
                 try? store.record(type: "copy", urls: urls, sourceApplication: nil,
                                   detectionMethod: "clipboard", detectedTimeMS: detected)
@@ -75,6 +78,7 @@ final class ClipboardMonitor: ObservableObject {
                ["public.png", "public.tiff", "public.jpeg", "public.heic",
                 "com.compuserve.gif", "public.image"].contains($0.rawValue)
            }) == true {
+            onDetected?("Clipboard image detected")
             Task.detached(priority: .utility) {
                 try? store.record(type: "image_copy", urls: [], sourceApplication: nil,
                                   detectionMethod: "clipboard_type", detectedTimeMS: detected)
@@ -86,6 +90,7 @@ final class ClipboardMonitor: ObservableObject {
               let text = pasteboard.string(forType: .string),
               !text.isEmpty,
               text.utf8.count <= maximumTextBytes else { return }
+        onDetected?("Clipboard text detected")
         Task.detached(priority: .utility) {
             try? store.record(type: "text_copy", urls: [], sourceApplication: nil,
                               detectionMethod: "clipboard", detectedTimeMS: detected,
