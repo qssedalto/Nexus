@@ -331,3 +331,29 @@
 "Configure a custom shortcut first" = "Configure a custom shortcut first";
 
 "Drop a card into a collection:" = "Drop a card into a collection:";
+
+"iCloud Clipboard" = "iCloud Clipboard";
+"iCloud clipboard (manual opt-in)" = "iCloud clipboard (manual opt-in)";
+"Enable iCloud clipboard history sync" = "Enable iCloud clipboard history sync";
+"Off by default. Your current Nexus installation does not upload clipboard history until you explicitly configure a signed CloudKit container, authorize the categories below and press Sync Now." = "Off by default. Your current Nexus installation does not upload clipboard history until you explicitly configure a signed CloudKit container, authorize the categories below and press Sync Now.";
+"CloudKit container configured" = "CloudKit container configured";
+"CloudKit container not configured for this build" = "CloudKit container not configured for this build";
+"Independent cloud data permissions" = "Independent cloud data permissions";
+"Include copied text in iCloud" = "Include copied text in iCloud";
+"Include file names and collection names" = "Include file names and collection names";
+"Include full source file paths" = "Include full source file paths";
+"Image pixels are never uploaded. Cloud copies of deleted or previously shared data require separate deletion; disabling consent prevents new uploads but cannot recall existing Apple iCloud copies." = "Image pixels are never uploaded. Cloud copies of deleted or previously shared data require separate deletion; disabling consent prevents new uploads but cannot recall existing Apple iCloud copies.";
+"Prepare and sync clipboard" = "Prepare and sync clipboard";
+"Prepare next local history page" = "Prepare next local history page";
+"Create private iCloud zone" = "Create private iCloud zone";
+"Sync now" = "Sync now";
+"Preparation only queues local data. Each click handles up to 200 history records; collections are included when their names are authorized. Sync now uploads pending changes and downloads one cloud change page." = "Preparation only queues local data. Each click handles up to 200 history records; collections are included when their names are authorized. Sync now uploads pending changes and downloads one cloud change page.";
+"Next history page offset:" = "Next history page offset:";
+"Pending local changes:" = "Pending local changes:";
+"Locally cached cloud history" = "Locally cached cloud history";
+"Remote records are a local preview, not a verified paste. Only plain text entries with authorized content may be copied again." = "Remote records are a local preview, not a verified paste. Only plain text entries with authorized content may be copied again.";
+"Refresh local cache" = "Refresh local cache";
+"No cached cloud clipboard entries" = "No cached cloud clipboard entries";
+"Metadata only" = "Metadata only";
+"Copy text" = "Copy text";
+"Enable iCloud clipboard consent to inspect its local cache" = "Enable iCloud clipboard consent to inspect its local cache";
