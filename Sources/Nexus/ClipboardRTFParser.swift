@@ -1,6 +1,6 @@
 import AppKit
 import Foundation
-import SlashgrabCore
+import NexusCore
 
 /// Parses the RTF pasteboard representation into a tiny, safe subset of
 /// typography. Never stores raw rich content, links, fonts, attachments,

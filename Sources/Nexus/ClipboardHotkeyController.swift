@@ -1,7 +1,7 @@
 import AppKit
 import Carbon
 import SwiftUI
-import SlashgrabCore
+import NexusCore
 
 /// Supported global shortcuts are intentionally opt-in: the default is Off.
 /// RegisterEventHotKey fails rather than overriding existing registrations.

@@ -1,7 +1,7 @@
 import AppKit
 import CloudKit
 import Foundation
-import SlashgrabCore
+import NexusCore
 import SwiftUI
 
 /// CloudKit clipboard integration. Network access is manual unless the user

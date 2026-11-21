@@ -1,5 +1,5 @@
 import Foundation
-import SlashgrabCore
+import NexusCore
 
 /// Never forwards the URL or session to a redirected origin. The user must
 /// invoke this from an individual history-card context menu after turning on

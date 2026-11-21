@@ -1,5 +1,5 @@
 import Foundation
-import SlashgrabCore
+import NexusCore
 
 @MainActor
 final class AppState: ObservableObject {

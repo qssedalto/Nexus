@@ -1,5 +1,5 @@
 import SwiftUI
-import SlashgrabCore
+import NexusCore
 
 /// iCloud networking is manual unless the user enables the separate scheduled
 /// synchronization switch. Opening this view does not access the account.

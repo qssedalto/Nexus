@@ -1,5 +1,5 @@
 import AppKit
-import SlashgrabCore
+import NexusCore
 
 enum ClipboardWriteError: Error {
     case failed

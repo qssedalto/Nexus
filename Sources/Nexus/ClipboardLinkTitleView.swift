@@ -1,4 +1,4 @@
-import SlashgrabCore
+import NexusCore
 import SwiftUI
 
 /// Displays only locally stored, sanitized title metadata. An explicitly

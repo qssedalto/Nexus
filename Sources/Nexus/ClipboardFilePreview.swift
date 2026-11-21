@@ -1,7 +1,7 @@
 import AppKit
 import ImageIO
 import QuickLookThumbnailing
-import SlashgrabCore
+import NexusCore
 import SwiftUI
 import UniformTypeIdentifiers
 
