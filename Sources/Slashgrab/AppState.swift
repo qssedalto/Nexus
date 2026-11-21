@@ -114,7 +114,7 @@ final class AppState: ObservableObject {
     // Reuse the single existing status-bar feedback popover for passive
     // clipboard changes. Detection does not imply successful paste.
     func clipboardDidChange(_ key: String) {
-        showFeedback(.success(localized(key)))
+        showFeedback(.observed(localized(key)))
     }
 
     func finderCopyDidSucceed() {
@@ -248,6 +248,7 @@ struct DropFeedback: Identifiable, Equatable {
     enum Kind: Equatable {
         case success
         case failure
+        case observation
     }
 
     let id = UUID()
@@ -257,6 +258,10 @@ struct DropFeedback: Identifiable, Equatable {
 
     static func success(_ message: String, detail: String? = nil) -> DropFeedback {
         DropFeedback(kind: .success, message: message, detail: detail)
+    }
+
+    static func observed(_ message: String) -> DropFeedback {
+        DropFeedback(kind: .observation, message: message, detail: nil)
     }
 
     static func failure(_ message: String) -> DropFeedback {
