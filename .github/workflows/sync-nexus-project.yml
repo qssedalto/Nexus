@@ -1,0 +1,36 @@
+name: Refresh checked-in Nexus Xcode project (integration-only)
+on:
+  push:
+    branches:
+      - fix/nexus-main-feature-integration-20261121
+    paths:
+      - '.github/workflows/sync-nexus-project.yml'
+permissions:
+  contents: write
+jobs:
+  regenerate:
+    if: github.ref == 'refs/heads/fix/nexus-main-feature-integration-20261121'
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/nexus-main-feature-integration-20261121
+          persist-credentials: true
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Regenerate from project.yml
+        run: bash Scripts/generate_project.sh
+      - name: Commit only the generated native Xcode project
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- Nexus.xcodeproj; then
+            echo "Checked-in Xcode project is already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- Nexus.xcodeproj
+          git commit -m "build: regenerate native Nexus Xcode project from integrated sources"
+          git push origin HEAD:refs/heads/fix/nexus-main-feature-integration-20261121
