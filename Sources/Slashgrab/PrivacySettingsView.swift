@@ -46,6 +46,11 @@ struct PrivacySettingsView: View {
                 Toggle(localized("Record clipboard text (opt-in)"), isOn: $clipboard.textEnabled)
                 Toggle(localized("Save copied image pixels (opt-in, 8 MB maximum)"),
                        isOn: $clipboard.imageEnabled)
+                @AppStorage("nexusClipboardFileThumbnailPreviews") var allowFilePreviews = false
+                Toggle(localized("Preview local copied files using Quick Look (opt-in)"),
+                       isOn: $allowFilePreviews)
+                Text(localized("File previews read only local supported files up to 24 MB. Cloud-only files and File Provider folders show an icon, without a requested download."))
+                    .font(.caption).foregroundStyle(.secondary)
                 Text(localized("Image capture is off by default. Stored image bytes stay local, share duplicate storage, and are removed when the last history reference is deleted. Oversized or unreadable images retain metadata only."))
                     .font(.caption).foregroundStyle(.secondary)
                 Toggle(localized("Pause clipboard history collection"), isOn: $clipboard.paused)
