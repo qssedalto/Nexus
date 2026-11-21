@@ -5,8 +5,20 @@ struct FeedbackPopoverView: View {
 
     var body: some View {
         StatusPopoverContentView(
-            systemImage: feedback.kind == .success ? "checkmark.circle.fill" : "xmark.octagon.fill",
-            iconColor: feedback.kind == .success ? .green : .red,
+            systemImage: {
+                switch feedback.kind {
+                case .success: "checkmark.circle.fill"
+                case .failure: "xmark.octagon.fill"
+                case .observation: "eye.circle.fill"
+                }
+            }(),
+            iconColor: {
+                switch feedback.kind {
+                case .success: .green
+                case .failure: .red
+                case .observation: .secondary
+                }
+            }(),
             title: feedback.message,
             detail: feedback.detail
         )
