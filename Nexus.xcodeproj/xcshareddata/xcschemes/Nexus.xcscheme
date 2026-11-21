@@ -5,6 +5,7 @@
    <BuildAction
       parallelizeBuildables = "YES"
       buildImplicitDependencies = "YES"
+      buildArchitectures = "Automatic"
       runPostActionsOnFailure = "NO">
       <BuildActionEntries>
          <BuildActionEntry
@@ -15,7 +16,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "1EBF27416FFBAD492304355B"
+               BlueprintIdentifier = "C33A72293F18700680F43B8C"
                BuildableName = "Nexus.app"
                BlueprintName = "Nexus"
                ReferencedContainer = "container:Nexus.xcodeproj">
@@ -29,7 +30,7 @@
             buildForAnalyzing = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "AD97FCB1E71A1E3D07B58C7F"
+               BlueprintIdentifier = "E335706B5F575E9C41E691B4"
                BuildableName = "NexusCoreTests.xctest"
                BlueprintName = "NexusCoreTests"
                ReferencedContainer = "container:Nexus.xcodeproj">
@@ -43,7 +44,7 @@
             buildForAnalyzing = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "8072BCFC6A8B92ED9F0C163B"
+               BlueprintIdentifier = "2A1E5A123A1BF5FF36233484"
                BuildableName = "NexusTests.xctest"
                BlueprintName = "NexusTests"
                ReferencedContainer = "container:Nexus.xcodeproj">
@@ -61,7 +62,7 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "1EBF27416FFBAD492304355B"
+            BlueprintIdentifier = "C33A72293F18700680F43B8C"
             BuildableName = "Nexus.app"
             BlueprintName = "Nexus"
             ReferencedContainer = "container:Nexus.xcodeproj">
@@ -73,7 +74,7 @@
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "AD97FCB1E71A1E3D07B58C7F"
+               BlueprintIdentifier = "E335706B5F575E9C41E691B4"
                BuildableName = "NexusCoreTests.xctest"
                BlueprintName = "NexusCoreTests"
                ReferencedContainer = "container:Nexus.xcodeproj">
@@ -84,7 +85,7 @@
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "8072BCFC6A8B92ED9F0C163B"
+               BlueprintIdentifier = "2A1E5A123A1BF5FF36233484"
                BuildableName = "NexusTests.xctest"
                BlueprintName = "NexusTests"
                ReferencedContainer = "container:Nexus.xcodeproj">
@@ -108,7 +109,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "1EBF27416FFBAD492304355B"
+            BlueprintIdentifier = "C33A72293F18700680F43B8C"
             BuildableName = "Nexus.app"
             BlueprintName = "Nexus"
             ReferencedContainer = "container:Nexus.xcodeproj">
@@ -127,7 +128,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "1EBF27416FFBAD492304355B"
+            BlueprintIdentifier = "C33A72293F18700680F43B8C"
             BuildableName = "Nexus.app"
             BlueprintName = "Nexus"
             ReferencedContainer = "container:Nexus.xcodeproj">
