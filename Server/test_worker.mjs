@@ -43,6 +43,18 @@ function request(path, method = "GET", body = undefined, token = "test-secret") 
   });
 }
 
+test("API handshake reports authenticated operation support and version", async () => {
+  const env = environment();
+  const ok = await worker.fetch(request("/api/nexus/v1/me"), env);
+  assert.equal(ok.status, 200);
+  const hello = await ok.json();
+  assert.equal(hello.authenticated, true);
+  assert.equal(hello.schema_version, 1);
+  assert.ok(hello.capabilities.includes("operations.events"));
+  assert.ok(hello.capabilities.includes("operations.restore"));
+  assert.equal((await worker.fetch(request("/api/nexus/v1/me", "GET", undefined, "wrong"), env)).status, 401);
+});
+
 test("authenticated uploads are idempotent and ranges use milliseconds", async () => {
   const env = environment();
   const path = "/api/nexus/v1/statistics/events";

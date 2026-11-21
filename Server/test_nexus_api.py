@@ -32,6 +32,14 @@ class NexusAPITests(unittest.TestCase):
         with urlopen(request, timeout=5) as response:
             return json.load(response)
 
+    def test_auth_capability_handshake(self):
+        hello = self.request("/api/nexus/v1/me")
+        self.assertTrue(hello["authenticated"])
+        self.assertEqual(hello["schema_version"], 1)
+        self.assertIn("statistics.events", hello["capabilities"])
+        self.assertIn("operations.events", hello["capabilities"])
+        self.assertIn("operations.restore", hello["capabilities"])
+
     def test_retry_and_millisecond_range(self):
         body = {"schema_version": 1, "device_id": "device-a", "events": [
             {"id": 1, "time_ms": 1000, "category": "keyboard", "name": "escape", "count": 2},

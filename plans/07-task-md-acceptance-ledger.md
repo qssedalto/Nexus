@@ -1,51 +1,41 @@
-# task.md implementation and acceptance ledger
+# Nexus task.md implementation and acceptance ledger
 
-Source of truth: [task.md](../task.md), 1,750 lines. This ledger describes actual evidence in this GitHub repository; it does not replace or silently rewrite the specification.
+Source of truth: [task.md](../task.md), **1,450 lines** as read in the repository on 2026-11-21. The source does **not** contain any lines 1451–1750. Earlier ledgers mistakenly attributed a separate iPhone/iPad/CloudKit implementation requirement to nonexistent lines; that has been corrected here. The original request to take design inspiration from Paste is separate from the actual file specification.
 
-## Existing implementation inspected
+## Implemented code in the stacked development branches
 
-| Area | Existing repository evidence | Remaining verification / limitations |
+| Requirement / module | Concrete source or PR | Evidence and boundaries |
 | --- | --- | --- |
-| Finder path copy | `Sources/SlashgrabFinderSync/FinderSync.swift`, `PathCopyAction`, `AppState` | Preserve currently installed version; verify Finder right-click in local, external, iCloud-only, and OneDrive directories on real macOS |
-| NSServices/iCloud entry | `Sources/Slashgrab/NexusServiceProvider.swift` registers `NSApp.servicesProvider` at runtime | Main app `Config/Slashgrab-Info.plist` does not currently declare a complete `NSServices` array. Registering one blindly may duplicate Finder Sync copy commands. Single-entry design and macOS submenu behavior require real Finder evaluation |
-| System services UI | `SystemServicesView.swift` scans installed app bundles for services and treats unknown fields as unknown | No public per-third-party-service management API established; any global menu expansion change needs explicit consent, backup and rollback |
-| Keyboard/mouse | `InputMonitor.swift`, `InputStatisticsStore.swift`, `InputStatisticsView.swift` | Media, Fn/Globe, additional HID devices, lock keys, permissions, sleep resume, long-term pressure and millisecond fidelity require hardware tests |
-| Input sync | `NetworkSyncView.swift`, `Server/nexus_api.py`, `Server/worker.js`, `Server/schema.sql` | Verify live qsseda.com authentication, idempotence, transfer recovery, UTC queries and restored totals, not only source availability |
-| Clipboard operations | `OperationStore.swift`, `ClipboardMonitor.swift`, `OperationTimelineView.swift` | Passive monitoring can only record **observed** clipboard changes, not a third-party application's actual originating event or successful file paste |
-| Branding | Visible Nexus strings and project configuration `project.yml` | Preserve legacy bundle/group/data identifiers by design; verify Finder extension registration after a new signed build |
+| Native Finder path copy | `SlashgrabFinderSync/FinderSync.swift`, `PathCopyAction.swift`; PRs #1, #2, #8 | Uses supported Finder Sync on selected folders; provides separately compiled `ServicesOnly` for a **single** NSServices copy action. Default release does **not** add duplicate NSServices. User-device Finder/iCloud menu placement unverified |
+| macOS Services manager | `NativeServicesCatalog.swift`, `SystemServicesView.swift`; PRs #2, #8 | Read-only nested app/workflow enumeration, own Finder menu toggle, optional global submenu threshold with exact backup and restore. macOS does not expose supported APIs to dynamically move one arbitrary third-party service to the first menu level or to rewrite other apps' declarations |
+| Passive keyboard/mouse monitoring | `InputMonitor.swift`, `HIDConsumerMonitor.swift`, `HIDConsumerUsage.swift`; PRs #7, #14 | Quartz/AppKit/IOHID callbacks, special/lock/F21–F24/Consumer keys, side mouse buttons and wheel, repeat policy, no text/raw sequence capture, source/device-model classification with unavailable details marked unknown. Fn/Globe/vendor-specific HID and device permissions require physical tests |
+| Long-term SQLite statistics | `InputStatisticsStore.swift`; PRs #7, #13, #14 | Buffered writes, idempotent migration, partial schema support, integrity/backup/CSV, exact UTC timestamp query, per-category/device trends, per-key counts, configurable ranges, source time index and five-confirmation deletions. Profiling multi-year real-world load pending |
+| Statistics dashboard | `InputStatisticsView.swift`; PR #7 | Total count cards, special-key rankings, detailed key trends, hour/day/week/month chart, today/yesterday/7d/30d/month/year/all/custom ranges and special-key diagnostics |
+| iCloud statistics backups | `InputCloudBackupController.swift`, `InputStatisticsStore.restoreBackup`; PRs #7, #15 | Explicit folder choice and opt-in backup, separate stable Mac UUID folders, logical SQLite online snapshots, explicit restore/merge and independently opted-in other-Mac imports. **PR #15 CI requires its final passing run**. This is iCloud **Drive file** synchronization, not an implemented CloudKit record backend |
+| Clipboard file/text/image history | `ClipboardMonitor.swift`, `OperationStore.swift`; PRs #1, #4, #6 | Independent text consent; image type/path metadata only; top-level folder/package metadata with unknown sizes, no thumbnails/binary or recursive Finder scans; pinned records and named permanent collections |
+| Clipboard card shelf and quick-paste | `ClipboardShelfView.swift`, `ClipboardHotkeyController.swift`; PRs #1, #5, #6, #12 | Native floating horizontal cards, search/types, pin/collections/reorder, copy-again, global shortcut presets, click/keyboard selection, explicit Accessibility-aware paste request, recent-only query plus older favorites; successful third-party paste cannot be confirmed from a shortcut |
+| Unified operation time line | `OperationTimelineView.swift`, `OperationStore.swift`; PRs #1, #3, #9, #11 | Distinct file, text, image, drag/drop, native path copy and paste request states. Times are event/detected/completed when known, never fabricated; filter and display millisecond ranges |
+| Files/folders metadata & size | `FolderSizeScanner.swift`; PR #3 | One operation to many top-level items. File/package URLs recorded without reading binary; explicitly initiated cancellable bounded background folder size scan; path and size remain untouched when unavailable/cancelled |
+| Local retention and permissions | `PrivacySettingsView.swift`; PRs #4, #10 | Separate text/files, paste-request, cloud operation metadata/path/body, pause, exclusions, age/count retention with permanent favorites protected. No undisclosed cloud uploads |
+| Operation-history network API | `Server/nexus_api.py`, `Server/worker.js`, `Server/schema.sql`, `NetworkSyncView.swift`; PR #3, in-progress capability handshake | Authenticated versioned metadata batches, stable UUID/device keys, partial acknowledgement, idempotent server upserts, range query and paginated restore, per-device delete, independent consent and redaction. **Actual qsseda.com production deployment/credential provisioning not performed** |
+| Start at login | `AppState.swift`, `AppDelegate.swift`; PR #13 | New installations enable; established user preference (including disabled) is preserved; app currently installed is not changed |
 
-## This PR: concrete additions
+## Validation state
 
-- [x] Original, bottom-floating **Clipboard Shelf** in SwiftUI, opened from the existing menu-bar popover; horizontal cards, kind filters, local search, pinning and re-copy actions
-- [x] Text clipboard history with an **independent, opt-in** persisted setting, using the existing SQLite operation store
-- [x] Image-only clipboard observations saved as **metadata only**, without reading pixels or fabricating a source URL
-- [x] Preserve one-to-many file/URL operation items and top-level path metadata without recursive folder-size scans
-- [x] Separate detected clipboard change timestamps from confirmed Nexus clipboard writes; no fabricated completion/duration fields
-- [x] Reuse the existing feedback popover for observed copy activity, without calling unconfirmed paste attempts successful
-- [x] Add text/image filters to millisecond operation timeline, and include the selected upper millisecond boundary
-- [x] Migrate partially upgraded SQLite databases without dropping historical rows
-- [x] Add regression tests and macOS Swift/Xcode CI workflow
-- [x] Phase 1 & 2 final GitHub macOS CI runs passed; Phase 3 PR #3 latest integration run must still be checked.
-- [ ] Install a development-signed candidate on an isolated test path and run complete real-device acceptance
+PRs #1–#14 each have a full passing macOS CI run after fixes, including Swift package tests, Python reference API tests, Node Worker+D1 tests, XcodeGen, regular App plus Finder extension, and single Services prototype/build checks. The latest passing evidence through #14 is [Run #44851380934](https://github.com/qssedalto/Nexus/actions/runs/44851380934).
 
-## Not completed by this PR
+PR #15 (iCloud Drive backup restore) initially had a failing local-duplicate import test and its latest CI must be verified before marking complete. Later stacked PRs inherit this issue until fixed.
 
-- [x] Isolated, opt-in `ServicesPrototype` build with a single static NSServices entry and its own Finder Sync contextual menu compiled off; CI checks registration, code flags and unchanged normal Debug build
-- [x] Opt-in global Services submenu preference controls with confirmation and exact integer/unset backup/restore (source + build checked; **no runtime preference mutation tests**)
-- [ ] Real macOS iCloud Drive / OneDrive Finder test proving a **single visible** entry across local/cloud folders and determining first-level vs submenu placement
-- [ ] Full per-key/per-device HID coverage including hardware F21-F24, Globe/Fn, uncommon side buttons and media keys
-- [ ] End-to-end external copy **and paste completion** evidence; shortcuts alone cannot prove a paste succeeded
-- [x] On-demand, bounded background folder/package logical-size calculation with cancellation and atomic metadata update; never invoked by Finder/clipboard callbacks. AppKit visual testing pending.
-- [x] Operation-history SQLite acknowledgement state, stable IDs, per-item schema, opt-in/redacted upload, server Python/Worker endpoints, deduplicated remote restore, per-device delete, and CI API tests. **Production server deployment and live authentication remain pending**.
-- [ ] Real-time, permission-aware system-wide paste success notifications, where macOS exposes a genuine completion signal
-- [ ] Device and browser integration acceptance (iCloud, OneDrive, macOS Finder services, large .pvm packages, sleep/wake)
-- [ ] Full millisecond event-source verification, time-zone/DST testing and long-running performance measurements
-- [ ] Newly appended Paste-style feature requirements (task.md lines 1451–1750): global hotkey, reliable target-app paste/focus restoration, rich-text preview, retention/deletion controls, named permanent collections, source-app exclusion, keyboard navigation, CloudKit macOS sync, then separate iPhone/iPad clients.
+## Remaining outside proven source-code implementation
 
-## Non-regression requirements
+- [ ] **macOS device acceptance:** native Finder/iCloud Drive (local, only-online), OneDrive, configured Mouser side keys, Fn/Globe/media/F21–F24 across HID models, Accessibility focus, multi-display, sleep/wake and >100GB packages.
+- [ ] **Production cloud deployment:** a dedicated Nexus endpoint, isolated D1/SQLite storage, identity-specific authentication, token provisioning, safe rollback and live HTTPS origin are required. Existing `qsseda-work` / `qsseda-auth` deployments are unrelated and must not be overwritten.
+- [ ] **OS-imposed limits:** a third-party application does not generally report completed paste or real originating clipboard app; Apple does not give apps a public API to force a single arbitrary third-party service into Finder's top-level menu. Only observed requests and documented service registration are possible. No fabricated statuses.
+- [ ] **Remote CloudKit record sync / iOS clients:** these are not explicitly demanded by the 1,450-line file and are not claimed implemented. iCloud Drive file backups/merges and authenticated qsseda API are the actual modules in this work.
+- [ ] **Release safety:** real Apple Development signing, launch-at-login, legacy App Group and Finder Sync migration in an isolated test install; user has not asked to replace their currently installed version.
 
-Do not modify the existing installed application or its user database. Keep existing Bundle IDs, App Group, Finder extension, bilingual localizations and settings. Never disable SIP, inject Finder or claim a shortcut is proof of completion. File and image cards never load binary previews, and UI pin IDs are kept in local UserDefaults only.
+## Nonregression contract
 
-## How to continue
+Do not change installed apps, production signing credentials, original Bundle IDs or App Group contents. Do not bypass SIP/TCC, inject Finder, remap Mouser or synthesize a paste just to verify success. Do not record typed text/password fields, silently upload clipboard bodies, overwrite old databases, or treat an observed shortcut as proof of an operation.
 
-Implement the remaining items incrementally on focused branches. Keep claims tied to verifiable Swift tests and an actual signed macOS installation. PRs stay in draft until their CI passes, and no automatic deployment should replace the user's working installed app.
+No stage should be marked “finished” merely because a CI compilation succeeded; deployment, OS permission, visual UI behavior and unsupported APIs are separate evidence categories.

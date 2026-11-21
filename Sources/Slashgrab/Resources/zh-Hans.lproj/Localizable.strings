@@ -353,3 +353,7 @@
 "Choose a backup folder before importing other Macs" = "请先选择备份文件夹，再导入其他 Mac 的记录";
 "Scanning other Mac backups" = "正在扫描其他 Mac 的备份";
 "Imported cross-device statistical rows" = "跨设备导入的统计记录行数";
+
+"Server schema not recognized; operation sync not verified" = "服务器协议版本无法识别，操作历史同步尚未验证";
+"Connected: statistics and operation history APIs available" = "已连接：统计及操作历史 API 可用";
+"Connected: operation history API unavailable or not advertised" = "已连接：操作历史 API 未提供或未声明";
