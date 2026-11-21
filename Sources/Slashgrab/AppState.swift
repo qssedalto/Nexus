@@ -110,6 +110,12 @@ final class AppState: ObservableObject {
         persistHistory()
     }
 
+    // Reuse the single existing status-bar feedback popover for passive
+    // clipboard changes. Detection does not imply successful paste.
+    func clipboardDidChange(_ key: String) {
+        showFeedback(.success(localized(key)))
+    }
+
     func finderCopyDidSucceed() {
         refreshHistory()
         showFeedback(.success(localized("Path copied")))
