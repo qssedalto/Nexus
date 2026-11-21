@@ -1,6 +1,6 @@
 # task.md implementation and acceptance ledger
 
-Source of truth: [task.md](../task.md), 1,450 lines. This ledger describes actual evidence in this GitHub repository; it does not replace or silently rewrite the specification.
+Source of truth: [task.md](../task.md), 1,750 lines. This ledger describes actual evidence in this GitHub repository; it does not replace or silently rewrite the specification.
 
 ## Existing implementation inspected
 
@@ -25,7 +25,7 @@ Source of truth: [task.md](../task.md), 1,450 lines. This ledger describes actua
 - [x] Add text/image filters to millisecond operation timeline, and include the selected upper millisecond boundary
 - [x] Migrate partially upgraded SQLite databases without dropping historical rows
 - [x] Add regression tests and macOS Swift/Xcode CI workflow
-- [ ] Verify changes via successful final GitHub macOS CI run
+- [x] Phase 1 & 2 final GitHub macOS CI runs passed; Phase 3 PR #3 latest integration run must still be checked.
 - [ ] Install a development-signed candidate on an isolated test path and run complete real-device acceptance
 
 ## Not completed by this PR
@@ -35,11 +35,12 @@ Source of truth: [task.md](../task.md), 1,450 lines. This ledger describes actua
 - [ ] Real macOS iCloud Drive / OneDrive Finder test proving a **single visible** entry across local/cloud folders and determining first-level vs submenu placement
 - [ ] Full per-key/per-device HID coverage including hardware F21-F24, Globe/Fn, uncommon side buttons and media keys
 - [ ] End-to-end external copy **and paste completion** evidence; shortcuts alone cannot prove a paste succeeded
-- [ ] Dedicated folder-size background calculation with explicit cancellation and no blocking Finder operations
-- [ ] Operation-history API sync schema, permission-based full text/path upload, stable IDs, retry/restore and server deployment
+- [x] On-demand, bounded background folder/package logical-size calculation with cancellation and atomic metadata update; never invoked by Finder/clipboard callbacks. AppKit visual testing pending.
+- [x] Operation-history SQLite acknowledgement state, stable IDs, per-item schema, opt-in/redacted upload, server Python/Worker endpoints, deduplicated remote restore, per-device delete, and CI API tests. **Production server deployment and live authentication remain pending**.
 - [ ] Real-time, permission-aware system-wide paste success notifications, where macOS exposes a genuine completion signal
 - [ ] Device and browser integration acceptance (iCloud, OneDrive, macOS Finder services, large .pvm packages, sleep/wake)
 - [ ] Full millisecond event-source verification, time-zone/DST testing and long-running performance measurements
+- [ ] Newly appended Paste-style feature requirements (task.md lines 1451–1750): global hotkey, reliable target-app paste/focus restoration, rich-text preview, retention/deletion controls, named permanent collections, source-app exclusion, keyboard navigation, CloudKit macOS sync, then separate iPhone/iPad clients.
 
 ## Non-regression requirements
 

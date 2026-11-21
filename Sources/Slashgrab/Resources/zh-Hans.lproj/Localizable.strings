@@ -169,3 +169,29 @@
 "Restore original" = "恢复原始设置";
 "Restore the exact integer value (or unset state) saved before Nexus first changed this preference." = "恢复天枢首次修改前保存的原始整数值，或者原本未设置的状态。";
 "Global Services menu layout" = "全局服务菜单布局";
+
+"Copy history cloud sync (separate consent)" = "复制历史云同步（单独授权）";
+"Allow operation metadata sync" = "允许上传操作元数据";
+"Include full source and target paths" = "包含完整来源和目标路径";
+"Include copied text contents" = "包含复制的文本正文";
+"Copied text and absolute file paths can contain passwords, personal names and private data. Both are redacted unless you opt in." = "复制文本及绝对路径可能包含密码、个人姓名及隐私信息。除非另行授权，否则会自动移除正文与完整路径。";
+"Preview pending operations" = "预览待同步操作";
+"Upload operation history now" = "立即上传操作历史";
+"Restore operation history" = "恢复操作历史";
+"Delete this device's remote operation history" = "删除本设备云端操作历史";
+"Operation sync status" = "操作历史同步状态";
+"Delete remote operation history" = "删除云端操作历史";
+"This deletes this device's copy operation records on the server. Local records remain unchanged." = "这将删除服务器上属于本设备的复制操作记录，不影响本地历史。";
+
+"Item type" = "对象类型";
+"Package" = "文件包";
+"Document" = "文档";
+"Video" = "视频";
+"Archive" = "压缩包";
+"Cancel folder scan" = "取消文件夹扫描";
+"Copy source path" = "复制来源路径";
+"Copy target path" = "复制目标路径";
+"Calculate folder size (background)" = "后台计算文件夹大小";
+"Calculating folder size in the background…" = "正在后台计算文件夹大小…";
+"Folder size" = "文件夹大小";
+"Folder size scan cancelled" = "已取消文件夹扫描";

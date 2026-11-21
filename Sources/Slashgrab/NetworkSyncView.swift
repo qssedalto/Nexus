@@ -18,10 +18,22 @@ final class NetworkSyncController: ObservableObject {
     @Published private(set) var status = "Idle"
     @Published private(set) var lastSync: Date?
     @Published private(set) var remoteSummary: [String: Int64] = [:]
+    @Published var operationSyncEnabled: Bool {
+        didSet { defaults.set(operationSyncEnabled, forKey: "nexusOperationSyncEnabled") }
+    }
+    @Published var operationSyncPaths: Bool {
+        didSet { defaults.set(operationSyncPaths, forKey: "nexusOperationSyncPaths") }
+    }
+    @Published var operationSyncText: Bool {
+        didSet { defaults.set(operationSyncText, forKey: "nexusOperationSyncText") }
+    }
+    @Published private(set) var operationSyncStatus = "Not enabled"
+    @Published private(set) var operationPreview = ""
     @Published private(set) var uploadPreview = ""
     @Published private(set) var log: [String] = []
     private let defaults: UserDefaults
     private let store = InputStatisticsStore.shared()
+    private let operationStore = OperationStore.shared()
     private var timer: Timer?
     private let keychainService = "com.prof18.slashgrab.nexus-sync"
 
@@ -29,6 +41,9 @@ final class NetworkSyncController: ObservableObject {
         defaults = .standard
         serverAddress = defaults.string(forKey: "nexusSyncServer") ?? "https://qsseda.com"
         automatic = defaults.bool(forKey: "nexusSyncAutomatic")
+        operationSyncEnabled = defaults.bool(forKey: "nexusOperationSyncEnabled")
+        operationSyncPaths = defaults.bool(forKey: "nexusOperationSyncPaths")
+        operationSyncText = defaults.bool(forKey: "nexusOperationSyncText")
         preciseEvents = defaults.bool(forKey: "nexusSyncPreciseEvents")
         lastSync = defaults.object(forKey: "nexusSyncLastSuccess") as? Date
         schedule()
@@ -89,6 +104,119 @@ final class NetworkSyncController: ObservableObject {
             status = "Uploaded \(confirmation.acceptedIDs.count) records"
             appendLog(status)
         } catch { status = error.localizedDescription; appendLog(status) }
+    }
+
+    func previewOperations() {
+        do {
+            let pending = try operationStore?.pendingSync(limit: 25) ?? []
+            operationPreview = "\(pending.count) pending (first page) · paths: \(operationSyncPaths ? "allowed" : "redacted") · text: \(operationSyncText ? "allowed" : "redacted")"
+        } catch {
+            operationPreview = error.localizedDescription
+        }
+    }
+
+    func syncOperationsNow() async {
+        guard operationSyncEnabled else {
+            operationSyncStatus = "Operation history upload requires separate consent"
+            return
+        }
+        guard let operationStore else {
+            operationSyncStatus = "Operation history database unavailable"
+            return
+        }
+        do {
+            let pending = try operationStore.pendingSync(limit: 25)
+            guard !pending.isEmpty else {
+                operationSyncStatus = "Operation history up to date"
+                return
+            }
+            // An unusually large clipboard selection must not be truncated
+            // silently and then marked synchronized.
+            guard pending.allSatisfy({ $0.items.count <= 100 }) else {
+                operationSyncStatus = "Too many selected files in one operation; cannot upload this batch"
+                return
+            }
+            let upload = pending.map { record in
+                SyncOperation(record: record, includePaths: operationSyncPaths,
+                              includeText: operationSyncText && (record.clipboardText?.count ?? 0) <= 100_000)
+            }
+            let body = try JSONEncoder().encode(OperationSyncBatch(
+                deviceID: persistentDeviceID(), operations: upload))
+            guard body.count <= 1_000_000 else {
+                operationSyncStatus = "Operation batch exceeds safe size limit; nothing was acknowledged"
+                return
+            }
+            var request = try makeRequest(path: "/api/nexus/v1/operations/events", method: "POST")
+            request.httpBody = body
+            operationSyncStatus = "Uploading operation metadata"
+            let confirmation: OperationSyncConfirmation = try await fetch(request)
+            let expected = Set(pending.map(\.id))
+            let accepted = Set(confirmation.acceptedIDs)
+            guard !accepted.isEmpty && accepted.isSubset(of: expected) else {
+                throw SyncError.invalidResponse
+            }
+            try operationStore.markSynced(operationIDs: Array(accepted))
+            operationSyncStatus = "Uploaded \(accepted.count) operation records"
+            appendLog(operationSyncStatus)
+        } catch {
+            // Leave records pending after timeout, auth failure, 4xx or 5xx.
+            operationSyncStatus = error.localizedDescription
+            appendLog("Operation metadata: " + operationSyncStatus)
+        }
+    }
+
+    func restoreOperations(from startMS: Int64, to endMS: Int64) async {
+        guard operationSyncEnabled, let operationStore else {
+            operationSyncStatus = "Enable operation history sync to restore"
+            return
+        }
+        guard startMS >= 0 && endMS > startMS else {
+            operationSyncStatus = "Invalid time range"
+            return
+        }
+        do {
+            var offset = 0
+            var inserted = 0
+            repeat {
+                let request = try makeRequest(
+                    path: "/api/nexus/v1/operations/events?start_ms=\(startMS)&end_ms=\(endMS)&offset=\(offset)",
+                    method: "GET"
+                )
+                let page: RemoteOperationPage = try await fetch(request)
+                // Imported records use stable device-qualified IDs. They can
+                // never enter the outbound local operation sync queue.
+                inserted += try operationStore.importRemote(page.operations)
+                guard let next = page.nextOffset else { break }
+                guard next > offset else { throw SyncError.invalidResponse }
+                offset = next
+            } while offset <= 1_000_000
+            operationSyncStatus = "Restored \(inserted) operation records"
+            appendLog(operationSyncStatus)
+        } catch {
+            operationSyncStatus = error.localizedDescription
+            appendLog("Operation restore: " + operationSyncStatus)
+        }
+    }
+
+    func deleteRemoteOperations() async {
+        guard operationSyncEnabled else {
+            operationSyncStatus = "Enable operation history sync to manage server data"
+            return
+        }
+        do {
+            let request = try makeRequest(
+                path: "/api/nexus/v1/operations/events?device_id=\(persistentDeviceID())",
+                method: "DELETE"
+            )
+            let response: DeleteResponse = try await fetch(request)
+            // Deletion from the server does NOT delete local history or
+            // implicitly re-enqueue already acknowledged events.
+            operationSyncStatus = "Deleted \(response.deleted) remote operation records"
+            appendLog(operationSyncStatus)
+        } catch {
+            operationSyncStatus = error.localizedDescription
+            appendLog("Operation delete: " + operationSyncStatus)
+        }
     }
 
     func preview() {
@@ -184,7 +312,12 @@ final class NetworkSyncController: ObservableObject {
         timer?.invalidate()
         guard automatic else { return }
         timer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
-            Task { @MainActor in await self?.syncNow() }
+            Task { @MainActor in
+                await self?.syncNow()
+                if self?.operationSyncEnabled == true {
+                    await self?.syncOperationsNow()
+                }
+            }
         }
     }
 
@@ -237,6 +370,8 @@ struct NetworkSyncView: View {
     @State private var start = Calendar.current.startOfDay(for: Date())
     @State private var end = Date()
     @State private var confirmRemoteDelete = false
+    @State private var confirmOperationDelete = false
+    @State private var showOperationSync = false
 
     var body: some View {
         Form {
@@ -248,6 +383,34 @@ struct NetworkSyncView: View {
             }
             Toggle(localized("Automatic sync"), isOn: $controller.automatic)
             Toggle(localized("Precise non-text events"), isOn: $controller.preciseEvents)
+
+            DisclosureGroup(localized("Copy history cloud sync (separate consent)"), isExpanded: $showOperationSync) {
+                Toggle(localized("Allow operation metadata sync"), isOn: $controller.operationSyncEnabled)
+                Toggle(localized("Include full source and target paths"), isOn: $controller.operationSyncPaths)
+                    .disabled(!controller.operationSyncEnabled)
+                Toggle(localized("Include copied text contents"), isOn: $controller.operationSyncText)
+                    .disabled(!controller.operationSyncEnabled)
+                Text(localized("Copied text and absolute file paths can contain passwords, personal names and private data. Both are redacted unless you opt in."))
+                    .font(.caption).foregroundStyle(.secondary)
+                HStack {
+                    Button(localized("Preview pending operations")) {
+                        controller.previewOperations()
+                    }
+                    Button(localized("Upload operation history now")) {
+                        Task { await controller.syncOperationsNow() }
+                    }.disabled(!controller.operationSyncEnabled)
+                }
+                HStack {
+                    Button(localized("Restore operation history")) {
+                        Task { await controller.restoreOperations(from: lower, to: upper) }
+                    }.disabled(!controller.operationSyncEnabled)
+                    Button(localized("Delete this device's remote operation history"), role: .destructive) {
+                        confirmOperationDelete = true
+                    }.disabled(!controller.operationSyncEnabled)
+                }
+                Text(controller.operationPreview).font(.caption).textSelection(.enabled)
+                LabeledContent(localized("Operation sync status"), value: controller.operationSyncStatus)
+            }
             HStack {
                 Button(localized("Test connection")) { Task { await controller.testConnection() } }
                 Button(localized("Upload now")) { Task { await controller.syncNow() } }
@@ -277,6 +440,14 @@ struct NetworkSyncView: View {
             Button(localized("Cancel"), role: .cancel) {}
             Button(localized("Confirm"), role: .destructive) { Task { await controller.deleteRemoteDevice() } }
         } message: { Text(localized("This deletes this device's server statistics.")) }
+        .alert(localized("Delete remote operation history"), isPresented: $confirmOperationDelete) {
+            Button(localized("Cancel"), role: .cancel) {}
+            Button(localized("Confirm"), role: .destructive) {
+                Task { await controller.deleteRemoteOperations() }
+            }
+        } message: {
+            Text(localized("This deletes this device's copy operation records on the server. Local records remain unchanged."))
+        }
     }
 
     private var lower: Int64 { Int64(start.timeIntervalSince1970 * 1000) }
