@@ -207,22 +207,23 @@ public final class OperationStore: @unchecked Sendable {
             var candidates: [String] = []
             let scanLimit = max(1, min(10_000, maxDeletions * 4))
             if let cutoffMS {
-                let stmt = try prepare("SELECT id FROM operations WHERE detected_time_ms < ? ORDER BY detected_time_ms LIMIT ?")
+                let stmt = try prepare("SELECT id FROM operations WHERE detected_time_ms < ? ORDER BY detected_time_ms")
                 bind(cutoffMS, to: 1, in: stmt)
-                bind(Int64(scanLimit), to: 2, in: stmt)
                 while sqlite3_step(stmt) == SQLITE_ROW {
                     if let id = string(stmt, 0), !protectedIDs.contains(id) { candidates.append(id) }
+                    if candidates.count >= scanLimit { break }
                 }
                 sqlite3_finalize(stmt)
             }
             if let maxCount, maxCount > 0 {
-                let stmt = try prepare("SELECT id FROM operations ORDER BY detected_time_ms DESC, id DESC LIMIT ? OFFSET ?")
-                bind(Int64(scanLimit), to: 1, in: stmt)
-                bind(Int64(maxCount), to: 2, in: stmt)
+                // Count only unpinned rows toward the retention budget.
+                let stmt = try prepare("SELECT id FROM operations ORDER BY detected_time_ms DESC, id DESC")
+                var retained = 0
                 while sqlite3_step(stmt) == SQLITE_ROW {
-                    if let id = string(stmt, 0), !protectedIDs.contains(id), !candidates.contains(id) {
-                        candidates.append(id)
-                    }
+                    guard let id = string(stmt, 0), !protectedIDs.contains(id) else { continue }
+                    retained += 1
+                    if retained > maxCount, !candidates.contains(id) { candidates.append(id) }
+                    if candidates.count >= scanLimit { break }
                 }
                 sqlite3_finalize(stmt)
             }
