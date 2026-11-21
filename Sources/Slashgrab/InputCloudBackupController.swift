@@ -1,4 +1,5 @@
 import AppKit
+import CryptoKit
 import Foundation
 import SlashgrabCore
 import SwiftUI
@@ -21,7 +22,9 @@ final class InputCloudBackupController: ObservableObject {
     @Published private(set) var destinationSummary = ""
     @Published private(set) var status = ""
     @Published private(set) var lastBackup: Date?
+    @Published private(set) var restoring = false
     private let bookmarkKey = "nexusStatisticsBackupFolderBookmark"
+    private let backupDeviceIDKey = "nexusStatisticsBackupDeviceID"
     private var timer: Timer?
     private var working = false
 
@@ -65,9 +68,10 @@ final class InputCloudBackupController: ObservableObject {
         }
         working = true
         status = localized("Saving statistics backup")
+        let deviceID = persistentBackupDeviceID()
         Task {
             let result = await Task.detached(priority: .utility) {
-                Result { try Self.performBackup(store: store, bookmark: bookmark) }
+                Result { try Self.performBackup(store: store, bookmark: bookmark, deviceID: deviceID) }
             }.value
             working = false
             switch result {
@@ -87,6 +91,65 @@ final class InputCloudBackupController: ObservableObject {
         }
     }
 
+    private func persistentBackupDeviceID() -> String {
+        if let existing = UserDefaults.standard.string(forKey: backupDeviceIDKey),
+           UUID(uuidString: existing) != nil { return existing }
+        let id = UUID().uuidString
+        UserDefaults.standard.set(id, forKey: backupDeviceIDKey)
+        return id
+    }
+
+    func restoreSelectedBackup() {
+        guard !restoring, let store = InputStatisticsStore.shared() else {
+            status = localized("Statistics database unavailable")
+            return
+        }
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.prompt = localized("Restore selected statistics")
+        panel.message = localized("Select one NexusStatistics.sqlite file inside a Nexus Statistics device folder. Restoring merges old records, preserving current data.")
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        guard url.lastPathComponent == "NexusStatistics.sqlite" else {
+            status = localized("Select a NexusStatistics.sqlite backup file")
+            return
+        }
+        restoring = true
+        status = localized("Restoring historical statistics")
+        Task {
+            let result = await Task.detached(priority: .utility) {
+                Result { try Self.performRestore(from: url, into: store) }
+            }.value
+            restoring = false
+            switch result {
+            case .success(let imported):
+                status = "\(localized("Restored statistical rows")): \(imported)"
+            case .failure(let error):
+                status = error.localizedDescription
+            }
+        }
+    }
+
+    nonisolated private static func performRestore(
+        from selected: URL, into store: InputStatisticsStore
+    ) throws -> Int {
+        let accessed = selected.startAccessingSecurityScopedResource()
+        defer { if accessed { selected.stopAccessingSecurityScopedResource() } }
+        let parent = selected.deletingLastPathComponent().lastPathComponent
+        let sourceID: String
+        if UUID(uuidString: parent) != nil {
+            sourceID = "icloud:" + parent
+        } else {
+            // Stable fallback for older single-file backups; never persist
+            // their original file path in a restored statistics record.
+            let digest = SHA256.hash(data: Data(selected.path.utf8))
+            sourceID = "icloudlegacy:" + digest.prefix(16)
+                .map { String(format: "%02x", $0) }.joined()
+        }
+        return try store.restoreBackup(from: selected, deviceID: sourceID)
+    }
+
     private func schedule() {
         timer?.invalidate()
         timer = nil
@@ -101,7 +164,7 @@ final class InputCloudBackupController: ObservableObject {
     }
 
     nonisolated private static func performBackup(
-        store: InputStatisticsStore, bookmark: Data
+        store: InputStatisticsStore, bookmark: Data, deviceID: String
     ) throws -> URL {
         var stale = false
         let root = try URL(
@@ -118,8 +181,14 @@ final class InputCloudBackupController: ObservableObject {
         try FileManager.default.createDirectory(
             at: folder, withIntermediateDirectories: true
         )
-        let file = folder.appendingPathComponent("NexusStatistics.sqlite")
-        let temporary = folder.appendingPathComponent(
+        // Separate subfolders prevent different Macs from overwriting each
+        // other's snapshots when they select the same iCloud directory.
+        let deviceFolder = folder.appendingPathComponent(deviceID, isDirectory: true)
+        try FileManager.default.createDirectory(
+            at: deviceFolder, withIntermediateDirectories: true
+        )
+        let file = deviceFolder.appendingPathComponent("NexusStatistics.sqlite")
+        let temporary = deviceFolder.appendingPathComponent(
             ".NexusStatistics-\(UUID().uuidString).tmp"
         )
         do {
