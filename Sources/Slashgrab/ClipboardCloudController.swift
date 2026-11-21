@@ -39,6 +39,9 @@ final class ClipboardCloudController: ObservableObject {
     @Published var includeImages: Bool {
         didSet { defaults.set(includeImages, forKey: "nexusCloudClipboardImages") }
     }
+    @Published var includeFiles: Bool {
+        didSet { defaults.set(includeFiles, forKey: "nexusCloudClipboardFiles") }
+    }
     @Published private(set) var status = "iCloud clipboard sync is off"
     @Published private(set) var nextHistoryOffset: Int
     @Published private(set) var pendingCount = 0
@@ -69,6 +72,7 @@ final class ClipboardCloudController: ObservableObject {
         includeText = defaults.bool(forKey: "nexusCloudClipboardText")
         includePaths = defaults.bool(forKey: "nexusCloudClipboardPaths")
         includeImages = defaults.bool(forKey: "nexusCloudClipboardImages")
+        includeFiles = defaults.bool(forKey: "nexusCloudClipboardFiles")
         nextHistoryOffset = max(0, defaults.integer(forKey: "nexusCloudClipboardHistoryOffset"))
         if let saved = defaults.string(forKey: "nexusCloudClipboardDeviceID"),
            UUID(uuidString: saved) != nil {
@@ -150,7 +154,7 @@ final class ClipboardCloudController: ObservableObject {
         ClipboardCloudConsent(
             enabled: enabled, includeText: includeText,
             includeNames: includeNames, includePaths: includePaths,
-            includeImages: includeImages
+            includeImages: includeImages, includeFiles: includeFiles
         )
     }
 
@@ -412,10 +416,34 @@ final class ClipboardCloudController: ObservableObject {
         includeNames = false
         includePaths = false
         includeImages = false
+        includeFiles = false
         nextHistoryOffset = 0
         defaults.removeObject(forKey: "nexusCloudClipboardHistoryOffset")
         lastSuccessfulSync = nil
         defaults.removeObject(forKey: "nexusCloudClipboardLastSuccess")
+    }
+
+    /// User-triggered local export of a verified CloudKit file asset.
+    /// Never writes a remote path or file name to disk without SavePanel.
+    func saveCachedRemoteFile(recordID: String) {
+        guard enabled, includeFiles, let journal else { return }
+        do {
+            guard let file = try journal.cachedFile(recordID: recordID) else {
+                status = localized("Cloud file not available locally")
+                return
+            }
+            let panel = NSSavePanel()
+            panel.nameFieldStringValue = file.reference.fileName
+            panel.canCreateDirectories = true
+            guard panel.runModal() == .OK, let destination = panel.url else {
+                return
+            }
+            try file.bytes.write(to: destination, options: .atomic)
+            status = localized("Cloud file exported")
+        } catch {
+            status = localized("Cloud file export failed") + ": "
+                + error.localizedDescription
+        }
     }
 
     private func makeTransport() async throws -> ClipboardCloudKitPrivateTransport {
@@ -440,6 +468,18 @@ final class ClipboardCloudController: ObservableObject {
             mayDownloadImages: { [weak self] in
                 await MainActor.run {
                     self?.currentConsent.includeImages == true
+                }
+            },
+            fileProvider: { id in
+                guard id.hasPrefix("operation:"),
+                      let store else { return nil }
+                return try store.cloudFileAsset(
+                    operationID: String(id.dropFirst("operation:".count))
+                )
+            },
+            mayDownloadFiles: { [weak self] in
+                await MainActor.run {
+                    self?.currentConsent.includeFiles == true
                 }
             }
         )
