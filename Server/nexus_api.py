@@ -207,7 +207,13 @@ class NexusAPI(BaseHTTPRequestHandler):
             return
         with self.server.database_lock:
             with self.server.database:
-                self.server.database.executemany("INSERT INTO input_events VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(device_id, event_id) DO NOTHING", records)
+                self.server.database.executemany(
+                    "INSERT INTO input_events VALUES (?, ?, ?, ?, ?, ?) "
+                    "ON CONFLICT(device_id, event_id) DO UPDATE SET "
+                    "count = MAX(input_events.count, excluded.count), "
+                    "time_ms = MIN(input_events.time_ms, excluded.time_ms)",
+                    records
+                )
         self.respond(200, {"accepted_ids": [event[1] for event in records]})
 
     def post_operations(self):
