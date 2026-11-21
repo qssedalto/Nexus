@@ -285,3 +285,9 @@
 "mouse" = "鼠标";
 "scroll" = "滚轮";
 "ordinary" = "普通字符汇总";
+
+"Special key detection" = "系统功能键检测";
+"Enable diagnostic key recognition" = "开启按键识别测试";
+"Diagnostics show only recognized functional keys and input categories. Unknown system key types are marked unsupported; ordinary text is never captured. Closing this section disables diagnostics." = "诊断仅显示功能键和输入分类。未识别的系统键类型标记为不支持；不会采集普通输入文本。关闭界面后结束诊断。";
+"Recognized" = "已识别";
+"Unknown / unsupported" = "未知／暂不支持";
