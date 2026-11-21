@@ -1,0 +1,85 @@
+name: NexusClipboardMobile
+
+options:
+  minimumXcodeGenVersion: 2.46.0
+  deploymentTarget:
+    iOS: "17.0"
+  defaultConfig: Debug
+  xcodeVersion: "26.0"
+
+configs:
+  Debug: debug
+  Release: release
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+    OTHER_LDFLAGS: "$(inherited) -lsqlite3"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    CODE_SIGNING_ALLOWED: NO
+
+targets:
+  NexusMobileCore:
+    type: framework
+    platform: iOS
+    sources:
+      - Sources/NexusMobileCore/MobileRecordedOperation.swift
+      - Sources/SlashgrabCore/ClipboardCloudSyncModel.swift
+      - Sources/SlashgrabCore/MobileClipboardLocalStore.swift
+      - Sources/SlashgrabCore/ClipboardCloudJournal.swift
+      - Sources/SlashgrabCore/ClipboardCloudSyncCoordinator.swift
+      - Sources/SlashgrabCore/ClipboardCloudPurgeCoordinator.swift
+      - Sources/SlashgrabCore/ClipboardCloudRunSummary.swift
+      - Sources/SlashgrabCore/ClipboardCloudKitCodec.swift
+      - Sources/SlashgrabCore/ClipboardCloudKitPrivateTransport.swift
+      - Sources/SlashgrabCore/ClipboardCloudImageAsset.swift
+      - Sources/SlashgrabCore/ClipboardCloudFileAsset.swift
+      - Sources/SlashgrabCore/ClipboardFilePreviewPolicy.swift
+      - Sources/SlashgrabCore/ClipboardCloudUploadDecision.swift
+      - Sources/SlashgrabCore/ClipboardCloudForegroundSyncPolicy.swift
+    dependencies:
+      - sdk: CloudKit.framework
+    settings:
+      base:
+        PRODUCT_NAME: NexusMobileCore
+        PRODUCT_BUNDLE_IDENTIFIER: com.qssedalto.NexusMobileCore.dev
+        DEFINES_MODULE: YES
+        SKIP_INSTALL: YES
+
+  NexusClipboardMobile:
+    type: application
+    platform: iOS
+    sources:
+      - Sources/NexusClipboardMobile
+    info:
+      path: Mobile/NexusClipboardMobile-Info.plist
+      properties:
+        CFBundleDisplayName: Nexus Clipboard Dev
+        CFBundlePackageType: APPL
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        UILaunchScreen: {}
+        UIRequiresFullScreen: false
+        UIDeviceFamily: [1, 2]
+        NexusCloudKitContainerIdentifier: $(NEXUS_CLOUDKIT_CONTAINER_ID)
+    settings:
+      base:
+        PRODUCT_NAME: NexusClipboardMobile
+        PRODUCT_BUNDLE_IDENTIFIER: com.qssedalto.NexusClipboardMobile.dev
+        GENERATE_INFOPLIST_FILE: NO
+        SUPPORTS_MACCATALYST: NO
+        TARGETED_DEVICE_FAMILY: "1,2"
+    dependencies:
+      - target: NexusMobileCore
+        embed: true
+
+schemes:
+  NexusClipboardMobile:
+    build:
+      targets:
+        NexusClipboardMobile: all
+    run:
+      config: Debug
+    archive:
+      config: Release

@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import NexusCore
+@testable import SlashgrabCore
 
 @Suite("Path formatter")
 struct PathFormatterTests {

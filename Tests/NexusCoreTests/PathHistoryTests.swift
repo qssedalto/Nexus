@@ -1,5 +1,5 @@
 import Testing
-@testable import NexusCore
+@testable import SlashgrabCore
 
 @Suite("Path history")
 struct PathHistoryTests {

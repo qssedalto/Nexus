@@ -1,5 +1,5 @@
 import Testing
-@testable import Nexus
+@testable import Slashgrab
 
 struct FinderExtensionRegistryTests {
     @Test func parsesVerboseMatchesWithHostFlagsAndSpaces() {

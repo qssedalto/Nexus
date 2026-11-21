@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import NexusCore
+@testable import SlashgrabCore
 
 @Suite("App settings store")
 struct AppSettingsStoreTests {
@@ -11,6 +11,18 @@ struct AppSettingsStoreTests {
         #expect(store.selectedFormat == .shellEscaped)
         #expect(store.historyLimit == 10)
         #expect(store.loadHistory().entries.isEmpty)
+    }
+
+    @Test("A new installation is distinguished from an intentional disabled login preference")
+    func firstInstallLaunchPreference() {
+        let defaults = makeDefaults()
+        let store = AppSettingsStore(defaults: defaults)
+        #expect(!store.hasStoredLaunchAtLoginPreference)
+        store.launchAtLoginEnabled = false
+        #expect(store.hasStoredLaunchAtLoginPreference)
+        #expect(!AppSettingsStore(defaults: defaults).launchAtLoginEnabled)
+        store.launchAtLoginEnabled = true
+        #expect(store.hasStoredLaunchAtLoginPreference)
     }
 
     @Test("Settings and history persist through user defaults")
@@ -95,7 +107,7 @@ struct AppSettingsStoreTests {
     }
 
     private func makeDefaults() -> UserDefaults {
-        let suiteName = "com.qssedalto.nexus.tests.\(UUID().uuidString)"
+        let suiteName = "com.prof18.slashgrab.tests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         defaults.removePersistentDomain(forName: suiteName)
         return defaults

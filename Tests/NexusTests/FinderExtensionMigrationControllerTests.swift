@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import Nexus
+@testable import Slashgrab
 
 @Suite("Finder extension migration controller")
 @MainActor
@@ -64,7 +64,7 @@ struct FinderExtensionMigrationControllerTests {
     }
 
     private func makeDefaults() -> UserDefaults {
-        let suiteName = "com.qssedalto.nexus.finder-migration-tests.\(UUID().uuidString)"
+        let suiteName = "com.prof18.slashgrab.finder-migration-tests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         defaults.removePersistentDomain(forName: suiteName)
         return defaults

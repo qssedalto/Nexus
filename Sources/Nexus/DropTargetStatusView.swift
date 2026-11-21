@@ -168,7 +168,7 @@ final class DropTargetStatusView: NSView {
             CAMediaTimingFunction(name: .easeOut),
             CAMediaTimingFunction(name: .easeInEaseOut),
         ]
-        statusButton?.layer?.add(pop, forKey: "nexus.successPop")
+        statusButton?.layer?.add(pop, forKey: "slashgrab.successPop")
         statusButton?.layer?.setAffineTransform(.identity)
 
         scheduleIdleReset(after: 0.48)
@@ -189,7 +189,7 @@ final class DropTargetStatusView: NSView {
         shake.duration = 0.42
         shake.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
         shake.isAdditive = true
-        statusButton?.layer?.add(shake, forKey: "nexus.rejectShake")
+        statusButton?.layer?.add(shake, forKey: "slashgrab.rejectShake")
 
         scheduleIdleReset(after: 0.42)
     }
@@ -197,8 +197,8 @@ final class DropTargetStatusView: NSView {
     private func showIdle(animated: Bool) {
         resetWorkItem?.cancel()
         dropAnimationInFlight = false
-        statusButton?.layer?.removeAnimation(forKey: "nexus.successPop")
-        statusButton?.layer?.removeAnimation(forKey: "nexus.rejectShake")
+        statusButton?.layer?.removeAnimation(forKey: "slashgrab.successPop")
+        statusButton?.layer?.removeAnimation(forKey: "slashgrab.rejectShake")
         statusButton?.image = StatusIconProvider.image(for: .idle)
         statusButton?.contentTintColor = nil
         animateHighlight(to: .clear, duration: animated ? 0.14 : 0)

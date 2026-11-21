@@ -1,11 +1,16 @@
-import NexusCore
+import SlashgrabCore
 import SwiftUI
 
 struct MenuPopoverView: View {
     @ObservedObject var appState: AppState
+    @ObservedObject private var clipboardMonitor = ClipboardMonitor.shared
+    @AppStorage("nexusPinnedClipboardOperationIDs") private var pinnedRaw = ""
+    @State private var clipboardRecent: [RecordedOperation] = []
+    @State private var clipboardPinned: [RecordedOperation] = []
     let buildInfo: AppBuildInfo
     let onPrepareSettings: () -> Void
     let onOpenLegacySettings: () -> Void
+    let onOpenClipboardShelf: () -> Void
     let onQuit: () -> Void
 
     var body: some View {
@@ -35,17 +40,36 @@ struct MenuPopoverView: View {
 
             Divider()
 
+            Button {
+                onOpenClipboardShelf()
+            } label: {
+                HStack {
+                    Label(localized("Clipboard Shelf"), systemImage: "square.stack.3d.up")
+                    Spacer()
+                    Image(systemName: "arrow.up.right")
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .buttonStyle(.borderless)
+
+            quickClipboardMenu
+            Button {
+                clipboardMonitor.paused.toggle()
+            } label: {
+                Label(
+                    localized(clipboardMonitor.paused
+                              ? "Resume clipboard history" : "Pause clipboard history"),
+                    systemImage: clipboardMonitor.paused
+                        ? "play.circle" : "pause.circle"
+                )
+            }
+            .buttonStyle(.borderless)
             historyMenu
 
             Divider()
 
             HStack {
                 settingsButton
-                Button {
-                    NotificationCenter.default.post(name: .nexusShowWelcomeGuide, object: nil)
-                } label: {
-                    Label(localized("Help"), systemImage: "questionmark.circle")
-                }
 
                 Spacer()
 
@@ -59,6 +83,9 @@ struct MenuPopoverView: View {
         .padding(16)
         .frame(width: 360)
         .font(.custom("Avenir Next", size: 13))
+        .task(id: pinnedRaw + "-" + String(clipboardMonitor.savedRevision)) {
+            await loadQuickClipboard()
+        }
     }
 
     @ViewBuilder
@@ -70,6 +97,83 @@ struct MenuPopoverView: View {
                 Label(localized("Settings…"), systemImage: "gearshape")
             }
         }
+    }
+
+    private var quickClipboardMenu: some View {
+        Menu {
+            if clipboardRecent.isEmpty && clipboardPinned.isEmpty {
+                Text(localized("No recorded clipboard entries"))
+            } else {
+                if !clipboardPinned.isEmpty {
+                    Section(localized("Pinned clipboard")) {
+                        ForEach(clipboardPinned, id: \.id) { item in
+                            Button {
+                                onOpenClipboardShelf()
+                            } label: {
+                                Label(
+                                    ClipboardQuickMenuSummary.title(for: item),
+                                    systemImage: "pin.fill"
+                                )
+                            }
+                        }
+                    }
+                }
+                Section(localized("Recent clipboard")) {
+                    ForEach(clipboardRecent, id: \.id) { item in
+                        Button {
+                            onOpenClipboardShelf()
+                        } label: {
+                            Label(
+                                ClipboardQuickMenuSummary.title(for: item),
+                                systemImage: item.type == "image_copy" ? "photo" : "doc"
+                            )
+                        }
+                    }
+                }
+            }
+            Divider()
+            Button {
+                onOpenClipboardShelf()
+            } label: {
+                Label(localized("Open clipboard shelf"), systemImage: "square.stack.3d.up")
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Label(localized("Quick clipboard history"), systemImage: "doc.on.clipboard")
+                Spacer()
+                Text("\(clipboardRecent.count)")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.vertical, 7)
+            .padding(.horizontal, 9)
+            .background(.primary.opacity(0.055), in: RoundedRectangle(cornerRadius: 7))
+        }
+        .menuStyle(.borderlessButton)
+    }
+
+    private func loadQuickClipboard() async {
+        let store = OperationStore.shared()
+        let pins = Set(pinnedRaw.split(separator: "\n").map(String.init))
+        let values = await Task.detached(priority: .utility) {
+            let rows = (try? store?.query(
+                from: 0, to: Int64.max, limit: 30
+            )) ?? []
+            let favourites = (try? store?.query(ids: Array(pins))) ?? []
+            let pinned = ClipboardQuickMenuSummary.recent(
+                from: favourites.filter { pins.contains($0.id) }, limit: 3
+            )
+            return (
+                ClipboardQuickMenuSummary.recent(from: rows, limit: 5),
+                pinned
+            )
+        }.value
+        guard !Task.isCancelled else { return }
+        clipboardRecent = values.0
+        clipboardPinned = values.1
     }
 
     private var historyMenu: some View {

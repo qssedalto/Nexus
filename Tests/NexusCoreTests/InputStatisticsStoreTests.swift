@@ -1,6 +1,6 @@
 import Foundation
 import XCTest
-@testable import NexusCore
+@testable import SlashgrabCore
 
 final class InputStatisticsStoreTests: XCTestCase {
     func testMillisecondBoundariesAndRestart() throws {
