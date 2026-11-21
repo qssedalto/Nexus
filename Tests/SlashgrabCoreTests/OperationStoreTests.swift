@@ -104,4 +104,33 @@ final class OperationStoreTests: XCTestCase {
         XCTAssertEqual(events[0].items[0].source, file.path)
     }
 
+    func testPartialLegacyMigrationKeepsExistingColumnsAndRows() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("operations.sqlite")
+        var database: OpaquePointer?
+        XCTAssertEqual(sqlite3_open(url.path, &database), SQLITE_OK)
+        let sql = """
+            CREATE TABLE operations (
+                id TEXT PRIMARY KEY, type TEXT NOT NULL, event_time_ms INTEGER,
+                detected_time_ms INTEGER NOT NULL, completed_time_ms INTEGER,
+                source_application TEXT, detection_method TEXT NOT NULL,
+                status TEXT NOT NULL, target TEXT
+            );
+            INSERT INTO operations VALUES
+                ('legacy-partial', 'copy', NULL, 1000, NULL, NULL, 'clipboard', 'clipboard_detected', '/tmp');
+            PRAGMA user_version=1;
+            """
+        XCTAssertEqual(sqlite3_exec(database, sql, nil, nil, nil), SQLITE_OK)
+        sqlite3_close(database)
+
+        let store = try OperationStore(url: url)
+        let entries = try store.query(from: 1000, to: 1001)
+        XCTAssertEqual(entries.count, 1)
+        XCTAssertEqual(entries[0].id, "legacy-partial")
+        XCTAssertEqual(entries[0].target, "/tmp")
+        XCTAssertNil(entries[0].completedTimeMS)
+    }
+
 }
