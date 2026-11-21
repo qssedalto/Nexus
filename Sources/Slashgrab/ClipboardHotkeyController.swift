@@ -64,10 +64,11 @@ final class ClipboardHotkeyController: ObservableObject {
             .flatMap { try? JSONDecoder().decode(
                 ClipboardShortcutSpecification.self, from: $0
             ) }
-        customShortcut = stored?.isValid == true ? stored : nil
+        let loadedCustom = stored?.isValid == true ? stored : nil
+        customShortcut = loadedCustom
         let preferred = Preset(rawValue: defaults.string(
             forKey: "nexusClipboardHotkeyPreset") ?? "") ?? .off
-        selected = preferred == .custom && customShortcut == nil ? .off : preferred
+        selected = preferred == .custom && loadedCustom == nil ? .off : preferred
     }
 
     func install() {
