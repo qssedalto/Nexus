@@ -1,6 +1,6 @@
 import Foundation
 import XCTest
-@testable import SlashgrabCore
+@testable import NexusCore
 
 final class ClipboardCloudJournalTests: XCTestCase {
     private func record(_ key: String, _ counter: Int64, device: String = "mac-A",

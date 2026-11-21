@@ -1,6 +1,6 @@
 import AppKit
 import FinderSync
-import SlashgrabCore
+import NexusCore
 import UniformTypeIdentifiers
 
 final class FinderSync: FIFinderSync {

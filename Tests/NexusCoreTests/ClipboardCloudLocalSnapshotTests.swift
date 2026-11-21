@@ -1,6 +1,6 @@
 import Foundation
 import XCTest
-@testable import SlashgrabCore
+@testable import NexusCore
 
 final class ClipboardCloudLocalSnapshotTests: XCTestCase {
     private func makeStores() throws -> (OperationStore, ClipboardCloudJournal, URL) {

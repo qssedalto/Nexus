@@ -1,7 +1,7 @@
 import CloudKit
 import Foundation
 import XCTest
-@testable import SlashgrabCore
+@testable import NexusCore
 
 final class ClipboardCloudKitCodecTests: XCTestCase {
     private let zone = CKRecordZone.ID(

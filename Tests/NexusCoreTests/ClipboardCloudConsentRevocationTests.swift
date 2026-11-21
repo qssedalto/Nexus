@@ -1,6 +1,6 @@
 import Foundation
 import XCTest
-@testable import SlashgrabCore
+@testable import NexusCore
 
 private actor MutableCloudConsent {
     private var value: ClipboardCloudConsent

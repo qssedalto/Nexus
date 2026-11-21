@@ -1,6 +1,6 @@
 import Foundation
 import XCTest
-@testable import SlashgrabCore
+@testable import NexusCore
 
 final class ClipboardCloudForegroundSyncPolicyTests: XCTestCase {
     func testOffByDefaultAndCloudAvailabilityAreBothRequired() {
