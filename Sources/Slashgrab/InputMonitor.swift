@@ -8,6 +8,9 @@ final class InputMonitor: @unchecked Sendable {
     private var tap: CFMachPort?
     private var source: CFRunLoopSource?
     private var mediaMonitor: Any?
+    private var hidMonitor: HIDConsumerMonitor?
+    private var recentSystemEvents: [String: (source: String, timeMS: Int64)] = [:]
+    var onDiagnostic: (@Sendable (InputDiagnosticEvent) -> Void)?
 
     init(store: InputStatisticsStore) { self.store = store }
 
@@ -37,6 +40,10 @@ final class InputMonitor: @unchecked Sendable {
         mediaMonitor = NSEvent.addGlobalMonitorForEvents(matching: .systemDefined) { [weak self] event in
             self?.classifySystemDefined(event)
         }
+        let hid = HIDConsumerMonitor { [weak self] name, timestampMS, source in
+            self?.recordSystemEvent(name: name, timestampMS: timestampMS, source: source)
+        }
+        if hid.start() { hidMonitor = hid }
         return true
     }
 
@@ -44,6 +51,9 @@ final class InputMonitor: @unchecked Sendable {
         if let source { CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes) }
         if let tap { CGEvent.tapEnable(tap: tap, enable: false) }
         if let mediaMonitor { NSEvent.removeMonitor(mediaMonitor) }
+        hidMonitor?.stop()
+        hidMonitor = nil
+        recentSystemEvents.removeAll()
         mediaMonitor = nil
         source = nil
         tap = nil
@@ -61,8 +71,12 @@ final class InputMonitor: @unchecked Sendable {
             let name = Self.specialKeys[code] ?? "character_total"
             let timestamp = category == "ordinary" ? (timeMS / 60_000) * 60_000 : timeMS
             store.enqueue(ClassifiedInputEvent(timeMS: timestamp, category: category, name: name, source: "quartz_uptime", isRepeat: repeated))
+            if category != "ordinary" {
+                onDiagnostic?(InputDiagnosticEvent(timeMS: timeMS, name: name, source: "quartz_uptime", supported: true))
+            }
             if let shortcut = Self.shortcutName(code: code, flags: event.flags) {
                 store.enqueue(ClassifiedInputEvent(timeMS: timeMS, category: "shortcut", name: shortcut, source: "quartz_uptime", isRepeat: repeated))
+                onDiagnostic?(InputDiagnosticEvent(timeMS: timeMS, name: shortcut, source: "quartz_uptime", supported: true))
             }
         case .flagsChanged:
             guard !IsSecureEventInputEnabled() else { return }
@@ -70,6 +84,7 @@ final class InputMonitor: @unchecked Sendable {
             guard let name = Self.modifiers[code] else { return }
             if name == "caps_lock" || event.flags.contains(Self.modifierFlag(for: name)) {
                 store.enqueue(ClassifiedInputEvent(timeMS: timeMS, category: "modifier", name: name, source: "quartz_uptime"))
+                onDiagnostic?(InputDiagnosticEvent(timeMS: timeMS, name: name, source: "quartz_uptime", supported: true))
                 if name == "caps_lock" {
                     store.enqueue(ClassifiedInputEvent(timeMS: timeMS, category: "system", name: event.flags.contains(.maskAlphaShift) ? "caps_lock_on" : "caps_lock_off", source: "quartz_uptime"))
                 }
@@ -92,9 +107,39 @@ final class InputMonitor: @unchecked Sendable {
         let keyType = (event.data1 >> 16) & 0xffff
         let keyState = (event.data1 >> 8) & 0xff
         guard keyState == 0x0A else { return }
-        let names = [0: "volume_up", 1: "volume_down", 2: "brightness_up", 3: "brightness_down", 7: "mute", 16: "play_pause", 17: "next", 18: "previous", 19: "fast_forward", 20: "rewind", 21: "keyboard_light_up", 22: "keyboard_light_down", 23: "keyboard_light_toggle"]
-        guard let name = names[keyType] else { return }
-        store.enqueue(ClassifiedInputEvent(timeMS: Self.wallTimeMS(forSystemUptime: event.timestamp), category: "system", name: name, source: "appkit_system_defined"))
+        guard let name = HIDConsumerUsage.macSystemKeyName(for: keyType) else {
+            onDiagnostic?(InputDiagnosticEvent(
+                timeMS: Self.wallTimeMS(forSystemUptime: event.timestamp),
+                name: "unrecognized_system_key_\(keyType)",
+                source: "appkit_system_defined", supported: false))
+            return
+        }
+        recordSystemEvent(name: name,
+                          timestampMS: Self.wallTimeMS(forSystemUptime: event.timestamp),
+                          source: "appkit_system_defined")
+    }
+
+    /// A single physical Consumer key can surface via both HID and
+    /// NSEvent.systemDefined. Keep the first observation; suppress only
+    /// cross-source duplicates within 80ms, never two presses from one source.
+    private func recordSystemEvent(name: String, timestampMS: Int64, source: String) {
+        if let previous = recentSystemEvents[name],
+           previous.source != source,
+           abs(timestampMS - previous.timeMS) < 80 {
+            return
+        }
+        recentSystemEvents[name] = (source: source, timeMS: timestampMS)
+        if recentSystemEvents.count > 60 {
+            recentSystemEvents = recentSystemEvents.filter {
+                abs(timestampMS - $0.value.timeMS) < 1000
+            }
+        }
+        store.enqueue(ClassifiedInputEvent(
+            timeMS: timestampMS,
+            category: source == "iohid_function" ? "keyboard" : "system",
+            name: name, source: source))
+        onDiagnostic?(InputDiagnosticEvent(
+            timeMS: timestampMS, name: name, source: source, supported: true))
     }
 
     private static let specialKeys: [Int64: String] = [53: "escape", 122: "f1", 120: "f2", 99: "f3", 118: "f4", 96: "f5", 97: "f6", 98: "f7", 100: "f8", 101: "f9", 109: "f10", 103: "f11", 111: "f12", 105: "f13", 107: "f14", 113: "f15", 106: "f16", 64: "f17", 79: "f18", 80: "f19", 90: "f20", 51: "delete", 117: "forward_delete", 36: "return", 48: "tab", 49: "space", 123: "left", 124: "right", 125: "down", 126: "up", 115: "home", 119: "end", 116: "page_up", 121: "page_down"]
@@ -103,6 +148,12 @@ final class InputMonitor: @unchecked Sendable {
         if flags.contains(.maskSecondaryFn), let function = specialKeys[code], function.first == "f",
            Int(function.dropFirst()) != nil {
             return "fn_\(function)"
+        }
+        if flags.contains(.maskCommand),
+           let function = specialKeys[code],
+           function.hasPrefix("f"), Int(function.dropFirst()) != nil {
+            return flags.contains(.maskShift)
+                ? "command_shift_\(function)" : "command_\(function)"
         }
         guard flags.contains(.maskCommand), let key = shortcutKeys[code] else { return nil }
         if key == "z" && flags.contains(.maskShift) { return "command_shift_z" }

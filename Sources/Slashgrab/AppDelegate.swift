@@ -19,6 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
         NSApp.servicesProvider = serviceProvider
         InputStatisticsController.shared.startIfPermitted()
+        _ = InputCloudBackupController.shared
         _ = NetworkSyncController.shared
         ClipboardMonitor.shared.onDetected = { [weak self] key in
             self?.appState.clipboardDidChange(key)
