@@ -1,3 +1,5 @@
+import contextlib
+import io
 import json
 import tempfile
 import threading
@@ -31,6 +33,12 @@ class NexusAPITests(unittest.TestCase):
         )
         with urlopen(request, timeout=5) as response:
             return json.load(response)
+
+    def test_http_request_logging_does_not_write_sensitive_query_text(self):
+        captured = io.StringIO()
+        with contextlib.redirect_stderr(captured):
+            self.request("/api/nexus/v1/me?clipboard_text=PRIVATE_SECRET")
+        self.assertNotIn("PRIVATE_SECRET", captured.getvalue())
 
     def test_auth_capability_handshake(self):
         hello = self.request("/api/nexus/v1/me")

@@ -113,3 +113,30 @@ test("operation endpoint rejects bad metadata and executable binary payloads", a
   assert.equal((await worker.fetch(request(path, "POST", { schema_version: 1, device_id: "d", operations: [{ ...op, id: "no-uuid" }] }), env)).status, 400);
   assert.equal((await worker.fetch(request(path, "POST", { schema_version: 1, device_id: "d", operations: [{ ...op, clipboard_text: "x".repeat(100001) }] }), env)).status, 400);
 });
+
+
+test("unexpected driver errors do not leak sensitive clipboard values into logs", async () => {
+  const secret = "PRIVATE_CLIPBOARD_SECRET";
+  const env = {
+    API_TOKEN: "test-secret",
+    DB: {
+      prepare() {
+        throw new Error(secret);
+      },
+    },
+  };
+  const messages = [];
+  const originalError = console.error;
+  console.error = (...args) => messages.push(args.map(String).join(" "));
+  try {
+    const response = await worker.fetch(request(
+      "/api/nexus/v1/operations/events?start_ms=0&end_ms=1000"
+    ), env);
+    assert.equal(response.status, 500);
+    assert.equal((await response.json()).error, "internal_error");
+  } finally {
+    console.error = originalError;
+  }
+  assert.ok(messages.some(message => message.includes("nexus_api_error")));
+  assert.ok(messages.every(message => !message.includes(secret)));
+});

@@ -340,8 +340,8 @@ final class MobileClipboardController: ObservableObject {
 
     /// Explicitly erases the dedicated Nexus private iCloud zone after the
     /// UI obtains a separate typed confirmation. No background invocation.
-    func erasePrivateNexusCloudZone() async {
-        guard !running, let journal else { return }
+    func erasePrivateNexusCloudZone(confirmation: String) async {
+        guard confirmation == "DELETE", !running, let journal else { return }
         cloudEnabled = false
         running = true
         defer { running = false }
@@ -351,7 +351,7 @@ final class MobileClipboardController: ObservableObject {
                 transport: transport, journal: journal
             )
             try await purge.purgeCloudZoneAndLocalCache(
-                explicitlyConfirmed: true
+                confirmation: confirmation
             )
             resetCloudPreferencesAfterPurge()
             refresh()
