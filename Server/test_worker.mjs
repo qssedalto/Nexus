@@ -75,6 +75,8 @@ test("operation metadata retries, UTC ranges and device deletion are idempotent"
   const batch = { schema_version: 1, device_id: "device-1", operations: [operation] };
   assert.equal((await worker.fetch(request(path, "POST", batch), env)).status, 200);
   assert.equal((await worker.fetch(request(path, "POST", batch), env)).status, 200);
+  batch.operations[0].items[0].size = 123456;
+  assert.equal((await worker.fetch(request(path, "POST", batch), env)).status, 200);
   const page = await (await worker.fetch(request(path + "?start_ms=1234&end_ms=1235"), env)).json();
   assert.equal(page.operations.length, 1);
   assert.deepEqual(page.operations[0].operation.items, operation.items);
