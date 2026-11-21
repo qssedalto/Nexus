@@ -71,3 +71,7 @@
 "Erase iCloud Data" = "删除 iCloud 数据";
 "Local cloud cache cleared; offline clipboard history preserved" = "本地云端缓存已清理；离线剪贴板历史保留";
 "Nexus iCloud zone deleted. Disable syncing on other devices." = "Nexus iCloud 存储区已删除。请关闭其他设备的同步。";
+"Sync iCloud clipboard when Nexus becomes active" = "Nexus 进入前台时同步 iCloud 剪贴板";
+"Foreground sync is optional and checks at most once every 5 minutes. It uses your selected iCloud permissions and never reads another app's clipboard. Create the private iCloud zone manually before enabling." = "前台自动同步是可选功能，两次检查至少间隔 5 分钟。它仅使用你授权的 iCloud 数据类别，不会自动读取其他 App 的剪贴板。启用前需手动创建 iCloud 私有存储区。";
+"Last successful sync" = "上次成功同步";
+"iCloud clipboard sync is idle" = "iCloud 剪贴板同步空闲";
