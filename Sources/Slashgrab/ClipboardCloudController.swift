@@ -200,7 +200,9 @@ final class ClipboardCloudController: ObservableObject {
                 )
                 return (operations, collections)
             }.value
-            status = "Restored \(result.0) cloud history entries and \(result.1) collection changes into the local shelf"
+            status = String(format: localized(
+                "Restored %d cloud entries and %d collection changes to local history"
+            ), result.0, result.1)
         } catch {
             status = "Cloud history restoration failed: \(error.localizedDescription)"
         }
