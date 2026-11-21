@@ -51,6 +51,20 @@ public enum ClipboardRemoteWebTitlePolicy {
             ("&amp;", "&"), ("&quot;", "\""), ("&apos;", "'"),
             ("&lt;", "<"), ("&gt;", ">"), ("&nbsp;", " ")
         ]
+        // Reject malformed/unknown entities rather than mistaking a
+        // partially decoded document or script for an ordinary page title.
+        let allowedEntities: Set<String> = Set(
+            substitutions.map { $0.0 }
+        )
+        var cursor = raw.startIndex
+        while let ampersand = raw[cursor...].firstIndex(of: "&") {
+            guard let end = raw[ampersand...].firstIndex(of: ";"),
+                  raw.distance(from: ampersand, to: end) <= 9,
+                  allowedEntities.contains(
+                    String(raw[ampersand...end]).lowercased()
+                  ) else { return nil }
+            cursor = raw.index(after: end)
+        }
         var title = raw
         for (escaped, literal) in substitutions {
             title = title.replacingOccurrences(
