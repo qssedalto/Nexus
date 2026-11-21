@@ -39,7 +39,7 @@ enable iCloud entitlements, or merge into main.
   physical input/AX/Retina/Spaces appearance is still a device acceptance gate.
 
 ### CloudKit P2
-- Private-zone versioned CKRecord encoder/decoder with strict identity, UTI,
+- Private-zone versioned CKRecord encoder/decoder with strict identity,
   payload-size and logical revision validation.
 - Offline-first SQLite outbox, mutation-specific acknowledgements, bounded
   incremental remote pages and transactional change tokens.
