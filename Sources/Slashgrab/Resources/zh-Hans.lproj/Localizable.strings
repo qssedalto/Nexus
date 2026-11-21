@@ -308,3 +308,9 @@
 "Declared shortcut" = "声明的默认快捷键";
 "Show application in Finder" = "在访达中显示所属应用";
 "Change service settings in macOS…" = "在 macOS 中调整服务设置…";
+
+"Observe Command+V paste requests (opt-in)" = "检测 Command+V 粘贴请求（单独授权）";
+"Only a shortcut request and event timestamp are saved. This cannot verify a successful paste, does not inspect the destination, and requires input-monitoring permission." = "只保存快捷键请求和时间戳，无法确认实际粘贴成功，不读取目标应用内容，需要输入监控权限。";
+"Paste request detected" = "检测到粘贴请求（结果未知）";
+"Paste request" = "粘贴请求";
+"Paste requested, completion unknown" = "已发出粘贴请求，无法确认是否完成";
