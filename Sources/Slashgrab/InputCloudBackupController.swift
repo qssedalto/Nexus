@@ -15,6 +15,7 @@ final class InputCloudBackupController: ObservableObject {
         didSet {
             UserDefaults.standard.set(enabled, forKey: "nexusStatisticsCloudBackupEnabled")
             schedule()
+            if enabled && !oldValue { backupNow() }
         }
     }
     @Published private(set) var destinationSummary = ""
@@ -41,7 +42,7 @@ final class InputCloudBackupController: ObservableObject {
         panel.canCreateDirectories = true
         panel.allowsMultipleSelection = false
         panel.prompt = localized("Use this folder")
-        panel.message = localized("Choose an iCloud Drive directory for encrypted-by-transport macOS cloud file synchronization, or another backup folder. This file contains detailed statistics.")
+        panel.message = localized("Choose an iCloud Drive directory for automatic file backup (or another folder). The saved SQLite file contains detailed event timestamps.")
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
             let bookmark = try url.bookmarkData(
@@ -92,6 +93,9 @@ final class InputCloudBackupController: ObservableObject {
         guard enabled,
               UserDefaults.standard.data(forKey: bookmarkKey) != nil else { return }
         timer = Timer.scheduledTimer(withTimeInterval: 3600, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.backupNow() }
+        }
+        if lastBackup?.timeIntervalSinceNow ?? -7200 < -3600 {
             Task { @MainActor [weak self] in self?.backupNow() }
         }
     }
