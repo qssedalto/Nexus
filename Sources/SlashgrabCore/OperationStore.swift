@@ -199,6 +199,30 @@ public final class OperationStore: @unchecked Sendable {
         return records
     }
 
+    /// Background scan results may update a single selected top-level
+    /// directory/package only if the source still matches the recorded path.
+    /// The original event, source, time, and child list are unchanged.
+    @discardableResult
+    public func updateComputedSize(
+        operationID: String, position: Int, expectedSource: String, bytes: Int64
+    ) throws -> Bool {
+        guard position >= 0, bytes >= 0 else { return false }
+        lock.lock()
+        defer { lock.unlock() }
+        let stmt = try prepare("""
+            UPDATE operation_items SET size = ?
+            WHERE operation_id = ? AND position = ? AND source = ?
+              AND kind IN ('folder', 'package')
+            """)
+        defer { sqlite3_finalize(stmt) }
+        bind(bytes, to: 1, in: stmt)
+        bind(operationID, to: 2, in: stmt)
+        bind(Int64(position), to: 3, in: stmt)
+        bind(expectedSource, to: 4, in: stmt)
+        guard sqlite3_step(stmt) == SQLITE_DONE else { throw StoreError.write }
+        return sqlite3_changes(database) > 0
+    }
+
     public func markSynced(operationIDs ids: [String]) throws {
         guard !ids.isEmpty else { return }
         lock.lock()
