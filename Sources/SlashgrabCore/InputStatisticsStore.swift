@@ -542,6 +542,151 @@ public final class InputStatisticsStore: @unchecked Sendable {
         }
     }
 
+    /// Safely merge a user-selected iCloud SQLite snapshot. This is never a
+    /// destructive database replacement: existing local rows remain untouched.
+    /// Imported rows use a stable namespaced source ID, making retries and
+    /// re-downloading the same backup idempotent.
+    public func restoreBackup(from source: URL, deviceID: String) throws -> Int {
+        guard source.standardizedFileURL != databaseURL.standardizedFileURL,
+              !deviceID.isEmpty, deviceID.count <= 80 else { throw InputStoreError.write }
+        var sourceDB: OpaquePointer?
+        guard sqlite3_open_v2(source.path, &sourceDB, SQLITE_OPEN_READONLY, nil) == SQLITE_OK,
+              let sourceDB else {
+            if let sourceDB { sqlite3_close(sourceDB) }
+            throw InputStoreError.open
+        }
+        defer { sqlite3_close(sourceDB) }
+
+        var check: OpaquePointer?
+        guard sqlite3_prepare_v2(sourceDB, "PRAGMA quick_check(1)", -1, &check, nil) == SQLITE_OK,
+              let check else { throw InputStoreError.read }
+        let healthy = sqlite3_step(check) == SQLITE_ROW &&
+            sqlite3_column_text(check, 0).map { String(cString: $0) } == "ok"
+        sqlite3_finalize(check)
+        guard healthy else { throw InputStoreError.read }
+
+        var cursor: OpaquePointer?
+        let sql = """
+            SELECT id,time_ms,category,name,source,count
+            FROM input_events ORDER BY id
+            """
+        guard sqlite3_prepare_v2(sourceDB, sql, -1, &cursor, nil) == SQLITE_OK,
+              let cursor else { throw InputStoreError.read }
+        defer { sqlite3_finalize(cursor) }
+
+        var rows: [BackupInputEvent] = []
+        var inserted = 0
+        while true {
+            let step = sqlite3_step(cursor)
+            if step == SQLITE_DONE { break }
+            guard step == SQLITE_ROW,
+                  let category = sqlite3_column_text(cursor, 2),
+                  let name = sqlite3_column_text(cursor, 3),
+                  let source = sqlite3_column_text(cursor, 4) else {
+                throw InputStoreError.read
+            }
+            let row = BackupInputEvent(
+                id: sqlite3_column_int64(cursor, 0),
+                timeMS: sqlite3_column_int64(cursor, 1),
+                category: String(cString: category),
+                name: String(cString: name),
+                source: String(cString: source),
+                count: sqlite3_column_int64(cursor, 5)
+            )
+            guard row.id >= 0, row.timeMS >= 0, row.count > 0,
+                  row.name.count <= 80, row.source.count <= 512,
+                  ["ordinary", "keyboard", "modifier", "shortcut", "mouse", "scroll", "system"].contains(row.category) else {
+                throw InputStoreError.read
+            }
+            rows.append(row)
+            if rows.count == 250 {
+                inserted += try mergeBackupBatch(rows, deviceID: deviceID)
+                rows.removeAll(keepingCapacity: true)
+            }
+        }
+        if !rows.isEmpty { inserted += try mergeBackupBatch(rows, deviceID: deviceID) }
+        return inserted
+    }
+
+    private struct BackupInputEvent {
+        let id: Int64
+        let timeMS: Int64
+        let category: String
+        let name: String
+        let source: String
+        let count: Int64
+    }
+
+    private func mergeBackupBatch(_ batch: [BackupInputEvent], deviceID: String) throws -> Int {
+        try queue.sync {
+            try flushOnQueue()
+            guard sqlite3_exec(database, "BEGIN IMMEDIATE", nil, nil, nil) == SQLITE_OK else {
+                throw InputStoreError.write
+            }
+            var existing: OpaquePointer?
+            var insert: OpaquePointer?
+            defer {
+                if let existing { sqlite3_finalize(existing) }
+                if let insert { sqlite3_finalize(insert) }
+            }
+            do {
+                let checkSQL = """
+                    SELECT 1 FROM input_events
+                    WHERE id = ? AND time_ms = ? AND category = ?
+                      AND name = ? AND source = ? AND count = ?
+                      AND remote_device_id IS NULL
+                    LIMIT 1
+                    """
+                guard sqlite3_prepare_v2(database, checkSQL, -1, &existing, nil) == SQLITE_OK,
+                      let existing else { throw InputStoreError.write }
+                let insertSQL = """
+                    INSERT INTO input_events
+                    (time_ms,category,name,source,is_repeat,count,synced_at_ms,
+                     remote_device_id,remote_event_id)
+                    VALUES(?,?,?,?,0,?,?,?,?)
+                    ON CONFLICT(remote_device_id,remote_event_id) DO NOTHING
+                    """
+                guard sqlite3_prepare_v2(database, insertSQL, -1, &insert, nil) == SQLITE_OK,
+                      let insert else { throw InputStoreError.write }
+                let now = Int64(Date().timeIntervalSince1970 * 1000)
+                var inserted = 0
+                for row in batch {
+                    sqlite3_reset(existing)
+                    sqlite3_clear_bindings(existing)
+                    sqlite3_bind_int64(existing, 1, row.id)
+                    sqlite3_bind_int64(existing, 2, row.timeMS)
+                    bind(row.category, to: 3, in: existing)
+                    bind(row.name, to: 4, in: existing)
+                    bind(row.source, to: 5, in: existing)
+                    sqlite3_bind_int64(existing, 6, row.count)
+                    if sqlite3_step(existing) == SQLITE_ROW { continue }
+
+                    sqlite3_reset(insert)
+                    sqlite3_clear_bindings(insert)
+                    sqlite3_bind_int64(insert, 1, row.timeMS)
+                    bind(row.category, to: 2, in: insert)
+                    bind(row.name, to: 3, in: insert)
+                    bind(row.source, to: 4, in: insert)
+                    sqlite3_bind_int64(insert, 5, row.count)
+                    sqlite3_bind_int64(insert, 6, now)
+                    bind(deviceID, to: 7, in: insert)
+                    sqlite3_bind_int64(insert, 8, row.id)
+                    guard sqlite3_step(insert) == SQLITE_DONE else {
+                        throw InputStoreError.write
+                    }
+                    inserted += Int(sqlite3_changes(database))
+                }
+                guard sqlite3_exec(database, "COMMIT", nil, nil, nil) == SQLITE_OK else {
+                    throw InputStoreError.write
+                }
+                return inserted
+            } catch {
+                sqlite3_exec(database, "ROLLBACK", nil, nil, nil)
+                throw error
+            }
+        }
+    }
+
     public func backup(to destination: URL) throws {
         guard destination.standardizedFileURL != databaseURL.standardizedFileURL else { throw InputStoreError.write }
         try queue.sync {
