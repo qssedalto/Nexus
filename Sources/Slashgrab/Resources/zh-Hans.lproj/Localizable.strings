@@ -314,3 +314,16 @@
 "Paste request detected" = "检测到粘贴请求（结果未知）";
 "Paste request" = "粘贴请求";
 "Paste requested, completion unknown" = "已发出粘贴请求，无法确认是否完成";
+
+"Privacy and Permissions" = "隐私与权限";
+"Input monitoring and permissions" = "输入监控与权限";
+"Accessibility permission for quick paste" = "快速粘贴所需的辅助功能权限";
+"Granted" = "已授权";
+"Not granted" = "未授权";
+"Request access…" = "请求授权…";
+"Nexus never reads typed text, password fields, or browser pages. Statistical key categories are stored locally unless you explicitly configure network sync." = "天枢不会读取输入的文字、密码框或网页内容。按键类别统计保存在本地，除非你主动配置网络同步。";
+"Clipboard history privacy" = "剪贴板历史隐私";
+"Source app exclusions are best-effort. Pasteboards cannot reliably identify the originating app, so pause monitoring during sensitive sessions." = "来源应用排除仅为尽力实现。剪贴板无法可靠识别真正的复制来源；处理敏感信息时请暂停监控。";
+"Pinned records and permanent collections survive automated cleanup. Deleting local history does not erase previous cloud uploads." = "固定记录和永久剪贴板集合不会被自动清理。本地删除不会清除之前已上传的云端数据。";
+"Network consent" = "网络同步授权";
+"Operation uploads are off by default. Full paths and clipboard contents require separate consent even after metadata sync is enabled. Server-side deletion is controlled from Network sync." = "操作历史上传默认关闭。启用元数据同步后，完整路径与剪贴板内容仍需分别授权。云端数据删除请前往「网络同步」。";
