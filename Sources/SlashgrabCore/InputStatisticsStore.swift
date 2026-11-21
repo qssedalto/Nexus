@@ -283,7 +283,8 @@ public final class InputStatisticsStore: @unchecked Sendable {
         }
     }
 
-    public func overview(from startMS: Int64, to endMS: Int64) throws -> InputStatisticsOverview {
+    public func overview(from startMS: Int64, to endMS: Int64,
+                         source: String? = nil) throws -> InputStatisticsOverview {
         try queue.sync {
             try flushOnQueue()
             var statement: OpaquePointer?
@@ -291,6 +292,7 @@ public final class InputStatisticsStore: @unchecked Sendable {
                 SELECT category, SUM(count)
                 FROM input_events
                 WHERE time_ms >= ? AND time_ms < ?
+                  AND (? IS NULL OR source = ?)
                 GROUP BY category
                 """
             guard sqlite3_prepare_v2(database, sql, -1, &statement, nil) == SQLITE_OK,
@@ -298,15 +300,33 @@ public final class InputStatisticsStore: @unchecked Sendable {
             defer { sqlite3_finalize(statement) }
             sqlite3_bind_int64(statement, 1, startMS)
             sqlite3_bind_int64(statement, 2, endMS)
+            if let source {
+                bind(source, to: 3, in: statement)
+                bind(source, to: 4, in: statement)
+            } else {
+                sqlite3_bind_null(statement, 3)
+                sqlite3_bind_null(statement, 4)
+            }
             var categories: [String: Int64] = [:]
             while sqlite3_step(statement) == SQLITE_ROW {
                 guard let raw = sqlite3_column_text(statement, 0) else { continue }
                 categories[String(cString: raw)] = sqlite3_column_int64(statement, 1)
             }
             var first: OpaquePointer?
-            guard sqlite3_prepare_v2(database, "SELECT MIN(time_ms) FROM input_events", -1, &first, nil) == SQLITE_OK,
+            guard sqlite3_prepare_v2(
+                    database,
+                    "SELECT MIN(time_ms) FROM input_events WHERE (? IS NULL OR source = ?)",
+                    -1, &first, nil
+                  ) == SQLITE_OK,
                   let first else { throw InputStoreError.read }
             defer { sqlite3_finalize(first) }
+            if let source {
+                bind(source, to: 1, in: first)
+                bind(source, to: 2, in: first)
+            } else {
+                sqlite3_bind_null(first, 1)
+                sqlite3_bind_null(first, 2)
+            }
             let firstEvent: Int64? = sqlite3_step(first) == SQLITE_ROW &&
                 sqlite3_column_type(first, 0) != SQLITE_NULL
                 ? sqlite3_column_int64(first, 0) : nil
