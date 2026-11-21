@@ -118,18 +118,22 @@ final class ClipboardCloudFileAssetTests: XCTestCase {
         let file = try XCTUnwrap(ClipboardCloudFileAsset(
             bytes: bytes, fileName: "example.txt"
         ))
-        let change = ClipboardCloudRecord(
-            id: ClipboardCloudRecord.operationID(UUID().uuidString),
-            kind: .operation,
-            revision: ClipboardCloudRevision(counter: 1, deviceID: "MacA"),
-            payload: .operation(ClipboardCloudOperation(
-                type: "copy", detectedTimeMS: 1,
-                sourceApplication: nil,
-                items: [ClipboardCloudItem(kind: "file", size: Int64(bytes.count),
-                                           name: nil, path: nil)],
-                text: nil, image: nil, file: file.reference
-            ))
+        try FileManager.default.createDirectory(
+            at: root, withIntermediateDirectories: true
         )
+        let original = root.appendingPathComponent("example.txt")
+        try bytes.write(to: original)
+        let source = try OperationStore(url: root.appendingPathComponent("original.sqlite"))
+        let outgoing = try ClipboardCloudJournal(
+            url: root.appendingPathComponent("outgoing.sqlite")
+        )
+        try source.record(type: "copy", urls: [original], sourceApplication: nil,
+                          detectionMethod: "clipboard", detectedTimeMS: 1)
+        _ = try ClipboardCloudLocalSnapshot.stagePage(
+            from: source, in: outgoing, deviceID: "MacA",
+            consent: ClipboardCloudConsent(enabled: true, includeFiles: true)
+        )
+        let change = try XCTUnwrap(outgoing.pending().first)
         let journal = try ClipboardCloudJournal(url: root.appendingPathComponent("cloud.sqlite"))
         try journal.applyRemote([change], fileAssets: [change.id: file])
         XCTAssertEqual(try journal.cachedFile(recordID: change.id)?.bytes, bytes)
