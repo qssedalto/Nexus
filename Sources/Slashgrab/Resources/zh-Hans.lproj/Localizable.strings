@@ -332,3 +332,10 @@
 
 "Delete all statistics" = "删除全部统计数据";
 "This deletes every locally stored input statistic. Existing cloud backups and uploads are not deleted." = "这将删除所有本地键盘鼠标统计。已有云端备份和先前上传的数据不会同步删除。";
+
+"Device or event source" = "设备或事件来源";
+"All sources" = "全部来源";
+"Reset source filter" = "清除来源筛选";
+"Source and HID device statistics" = "事件来源与 HID 设备统计";
+"Only HID vendor/product and optional connection location identify a device model. Quartz and AppKit sources cannot identify a physical keyboard or mouse; location-free HID entries may represent several identical devices." = "只有 HID 提供的厂商、产品及可选连接位置可以帮助识别设备型号。Quartz 和 AppKit 无法可靠识别物理键盘或鼠标；缺少位置的 HID 条目也可能代表多个相同设备。";
+"Device unknown" = "设备未知";
