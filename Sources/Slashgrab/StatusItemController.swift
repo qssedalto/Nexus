@@ -2,6 +2,7 @@ import AppKit
 import ApplicationServices
 import Combine
 import SwiftUI
+import SlashgrabCore
 
 @MainActor
 final class StatusItemController {
@@ -215,14 +216,21 @@ final class StatusItemController {
             _ = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
             return
         }
+        // The selected card was just copied into NSPasteboard. If the user
+        // copies something else before target activation finishes, abort
+        // instead of pasting the intervening clipboard contents.
+        let expectedChangeCount = NSPasteboard.general.changeCount
         clipboardShelfPanel?.orderOut(nil)
         guard target.activate(options: [.activateIgnoringOtherApps]) else { return }
         let expectedPID = target.processIdentifier
         DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(220)) {
-            // If focus changed since the click, do not type into that app.
-            guard NSWorkspace.shared.frontmostApplication?.processIdentifier == expectedPID else {
-                return
-            }
+            guard ClipboardPasteSafety.canRequestPaste(
+                hasAccessibilityPermission: AXIsProcessTrusted(),
+                expectedTargetPID: expectedPID,
+                currentFrontmostPID: NSWorkspace.shared.frontmostApplication?.processIdentifier,
+                expectedClipboardChangeCount: expectedChangeCount,
+                currentClipboardChangeCount: NSPasteboard.general.changeCount
+            ) else { return }
             let source = CGEventSource(stateID: .hidSystemState)
             let down = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: true)
             let up = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: false)
