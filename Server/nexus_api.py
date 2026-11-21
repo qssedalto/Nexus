@@ -216,7 +216,7 @@ class NexusAPI(BaseHTTPRequestHandler):
         with self.server.database_lock:
             with self.server.database:
                 self.server.database.executemany(
-                    "INSERT INTO operation_events VALUES (?, ?, ?, ?) ON CONFLICT(device_id, operation_id) DO NOTHING", rows
+                    "INSERT INTO operation_events VALUES (?, ?, ?, ?) ON CONFLICT(device_id, operation_id) DO UPDATE SET detected_time_ms=excluded.detected_time_ms, payload_json=excluded.payload_json", rows
                 )
         self.respond(200, {"accepted_ids": [op["id"] for op in records]})
 
