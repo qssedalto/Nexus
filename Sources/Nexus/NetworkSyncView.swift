@@ -111,6 +111,7 @@ final class NetworkSyncController: ObservableObject {
     private var operationDeletionInProgress = false
     private let keychainService = "com.qssedalto.nexus-sync"
     private let legacyKeychainService = "com.prof18.slashgrab.nexus-sync"
+    private let legacyTokenFallbackDisabledKey = "nexusSyncLegacyTokenFallbackDisabled"
     private let session: URLSession = {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.httpShouldSetCookies = false
@@ -148,20 +149,29 @@ final class NetworkSyncController: ObservableObject {
             attributes[kSecValueData as String] = data
             saved = SecItemAdd(attributes as CFDictionary, nil) == errSecSuccess
         }
+        // Explicitly saving a Nexus credential opts out of silently reusing
+        // an older app's token if this new item later becomes unavailable.
+        if saved { defaults.set(true, forKey: legacyTokenFallbackDisabledKey) }
         status = saved ? "Token saved" : "Keychain error"
         return saved
     }
 
     func removeToken() {
         cancelInFlightUploads()
-        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: keychainService, kSecAttrAccount as String: "api-token"]
-        SecItemDelete(query as CFDictionary)
-        var legacyQuery = query
-        legacyQuery[kSecAttrService as String] = legacyKeychainService
-        SecItemDelete(legacyQuery as CFDictionary)
+        // Revocation must not destroy credentials that may still belong to
+        // the user's original Slashgrab installation. Suppress future legacy
+        // fallback before deleting only the Nexus-owned Keychain item.
+        defaults.set(true, forKey: legacyTokenFallbackDisabledKey)
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: keychainService,
+            kSecAttrAccount as String: "api-token"
+        ]
+        let deletion = SecItemDelete(query as CFDictionary)
         serverOperationsSupported = false
         serverStatisticsAggregatesSupported = false
-        status = "Token removed"
+        status = (deletion == errSecSuccess || deletion == errSecItemNotFound)
+            ? "Token removed" : "Keychain error"
     }
 
     func testConnection() async {
@@ -551,6 +561,12 @@ final class NetworkSyncController: ObservableObject {
         // credentials to remain readable when macOS Keychain access permits.
         // No existing credential is overwritten or silently uploaded.
         for service in [keychainService, legacyKeychainService] {
+            // Once a user removes or replaces Nexus's API token, the old
+            // application's token must never silently re-enable syncing.
+            if service == legacyKeychainService &&
+               defaults.bool(forKey: legacyTokenFallbackDisabledKey) {
+                continue
+            }
             let query: [String: Any] = [
                 kSecClass as String: kSecClassGenericPassword,
                 kSecAttrService as String: service,
