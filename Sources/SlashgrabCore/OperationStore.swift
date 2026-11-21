@@ -209,18 +209,38 @@ public final class OperationStore: @unchecked Sendable {
         guard position >= 0, bytes >= 0 else { return false }
         lock.lock()
         defer { lock.unlock() }
-        let stmt = try prepare("""
-            UPDATE operation_items SET size = ?
-            WHERE operation_id = ? AND position = ? AND source = ?
-              AND kind IN ('folder', 'package')
-            """)
-        defer { sqlite3_finalize(stmt) }
-        bind(bytes, to: 1, in: stmt)
-        bind(operationID, to: 2, in: stmt)
-        bind(Int64(position), to: 3, in: stmt)
-        bind(expectedSource, to: 4, in: stmt)
-        guard sqlite3_step(stmt) == SQLITE_DONE else { throw StoreError.write }
-        return sqlite3_changes(database) > 0
+        try execute("BEGIN IMMEDIATE")
+        do {
+            let stmt = try prepare("""
+                UPDATE operation_items SET size = ?
+                WHERE operation_id = ? AND position = ? AND source = ?
+                  AND kind IN ('folder', 'package')
+                  AND (size IS NULL OR size <> ?)
+                """)
+            bind(bytes, to: 1, in: stmt)
+            bind(operationID, to: 2, in: stmt)
+            bind(Int64(position), to: 3, in: stmt)
+            bind(expectedSource, to: 4, in: stmt)
+            bind(bytes, to: 5, in: stmt)
+            let result = sqlite3_step(stmt)
+            let changed = sqlite3_changes(database) > 0
+            sqlite3_finalize(stmt)
+            guard result == SQLITE_DONE else { throw StoreError.write }
+            if changed {
+                // Changing metadata invalidates a previously confirmed upload.
+                // The server upserts the same stable UUID on the next retry.
+                let reset = try prepare("DELETE FROM operation_sync_state WHERE operation_id = ?")
+                bind(operationID, to: 1, in: reset)
+                let resetResult = sqlite3_step(reset)
+                sqlite3_finalize(reset)
+                guard resetResult == SQLITE_DONE else { throw StoreError.write }
+            }
+            try execute("COMMIT")
+            return changed
+        } catch {
+            try? execute("ROLLBACK")
+            throw error
+        }
     }
 
     public func markSynced(operationIDs ids: [String]) throws {
