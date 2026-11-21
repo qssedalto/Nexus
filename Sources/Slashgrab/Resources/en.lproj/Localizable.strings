@@ -305,3 +305,8 @@
 "Filter by date" = "Filter by date";
 "Through" = "Through";
 "Showing the latest 200 matching records; narrow the search to find older ones." = "Showing the latest 200 matching records; narrow the search to find older ones.";
+
+"Save copied image pixels (opt-in, 8 MB maximum)" = "Save copied images (opt-in, up to 8 MB)";
+"Image capture is off by default. Stored image bytes stay local, share duplicate storage, and are removed when the last history reference is deleted. Oversized or unreadable images retain metadata only." = "Image capture is off by default. Original image bytes stay local, identical copies share storage and data is removed after its final history reference is deleted. Oversized or unreadable images retain metadata only.";
+
+"Original clipboard image unavailable" = "Original clipboard image unavailable";

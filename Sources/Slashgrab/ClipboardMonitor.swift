@@ -21,6 +21,15 @@ final class ClipboardMonitor: ObservableObject {
         }
     }
 
+    /// Opt-in storage of screenshot/image bytes is independent from
+    /// file URL observations and text capture. Default is off.
+    @Published var imageEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(imageEnabled, forKey: "nexusClipboardImageCapture")
+            configureTimer()
+        }
+    }
+
     @Published var paused: Bool {
         didSet {
             UserDefaults.standard.set(paused, forKey: "nexusClipboardHistoryPaused")
@@ -51,10 +60,12 @@ final class ClipboardMonitor: ObservableObject {
     private var retentionTimer: Timer?
     private var lastChangeCount: Int
     private let maximumTextBytes = 1_048_576
+    private let maximumImageBytes = 8 * 1_024 * 1_024
 
     private init() {
         enabled = UserDefaults.standard.bool(forKey: "nexusMonitorFileCopies")
         textEnabled = UserDefaults.standard.bool(forKey: "nexusMonitorTextCopies")
+        imageEnabled = UserDefaults.standard.bool(forKey: "nexusClipboardImageCapture")
         paused = UserDefaults.standard.bool(forKey: "nexusClipboardHistoryPaused")
         retentionDays = max(0, UserDefaults.standard.integer(forKey: "nexusClipboardRetentionDays"))
         maximumHistoryRecords = max(0, UserDefaults.standard.integer(forKey: "nexusClipboardHistoryMaximum"))
@@ -75,7 +86,7 @@ final class ClipboardMonitor: ObservableObject {
         timer = nil
         retentionTimer = nil
         lastChangeCount = NSPasteboard.general.changeCount
-        guard !paused, enabled || textEnabled else { return }
+        guard !paused, enabled || textEnabled || imageEnabled else { return }
         timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.checkPasteboard() }
         }
@@ -149,16 +160,48 @@ final class ClipboardMonitor: ObservableObject {
         }
 
         // A screenshot/image-only clipboard has no trustworthy file URL.
-        // Observe its declared type only; never load bitmap data or thumbnails.
-        if enabled, let store,
-           pasteboard.types?.contains(where: {
-               ["public.png", "public.tiff", "public.jpeg", "public.heic",
-                "com.compuserve.gif", "public.image"].contains($0.rawValue)
-           }) == true {
+        // Persist the original image only after separate consent. Images over
+        // the payload limit or formats without decodable previews retain
+        // metadata-only history. No image bytes are uploaded to the API.
+        let imageTypes = Set([
+            "public.png", "public.tiff", "public.jpeg", "public.heic",
+            "com.compuserve.gif"
+        ])
+        let encodedImageType = pasteboard.types?.first(where: {
+            imageTypes.contains($0.rawValue)
+        })
+        let imageDeclared = encodedImageType != nil
+            || pasteboard.types?.contains(where: { $0.rawValue == "public.image" }) == true
+        if (enabled || imageEnabled), imageDeclared, let store {
             onDetected?("Clipboard image detected")
-            Task.detached(priority: .utility) {
-                try? store.record(type: "image_copy", urls: [], sourceApplication: nil,
-                                  detectionMethod: "clipboard_type", detectedTimeMS: detected)
+            if imageEnabled, let encodedImageType,
+               let data = pasteboard.data(forType: encodedImageType),
+               data.count > 0 && data.count <= maximumImageBytes {
+                let type = encodedImageType.rawValue
+                Task.detached(priority: .utility) {
+                    if let thumbnail = ClipboardThumbnailMaker.jpegPreview(from: data) {
+                        do {
+                            try store.recordClipboardImage(
+                                data: data, thumbnail: thumbnail,
+                                pasteboardType: type, detectedTimeMS: detected
+                            )
+                            return
+                        } catch {
+                            // Fall through to metadata-only history on failure.
+                        }
+                    }
+                    try? store.record(type: "image_copy", urls: [],
+                                      sourceApplication: nil,
+                                      detectionMethod: "clipboard_type",
+                                      detectedTimeMS: detected)
+                }
+            } else {
+                Task.detached(priority: .utility) {
+                    try? store.record(type: "image_copy", urls: [],
+                                      sourceApplication: nil,
+                                      detectionMethod: "clipboard_type",
+                                      detectedTimeMS: detected)
+                }
             }
             return
         }
