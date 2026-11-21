@@ -86,7 +86,7 @@ export default {
             !Array.isArray(body.operations) || body.operations.length < 1 ||
             body.operations.length > 25 || !body.operations.every(validOperation)) return json({ error: "invalid_request" }, 400);
         const statements = body.operations.map(op => env.DB.prepare(
-          "INSERT INTO operation_events(device_id,operation_id,detected_time_ms,payload_json) VALUES(?,?,?,?) ON CONFLICT(device_id,operation_id) DO NOTHING"
+          "INSERT INTO operation_events(device_id,operation_id,detected_time_ms,payload_json) VALUES(?,?,?,?) ON CONFLICT(device_id,operation_id) DO UPDATE SET detected_time_ms=excluded.detected_time_ms, payload_json=excluded.payload_json"
         ).bind(body.device_id, op.id, op.detected_time_ms, JSON.stringify(op)));
         await env.DB.batch(statements);
         return json({ accepted_ids: body.operations.map(op => op.id) });
