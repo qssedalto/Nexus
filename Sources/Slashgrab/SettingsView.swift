@@ -20,7 +20,7 @@ struct SettingsView<Updater: UpdaterControlling>: View {
                     Label(localized("Finder"), systemImage: "folder")
                 }
 
-            SystemServicesView()
+            SystemServicesView(appState: appState)
                 .tabItem { Label(localized("System Services"), systemImage: "square.stack") }
 
             OperationTimelineView(appState: appState)
