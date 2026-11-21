@@ -1,6 +1,6 @@
 import Foundation
 import XCTest
-@testable import SlashgrabCore
+@testable import NexusCore
 
 final class InputUploadPrivacyPolicyTests: XCTestCase {
     private func row(_ id: Int64, _ time: Int64, _ category: String,

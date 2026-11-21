@@ -1,5 +1,5 @@
 import XCTest
-@testable import SlashgrabCore
+@testable import NexusCore
 
 final class HIDConsumerUsageTests: XCTestCase {
     func testDocumentedConsumerUsageMapping() {
