@@ -21,12 +21,21 @@ final class HIDConsumerMonitor: @unchecked Sendable {
     func start() -> Bool {
         guard manager == nil else { return true }
         let hid = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
-        IOHIDManagerSetDeviceMatching(hid, [
-            kIOHIDDeviceUsagePageKey as String: 0x0C
-        ] as CFDictionary)
-        IOHIDManagerSetInputValueMatching(hid, [
-            kIOHIDElementUsagePageKey as String: 0x0C
-        ] as CFDictionary)
+        // Match consumer-control and keyboard devices, but accept only
+        // consumer usages and F21–F24 element reports. No text key logging.
+        IOHIDManagerSetDeviceMatchingMultiple(hid, [
+            [
+                kIOHIDDeviceUsagePageKey as String: 0x0C
+            ],
+            [
+                kIOHIDDeviceUsagePageKey as String: 0x01,
+                kIOHIDDeviceUsageKey as String: 0x06
+            ]
+        ] as CFArray)
+        IOHIDManagerSetInputValueMatchingMultiple(hid, [
+            [kIOHIDElementUsagePageKey as String: 0x0C],
+            [kIOHIDElementUsagePageKey as String: 0x07]
+        ] as CFArray)
         let callback: IOHIDValueCallback = { context, result, _, value in
             guard result == kIOReturnSuccess, let context else { return }
             let monitor = Unmanaged<HIDConsumerMonitor>
@@ -62,9 +71,15 @@ final class HIDConsumerMonitor: @unchecked Sendable {
     private func received(_ value: IOHIDValue) {
         let element = IOHIDValueGetElement(value)
         let page = IOHIDElementGetUsagePage(element)
-        guard page == 0x0C else { return }
+        guard page == 0x0C || page == 0x07 else { return }
         let usage = Int(IOHIDElementGetUsage(element))
-        let physicalKey = "\(Unmanaged.passUnretained(IOHIDElementGetDevice(element)).toOpaque()):\(usage)"
+        // Only Function F21–F24 from the Keyboard page. Do not retain
+        // ordinary key usages, HID scan sequences or password keystrokes.
+        let keyName = page == 0x0C
+            ? HIDConsumerUsage.name(for: usage)
+            : HIDConsumerUsage.functionName(forKeyboardUsage: usage)
+        guard let keyName else { return }
+        let physicalKey = "\(IOHIDElementGetDevice(element)):\(page):\(usage)"
         let pressed = IOHIDValueGetIntegerValue(value) != 0
         if !pressed {
             pressedUsages.remove(physicalKey)
@@ -72,9 +87,8 @@ final class HIDConsumerMonitor: @unchecked Sendable {
         }
         // Count the rising edge, not every HID report while held.
         guard pressedUsages.insert(physicalKey).inserted else { return }
-        guard let name = HIDConsumerUsage.name(for: usage) else { return }
         let timestampMS = Self.timestamp(for: IOHIDValueGetTimeStamp(value))
-        eventHandler(name, timestampMS, "iohid_consumer")
+        eventHandler(keyName, timestampMS, page == 0x0C ? "iohid_consumer" : "iohid_function")
     }
 
     private static func timestamp(for rawTicks: UInt64) -> Int64 {
