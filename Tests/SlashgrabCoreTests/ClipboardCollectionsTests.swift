@@ -93,4 +93,44 @@ final class ClipboardCollectionsTests: XCTestCase {
         XCTAssertTrue(try store.collectionOperationIDs(collectionID: collection.id).isEmpty)
         XCTAssertEqual(try store.listCollections().map(\.name), ["Code"])
     }
+
+    func testRenamingCollectionPreservesStableIDMembersAndOrdering() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let url = root.appendingPathComponent("collections.sqlite")
+        let collectionID: String
+        let memberIDs: [String]
+        do {
+            let store = try OperationStore(url: url)
+            let original = try store.createCollection(named: "项目")
+            _ = try store.createCollection(named: "收藏")
+            collectionID = original.id
+            for index in 0..<3 {
+                try store.record(type: "text_copy", urls: [], sourceApplication: nil,
+                                 detectionMethod: "clipboard",
+                                 detectedTimeMS: Int64(index + 1),
+                                 clipboardText: "item \(index)")
+            }
+            memberIDs = try store.query(from: 0, to: Int64.max).map(\.id)
+            for id in memberIDs {
+                XCTAssertTrue(try store.addOperation(id: id, toCollection: original.id))
+            }
+            XCTAssertTrue(try store.renameCollection(id: original.id, to: "  新项目  "))
+            XCTAssertEqual(try store.listCollections().first {
+                $0.id == original.id
+            }?.name, "新项目")
+            XCTAssertEqual(try store.collectionOperationIDs(collectionID: original.id), memberIDs)
+            XCTAssertThrowsError(try store.renameCollection(id: original.id, to: "收藏"))
+            XCTAssertThrowsError(try store.renameCollection(id: original.id, to: "  "))
+            XCTAssertThrowsError(try store.renameCollection(id: original.id, to: String(repeating: "字", count: 51)))
+            XCTAssertFalse(try store.renameCollection(id: "missing", to: "Nothing"))
+        }
+        let reopened = try OperationStore(url: url)
+        XCTAssertEqual(try reopened.listCollections().first {
+            $0.id == collectionID
+        }?.name, "新项目")
+        XCTAssertEqual(try reopened.collectionOperationIDs(collectionID: collectionID), memberIDs)
+    }
+
 }
