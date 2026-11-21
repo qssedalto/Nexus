@@ -32,3 +32,6 @@ jobs:
             CODE_SIGNING_ALLOWED=NO ENABLE_DEBUG_DYLIB=NO \
             MARKETING_VERSION="$MARKETING_VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
             build -quiet
+
+      - name: Verify isolated NSServices-only Finder prototype
+        run: bash Scripts/test_services_prototype.sh
