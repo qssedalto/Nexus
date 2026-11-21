@@ -93,6 +93,9 @@ public final class OperationStore: @unchecked Sendable {
             try execute("CREATE TABLE IF NOT EXISTS operation_items (operation_id TEXT NOT NULL REFERENCES operations(id) ON DELETE CASCADE, position INTEGER NOT NULL, name TEXT NOT NULL, source TEXT, extension TEXT, kind TEXT NOT NULL, size INTEGER, PRIMARY KEY(operation_id, position))")
             try execute("PRAGMA foreign_keys=ON")
             try execute("CREATE TABLE IF NOT EXISTS operation_sync_state (operation_id TEXT PRIMARY KEY REFERENCES operations(id) ON DELETE CASCADE, synced_at_ms INTEGER NOT NULL)")
+            try execute("CREATE TABLE IF NOT EXISTS clipboard_collections (id TEXT PRIMARY KEY, name TEXT NOT NULL COLLATE NOCASE UNIQUE, created_time_ms INTEGER NOT NULL)")
+            try execute("CREATE TABLE IF NOT EXISTS clipboard_collection_entries (collection_id TEXT NOT NULL REFERENCES clipboard_collections(id) ON DELETE CASCADE, operation_id TEXT NOT NULL REFERENCES operations(id) ON DELETE CASCADE, position INTEGER NOT NULL, PRIMARY KEY(collection_id, operation_id))")
+            try execute("CREATE INDEX IF NOT EXISTS clipboard_collection_order ON clipboard_collection_entries(collection_id, position)")
         } catch {
             sqlite3_close(database)
             throw error
@@ -175,6 +178,136 @@ public final class OperationStore: @unchecked Sendable {
         return results
     }
 
+    public func listCollections() throws -> [ClipboardCollection] {
+        lock.lock()
+        defer { lock.unlock() }
+        let stmt = try prepare("SELECT id, name, created_time_ms FROM clipboard_collections ORDER BY created_time_ms, name")
+        defer { sqlite3_finalize(stmt) }
+        var list: [ClipboardCollection] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            list.append(ClipboardCollection(id: string(stmt, 0) ?? "",
+                                             name: string(stmt, 1) ?? "",
+                                             createdTimeMS: sqlite3_column_int64(stmt, 2)))
+        }
+        return list
+    }
+
+    @discardableResult
+    public func createCollection(named name: String) throws -> ClipboardCollection {
+        let normalized = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalized.isEmpty, normalized.count <= 50 else { throw StoreError.write }
+        let created = Int64(Date().timeIntervalSince1970 * 1000)
+        let collection = ClipboardCollection(id: UUID().uuidString,
+                                             name: normalized,
+                                             createdTimeMS: created)
+        lock.lock()
+        defer { lock.unlock() }
+        let stmt = try prepare("INSERT INTO clipboard_collections(id,name,created_time_ms) VALUES(?,?,?)")
+        defer { sqlite3_finalize(stmt) }
+        bind(collection.id, to: 1, in: stmt)
+        bind(collection.name, to: 2, in: stmt)
+        bind(created, to: 3, in: stmt)
+        guard sqlite3_step(stmt) == SQLITE_DONE else { throw StoreError.write }
+        return collection
+    }
+
+    @discardableResult
+    public func deleteCollection(id: String) throws -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        let stmt = try prepare("DELETE FROM clipboard_collections WHERE id = ?")
+        defer { sqlite3_finalize(stmt) }
+        bind(id, to: 1, in: stmt)
+        guard sqlite3_step(stmt) == SQLITE_DONE else { throw StoreError.write }
+        return sqlite3_changes(database) > 0
+    }
+
+    public func collectionOperationIDs(collectionID: String) throws -> [String] {
+        lock.lock()
+        defer { lock.unlock() }
+        return try collectionIDsLocked(collectionID: collectionID)
+    }
+
+    @discardableResult
+    public func addOperation(id: String, toCollection collectionID: String) throws -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        // Foreign key checks prevent adding a stale operation or collection.
+        let stmt = try prepare("""
+            INSERT INTO clipboard_collection_entries(collection_id, operation_id, position)
+            VALUES(?, ?, COALESCE((SELECT MAX(position)+1 FROM clipboard_collection_entries
+                                   WHERE collection_id = ?), 0))
+            ON CONFLICT(collection_id, operation_id) DO NOTHING
+            """)
+        defer { sqlite3_finalize(stmt) }
+        bind(collectionID, to: 1, in: stmt)
+        bind(id, to: 2, in: stmt)
+        bind(collectionID, to: 3, in: stmt)
+        guard sqlite3_step(stmt) == SQLITE_DONE else { throw StoreError.write }
+        return sqlite3_changes(database) > 0
+    }
+
+    @discardableResult
+    public func removeOperation(id: String, fromCollection collectionID: String) throws -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        let stmt = try prepare("DELETE FROM clipboard_collection_entries WHERE collection_id = ? AND operation_id = ?")
+        defer { sqlite3_finalize(stmt) }
+        bind(collectionID, to: 1, in: stmt)
+        bind(id, to: 2, in: stmt)
+        guard sqlite3_step(stmt) == SQLITE_DONE else { throw StoreError.write }
+        return sqlite3_changes(database) > 0
+    }
+
+    /// Move an entry before another one; nil means to the end of the shelf.
+    @discardableResult
+    public func moveOperation(
+        id: String, before otherID: String?, inCollection collectionID: String
+    ) throws -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        var ids = try collectionIDsLocked(collectionID: collectionID)
+        guard let from = ids.firstIndex(of: id) else { return false }
+        ids.remove(at: from)
+        let destination = otherID.flatMap { ids.firstIndex(of: $0) } ?? ids.count
+        ids.insert(id, at: destination)
+        try execute("BEGIN IMMEDIATE")
+        do {
+            let stmt = try prepare("""
+                UPDATE clipboard_collection_entries SET position = ?
+                WHERE collection_id = ? AND operation_id = ?
+                """)
+            defer { sqlite3_finalize(stmt) }
+            for (position, entryID) in ids.enumerated() {
+                sqlite3_reset(stmt)
+                sqlite3_clear_bindings(stmt)
+                bind(Int64(position), to: 1, in: stmt)
+                bind(collectionID, to: 2, in: stmt)
+                bind(entryID, to: 3, in: stmt)
+                guard sqlite3_step(stmt) == SQLITE_DONE else { throw StoreError.write }
+            }
+            try execute("COMMIT")
+            return true
+        } catch {
+            try? execute("ROLLBACK")
+            throw error
+        }
+    }
+
+    private func collectionIDsLocked(collectionID: String) throws -> [String] {
+        let stmt = try prepare("""
+            SELECT operation_id FROM clipboard_collection_entries
+            WHERE collection_id = ? ORDER BY position, operation_id
+            """)
+        defer { sqlite3_finalize(stmt) }
+        bind(collectionID, to: 1, in: stmt)
+        var ids: [String] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            if let id = string(stmt, 0) { ids.append(id) }
+        }
+        return ids
+    }
+
     /// Remove one local history record and its items and sync receipt via FK
     /// cascades. Remote history is deliberately managed by a separate action.
     @discardableResult
@@ -204,13 +337,22 @@ public final class OperationStore: @unchecked Sendable {
         defer { lock.unlock() }
         try execute("BEGIN IMMEDIATE")
         do {
+            // Any record in a permanent collection is protected from
+            // automatic/manual unpinned cleanup, even when it is not also
+            // present in the legacy UserDefaults pin set.
+            var protected = protectedIDs
+            let permanent = try prepare("SELECT DISTINCT operation_id FROM clipboard_collection_entries")
+            while sqlite3_step(permanent) == SQLITE_ROW {
+                if let id = string(permanent, 0) { protected.insert(id) }
+            }
+            sqlite3_finalize(permanent)
             var candidates: [String] = []
             let scanLimit = max(1, min(10_000, maxDeletions * 4))
             if let cutoffMS {
                 let stmt = try prepare("SELECT id FROM operations WHERE detected_time_ms < ? ORDER BY detected_time_ms")
                 bind(cutoffMS, to: 1, in: stmt)
                 while sqlite3_step(stmt) == SQLITE_ROW {
-                    if let id = string(stmt, 0), !protectedIDs.contains(id) { candidates.append(id) }
+                    if let id = string(stmt, 0), !protected.contains(id) { candidates.append(id) }
                     if candidates.count >= scanLimit { break }
                 }
                 sqlite3_finalize(stmt)
@@ -220,7 +362,7 @@ public final class OperationStore: @unchecked Sendable {
                 let stmt = try prepare("SELECT id FROM operations ORDER BY detected_time_ms DESC, id DESC")
                 var retained = 0
                 while sqlite3_step(stmt) == SQLITE_ROW {
-                    guard let id = string(stmt, 0), !protectedIDs.contains(id) else { continue }
+                    guard let id = string(stmt, 0), !protected.contains(id) else { continue }
                     retained += 1
                     if retained > maxCount, !candidates.contains(id) { candidates.append(id) }
                     if candidates.count >= scanLimit { break }
