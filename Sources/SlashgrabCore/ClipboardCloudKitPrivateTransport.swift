@@ -5,7 +5,7 @@ import Foundation
 /// the production app until a signed CloudKit container, account and explicit
 /// user authorization are provided. No silent iCloud activity or default zone
 /// creation occurs in the initializer.
-public actor ClipboardCloudKitPrivateTransport: ClipboardCloudTransport {
+public actor ClipboardCloudKitPrivateTransport: ClipboardCloudTransport, ClipboardCloudPrivateZoneDeletion {
     public enum TransportError: Error {
         case privateDatabaseRequired, invalidZone, oversizedBatch
         case unexpectedPhysicalDeletion, malformedChangeToken, returnedRecordMismatch
@@ -39,6 +39,26 @@ public actor ClipboardCloudKitPrivateTransport: ClipboardCloudTransport {
             }
         }
         _ = try await database.save(CKRecordZone(zoneID: zoneID))
+    }
+
+    /// Destructive, explicit-only operation for the dedicated NexusClipboard
+    /// private zone. Caller must show a separate confirmation and disable
+    /// further local sync before invoking. Never used by normal sync calls.
+    /// A zone already absent is treated as successfully erased to permit
+    /// crash recovery when the remote deletion succeeded but local cleanup did
+    /// not complete.
+    public func deletePrivateNexusZone() async throws {
+        guard zoneID.zoneName == "NexusClipboard" else {
+            throw TransportError.invalidZone
+        }
+        do {
+            _ = try await database.deleteRecordZone(withID: zoneID)
+        } catch {
+            if let ckError = error as? CKError, ckError.code == .zoneNotFound {
+                return
+            }
+            throw error
+        }
     }
 
     /// Conflict-safe write of a bounded page. For an existing CKRecord we
