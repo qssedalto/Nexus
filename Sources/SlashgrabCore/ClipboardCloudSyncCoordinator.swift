@@ -93,11 +93,39 @@ public actor ClipboardCloudSyncCoordinator {
         self.zoneID = zoneID
     }
 
-    /// A single bounded pass: upload (partial ACKs allowed), then fetch one
-    /// remote page and atomically merge records with its checkpoint token.
-    /// On transport failure, unacknowledged local work remains retryable.
+    /// A single bounded pass: download and merge one remote page FIRST,
+    /// then upload only after the server change backlog is exhausted. This
+    /// prevents a stale local mutation from blocking its own reconciliation.
+    /// Pending data is never lost on transport or account failures.
     public func syncOnce(consent: ClipboardCloudConsent) async throws -> ClipboardCloudSyncReport {
         guard consent.enabled else { return .disabled }
+
+        // Verify queued outbound consent before making any network call.
+        // A permission revocation must not accidentally upload stale bodies.
+        let queued = try journal.pending(limit: 100)
+        guard queued.allSatisfy({ consent.permits($0) }) else {
+            throw ClipboardCloudSyncError.unauthorizedContents
+        }
+
+        // Fetch first to reconcile stale local logical revisions. Never
+        // upload until all incremental pages have reached this Mac.
+        let token = try journal.token(forZone: zoneID)
+        let page = try await transport.fetch(after: token)
+        guard page.changes.count <= 200 else {
+            throw ClipboardCloudSyncError.oversizedPage
+        }
+        guard page.changes.allSatisfy({ consent.permits($0) }) else {
+            throw ClipboardCloudSyncError.unauthorizedContents
+        }
+        let downloaded = try journal.applyRemote(
+            page.changes, zoneID: zoneID, changeToken: page.token
+        )
+        if page.moreComing {
+            return ClipboardCloudSyncReport(
+                enabled: true, uploaded: 0, downloaded: downloaded,
+                pending: try journal.pendingCount(), moreComing: true
+            )
+        }
 
         let pending = try journal.pending(limit: 100)
         guard pending.allSatisfy({ consent.permits($0) }) else {
@@ -124,21 +152,9 @@ public actor ClipboardCloudSyncCoordinator {
                 uploaded += 1
             }
         }
-
-        let token = try journal.token(forZone: zoneID)
-        let page = try await transport.fetch(after: token)
-        guard page.changes.count <= 200 else {
-            throw ClipboardCloudSyncError.oversizedPage
-        }
-        guard page.changes.allSatisfy({ consent.permits($0) }) else {
-            throw ClipboardCloudSyncError.unauthorizedContents
-        }
-        let downloaded = try journal.applyRemote(
-            page.changes, zoneID: zoneID, changeToken: page.token
-        )
         return ClipboardCloudSyncReport(
             enabled: true, uploaded: uploaded, downloaded: downloaded,
-            pending: try journal.pendingCount(), moreComing: page.moreComing
+            pending: try journal.pendingCount(), moreComing: false
         )
     }
 }
