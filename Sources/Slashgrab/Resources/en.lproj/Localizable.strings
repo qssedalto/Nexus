@@ -313,3 +313,7 @@
 
 "Preview local copied files using Quick Look (opt-in)" = "Preview local copied files using Quick Look (opt-in)";
 "File previews read only local supported files up to 24 MB. Cloud-only files and File Provider folders show an icon, without a requested download." = "File previews read only local supported files up to 24 MB. Cloud-only files and File Provider folders show an icon, without a requested download.";
+
+"Links" = "Links";
+"Code" = "Code";
+"Copied code" = "Copied code";
