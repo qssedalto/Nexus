@@ -484,3 +484,8 @@
 
 "Save clipboard-provided link titles (opt-in)" = "保存剪贴板附带的链接标题（需主动开启）";
 "Only a title already present in the copied link's pasteboard is retained locally. Nexus never fetches the webpage, and titles are removed when their history entry is deleted." = "仅将复制链接时剪贴板已提供的标题保存在本机。Nexus 不会联网获取网页内容；删除对应历史记录时也会删除标题。";
+"Rename collection" = "重命名集合";
+"Rename permanent collection" = "重命名永久集合";
+"Rename" = "重命名";
+"Collection renamed" = "集合已重命名";
+"Unable to rename collection" = "无法重命名集合";
