@@ -10,13 +10,27 @@ final class NetworkSyncController: ObservableObject {
         didSet {
             defaults.set(serverAddress, forKey: "nexusSyncServer")
             serverOperationsSupported = false
+            cancelInFlightUploads()
         }
     }
     @Published var automatic: Bool {
-        didSet { defaults.set(automatic, forKey: "nexusSyncAutomatic"); schedule() }
+        didSet {
+            defaults.set(automatic, forKey: "nexusSyncAutomatic")
+            if !automatic {
+                if statisticsUploadWasAutomatic { statisticsUploadTask?.cancel() }
+                if operationUploadWasAutomatic { operationUploadTask?.cancel() }
+            }
+            schedule()
+        }
     }
     @Published var preciseEvents: Bool {
-        didSet { defaults.set(preciseEvents, forKey: "nexusSyncPreciseEvents") }
+        didSet {
+            defaults.set(preciseEvents, forKey: "nexusSyncPreciseEvents")
+            if !preciseEvents {
+                statisticsTransferRevision &+= 1
+                statisticsUploadTask?.cancel()
+            }
+        }
     }
     @Published private(set) var status = "Idle"
     @Published private(set) var serverOperationsSupported = false
@@ -60,7 +74,11 @@ final class NetworkSyncController: ObservableObject {
     // A narrower permission cancels the underlying URLSession request when
     // possible. Already-delivered server requests cannot be recalled.
     private var operationConsentRevision: UInt64 = 0
+    private var statisticsTransferRevision: UInt64 = 0
     private var operationUploadTask: Task<OperationSyncConfirmation, Error>?
+    private var operationUploadWasAutomatic = false
+    private var statisticsUploadTask: Task<UploadConfirmation, Error>?
+    private var statisticsUploadWasAutomatic = false
     private let keychainService = "com.prof18.slashgrab.nexus-sync"
 
     private init() {
@@ -78,6 +96,8 @@ final class NetworkSyncController: ObservableObject {
     var hasToken: Bool { token() != nil }
 
     func saveToken(_ value: String) -> Bool {
+        // In-flight HTTP requests may carry the previous credential.
+        cancelInFlightUploads()
         let data = Data(value.utf8)
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: keychainService, kSecAttrAccount as String: "api-token"]
         let update = SecItemUpdate(query as CFDictionary, [kSecValueData as String: data] as CFDictionary)
@@ -92,6 +112,7 @@ final class NetworkSyncController: ObservableObject {
     }
 
     func removeToken() {
+        cancelInFlightUploads()
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: keychainService, kSecAttrAccount as String: "api-token"]
         SecItemDelete(query as CFDictionary)
         serverOperationsSupported = false
@@ -117,8 +138,14 @@ final class NetworkSyncController: ObservableObject {
         }
     }
 
-    func syncNow() async {
+    func syncNow(automaticRun: Bool = false) async {
+        if automaticRun && !automatic { return }
+        guard statisticsUploadTask == nil else {
+            status = "Statistics upload already in progress"
+            return
+        }
         guard let store else { status = "Statistics database unavailable"; return }
+        let transferRevision = statisticsTransferRevision
         do {
             let pending = try store.pendingSync()
             guard !pending.isEmpty else { status = "Up to date"; return }
@@ -128,17 +155,37 @@ final class NetworkSyncController: ObservableObject {
             }
             var request = try makeRequest(path: "/api/nexus/v1/statistics/events", method: "POST")
             request.httpBody = try JSONEncoder().encode(UploadBatch(schemaVersion: 1, deviceID: deviceID, events: events))
+            guard transferRevision == statisticsTransferRevision,
+                  (!automaticRun || automatic) else {
+                status = "Statistics upload cancelled because settings changed"
+                return
+            }
+            let uploadTask = Task<UploadConfirmation, Error> {
+                try await self.fetch(request)
+            }
+            statisticsUploadTask = uploadTask
+            statisticsUploadWasAutomatic = automaticRun
+            defer {
+                statisticsUploadTask = nil
+                statisticsUploadWasAutomatic = false
+            }
             status = "Uploading"
-            let (data, response) = try await URLSession.shared.data(for: request)
-            guard let http = response as? HTTPURLResponse else { throw SyncError.invalidResponse }
-            guard (200..<300).contains(http.statusCode) else { throw SyncError.http(http.statusCode) }
-            let confirmation = try JSONDecoder().decode(UploadConfirmation.self, from: data)
+            let confirmation = try await uploadTask.value
+            // Revocation must not mark a stale request as successfully synced.
+            guard transferRevision == statisticsTransferRevision,
+                  !uploadTask.isCancelled, (!automaticRun || automatic) else {
+                status = "Statistics request cancelled; check server before retrying"
+                return
+            }
             let submitted = Set(pending.map(\.id))
             guard Set(confirmation.acceptedIDs).isSubset(of: submitted) else { throw SyncError.invalidResponse }
             try store.markSynced(ids: confirmation.acceptedIDs, deviceID: deviceID)
             lastSync = Date()
             defaults.set(lastSync, forKey: "nexusSyncLastSuccess")
             status = "Uploaded \(confirmation.acceptedIDs.count) records"
+            appendLog(status)
+        } catch is CancellationError {
+            status = "Statistics request cancelled; an in-flight server request may already have arrived"
             appendLog(status)
         } catch { status = error.localizedDescription; appendLog(status) }
     }
@@ -152,7 +199,8 @@ final class NetworkSyncController: ObservableObject {
         }
     }
 
-    func syncOperationsNow() async {
+    func syncOperationsNow(automaticRun: Bool = false) async {
+        if automaticRun && !automatic { return }
         guard operationSyncEnabled else {
             operationSyncStatus = "Operation history upload requires separate consent"
             return
@@ -195,6 +243,7 @@ final class NetworkSyncController: ObservableObject {
             // Re-read all live permission toggles immediately before starting
             // the HTTP task, not just while building the queued payload.
             guard operationSyncEnabled, operationConsentRevision == consentRevision,
+                  (!automaticRun || automatic),
                   (!includePaths || operationSyncPaths),
                   (!includeText || operationSyncText) else {
                 operationSyncStatus = "Operation upload cancelled because consent changed"
@@ -204,12 +253,17 @@ final class NetworkSyncController: ObservableObject {
                 try await self.fetch(request)
             }
             operationUploadTask = uploadTask
-            defer { operationUploadTask = nil }
+            operationUploadWasAutomatic = automaticRun
+            defer {
+                operationUploadTask = nil
+                operationUploadWasAutomatic = false
+            }
             operationSyncStatus = "Uploading operation metadata"
             let confirmation = try await uploadTask.value
             // A server may have processed an already-started request despite
             // cancellation. Never treat a revoked-consent response as approval.
             guard operationSyncEnabled, operationConsentRevision == consentRevision,
+                  (!automaticRun || automatic),
                   (!includePaths || operationSyncPaths),
                   (!includeText || operationSyncText) else {
                 operationSyncStatus = "Consent changed during upload; check server history for data already received"
@@ -390,14 +444,21 @@ final class NetworkSyncController: ObservableObject {
         return value
     }
 
+    private func cancelInFlightUploads() {
+        statisticsTransferRevision &+= 1
+        operationConsentRevision &+= 1
+        statisticsUploadTask?.cancel()
+        operationUploadTask?.cancel()
+    }
+
     private func schedule() {
         timer?.invalidate()
         guard automatic else { return }
         timer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                await self?.syncNow()
-                if self?.operationSyncEnabled == true {
-                    await self?.syncOperationsNow()
+                await self?.syncNow(automaticRun: true)
+                if self?.automatic == true && self?.operationSyncEnabled == true {
+                    await self?.syncOperationsNow(automaticRun: true)
                 }
             }
         }
