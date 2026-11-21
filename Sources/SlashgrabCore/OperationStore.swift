@@ -150,6 +150,16 @@ public final class OperationStore: @unchecked Sendable {
                 )
                 """)
             if version < 5 { try execute("PRAGMA user_version=5") }
+            // Optional local link titles come only from clipboard-provided
+            // URL-name metadata and are removed with their text operation.
+            try execute("""
+                CREATE TABLE IF NOT EXISTS clipboard_link_titles (
+                    operation_id TEXT PRIMARY KEY
+                    REFERENCES operations(id) ON DELETE CASCADE,
+                    title TEXT NOT NULL
+                )
+                """)
+            if version < 6 { try execute("PRAGMA user_version=6") }
         } catch {
             sqlite3_close(database)
             throw error
@@ -401,6 +411,48 @@ public final class OperationStore: @unchecked Sendable {
             ClipboardRichTextPreview.self, from: Data(bytes: bytes, count: count)
         )
         return ClipboardRichTextPreview(text: preview.text, runs: preview.runs)
+    }
+
+    /// Separate, bounded and opt-in link title metadata. This method
+    /// verifies the operation still contains a standalone HTTP(S) URL.
+    /// No network request is ever made to resolve or validate the title.
+    public func recordLinkTitle(operationID: String, title: String) throws {
+        lock.lock()
+        defer { lock.unlock() }
+        let lookup = try prepare("""
+            SELECT clipboard_text FROM operations
+            WHERE id=? AND type='text_copy'
+            """)
+        defer { sqlite3_finalize(lookup) }
+        bind(operationID, to: 1, in: lookup)
+        guard sqlite3_step(lookup) == SQLITE_ROW,
+              let copiedText = string(lookup, 0),
+              let safeTitle = ClipboardLinkTitlePolicy.sanitized(
+                title, copiedText: copiedText
+              ) else { throw StoreError.write }
+        let stmt = try prepare("""
+            INSERT INTO clipboard_link_titles(operation_id,title)
+            VALUES(?,?)
+            ON CONFLICT(operation_id) DO UPDATE SET title=excluded.title
+            """)
+        defer { sqlite3_finalize(stmt) }
+        bind(operationID, to: 1, in: stmt)
+        bind(safeTitle, to: 2, in: stmt)
+        guard sqlite3_step(stmt) == SQLITE_DONE else { throw StoreError.write }
+    }
+
+    public func linkTitle(operationID: String) throws -> String? {
+        lock.lock()
+        defer { lock.unlock() }
+        let stmt = try prepare("""
+            SELECT title FROM clipboard_link_titles WHERE operation_id=?
+            """)
+        defer { sqlite3_finalize(stmt) }
+        bind(operationID, to: 1, in: stmt)
+        let step = sqlite3_step(stmt)
+        if step == SQLITE_DONE { return nil }
+        guard step == SQLITE_ROW else { throw StoreError.write }
+        return string(stmt, 0)
     }
 
     public func query(from startMS: Int64, to endMS: Int64,
