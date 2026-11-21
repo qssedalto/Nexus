@@ -394,3 +394,9 @@
 "Keep every copy" = "Keep every copy";
 "Refresh newest identical plain-text copy" = "Refresh newest identical plain-text copy";
 "Default keeps every copy. Optional consolidation only refreshes the most recent identical plain-text entry within 10 minutes; files, images and formatted text break the sequence." = "Default keeps every copy. Optional consolidation only refreshes the most recent identical plain-text entry within 10 minutes; files, images and formatted text break the sequence.";
+
+"Quick clipboard history" = "Quick clipboard history";
+"Recent clipboard" = "Recent clipboard";
+"Pinned clipboard" = "Pinned clipboard";
+"No recorded clipboard entries" = "No recorded clipboard entries";
+"Open clipboard shelf" = "Open clipboard shelf";
