@@ -287,8 +287,9 @@ final class ClipboardCloudController: ObservableObject {
     /// a separate typed confirmation in the settings sheet. Sync is disabled
     /// before network access to prevent any new local uploads during cleanup.
     /// If the network fails, the local journal remains available for retry.
-    func erasePrivateNexusCloudZone() async {
-        guard !running, let journal, let store else { return }
+    func erasePrivateNexusCloudZone(confirmation: String) async {
+        guard confirmation == "DELETE", !running,
+              let journal, let store else { return }
         enabled = false
         running = true
         defer { running = false }
@@ -298,7 +299,7 @@ final class ClipboardCloudController: ObservableObject {
                 transport: transport, journal: journal
             )
             try await purge.purgeCloudZoneAndLocalCache(
-                explicitlyConfirmed: true
+                confirmation: confirmation
             )
             // The coordinator clears only the cloud journal after the server
             // acknowledges deletion. Locally imported mirrors are separate.
