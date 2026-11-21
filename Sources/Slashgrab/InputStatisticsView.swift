@@ -24,6 +24,10 @@ final class InputStatisticsController: ObservableObject {
         }
     }
     @Published private(set) var dataStatus = ""
+    @Published private(set) var diagnosticEvents: [InputDiagnosticEvent] = []
+    @Published var diagnosticsEnabled = false {
+        didSet { configureDiagnostics() }
+    }
     private let store = InputStatisticsStore.shared()
     private var monitor: InputMonitor?
     private var permissionTimer: Timer?
@@ -42,6 +46,23 @@ final class InputStatisticsController: ObservableObject {
         }
         wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.startIfPermitted() }
+        }
+    }
+
+    private func configureDiagnostics() {
+        guard diagnosticsEnabled else {
+            monitor?.onDiagnostic = nil
+            return
+        }
+        diagnosticEvents.removeAll()
+        monitor?.onDiagnostic = { [weak self] record in
+            Task { @MainActor [weak self] in
+                guard let self, self.diagnosticsEnabled else { return }
+                self.diagnosticEvents.insert(record, at: 0)
+                if self.diagnosticEvents.count > 25 {
+                    self.diagnosticEvents.removeLast()
+                }
+            }
         }
     }
 
@@ -227,9 +248,12 @@ struct InputStatisticsView: View {
                     query()
                 } label: {
                     HStack {
-                        Text(count.name)
+                        Label(count.name, systemImage: icon(for: count.name))
                         Text(count.category).foregroundStyle(.secondary).font(.caption)
                         Spacer()
+                        Text(Date(timeIntervalSince1970: TimeInterval(count.lastTimeMS)/1000)
+                            .formatted(date: .numeric, time: .shortened))
+                            .font(.caption2).foregroundStyle(.secondary)
                         Text(count.count.formatted()).monospacedDigit()
                     }
                 }
@@ -246,6 +270,26 @@ struct InputStatisticsView: View {
                 }
                 .font(.caption)
             }
+            DisclosureGroup(localized("Special key detection")) {
+                Toggle(localized("Enable diagnostic key recognition"), isOn: $controller.diagnosticsEnabled)
+                Text(localized("Diagnostics show only recognized functional keys and input categories. Unknown system key types are marked unsupported; ordinary text is never captured. Closing this section disables diagnostics."))
+                    .font(.caption).foregroundStyle(.secondary)
+                if controller.diagnosticsEnabled {
+                    List(controller.diagnosticEvents) { event in
+                        HStack {
+                            Label(event.name, systemImage: icon(for: event.name))
+                            Text(event.source).font(.caption2).foregroundStyle(.secondary)
+                            Spacer()
+                            Text(event.supported ? localized("Recognized") : localized("Unknown / unsupported"))
+                                .font(.caption2)
+                            Text(Date(timeIntervalSince1970: TimeInterval(event.timeMS) / 1000)
+                                .formatted(date: .omitted, time: .complete))
+                                .font(.caption2.monospacedDigit())
+                        }
+                    }
+                    .frame(height: 130)
+                }
+            }
             HStack {
                 Button(localized("Export CSV")) { controller.exportCSV() }
                 Button(localized("Check database")) { controller.checkIntegrity() }
@@ -260,6 +304,7 @@ struct InputStatisticsView: View {
         }
         .padding()
         .onAppear { controller.startIfPermitted(); applyPreset() }
+        .onDisappear { controller.diagnosticsEnabled = false }
         .alert("\(localized("Confirm deletion")) \(deleteConfirmation)/5", isPresented: $showingDeleteAlert) {
             Button(localized("Cancel"), role: .cancel) { deleteConfirmation = 0 }
             Button(localized("Confirm"), role: .destructive) {
@@ -275,6 +320,22 @@ struct InputStatisticsView: View {
         } message: {
             Text(localized("This deletes statistics in the selected time range."))
         }
+    }
+
+    private func icon(for key: String) -> String {
+        if key.contains("brightness") { return "sun.max" }
+        if key.contains("volume") || key == "mute" { return "speaker.wave.2" }
+        if key.contains("play") { return "playpause" }
+        if key == "next" { return "forward.end" }
+        if key == "previous" { return "backward.end" }
+        if key == "spotlight_search" { return "magnifyingglass" }
+        if key == "fn" { return "globe" }
+        if key.contains("caps_lock") { return "capslock" }
+        if key.contains("command") { return "command" }
+        if key.contains("mouse") { return "cursorarrow.click" }
+        if key.contains("scroll") { return "arrow.up.arrow.down" }
+        if key.contains("f") { return "keyboard" }
+        return "keyboard"
     }
 
     private func statCard(_ label: String, _ count: Int64, _ symbol: String) -> some View {
