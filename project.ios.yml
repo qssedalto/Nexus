@@ -26,6 +26,7 @@ targets:
     sources:
       - Sources/NexusMobileCore/MobileRecordedOperation.swift
       - Sources/SlashgrabCore/ClipboardCloudSyncModel.swift
+      - Sources/SlashgrabCore/MobileClipboardLocalStore.swift
       - Sources/SlashgrabCore/ClipboardCloudJournal.swift
       - Sources/SlashgrabCore/ClipboardCloudSyncCoordinator.swift
       - Sources/SlashgrabCore/ClipboardCloudRunSummary.swift

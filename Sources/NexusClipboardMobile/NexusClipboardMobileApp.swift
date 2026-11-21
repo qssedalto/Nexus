@@ -13,9 +13,19 @@ struct MobileHomeView: View {
         cloud.records.filter { !$0.isDeleted && $0.kind == .collection }
     }
 
+    private var localItems: [MobileLocalClipboardEntry] {
+        cloud.localEntries.filter {
+            search.isEmpty || $0.text.localizedCaseInsensitiveContains(search)
+        }
+    }
+
     private var items: [ClipboardCloudRecord] {
-        cloud.records.filter { record in
-            guard !record.isDeleted, record.kind == .operation else { return false }
+        let localIDs = Set(cloud.localEntries.map {
+            ClipboardCloudRecord.operationID($0.id)
+        })
+        return cloud.records.filter { record in
+            guard !record.isDeleted, record.kind == .operation,
+                  !localIDs.contains(record.id) else { return false }
             guard !search.isEmpty else { return true }
             if case .operation(let operation)? = record.payload {
                 return operation.text?.localizedCaseInsensitiveContains(search) == true
@@ -34,6 +44,9 @@ struct MobileHomeView: View {
                     LazyVGrid(columns: [
                         GridItem(.adaptive(minimum: 220, maximum: 340), spacing: 12)
                     ], spacing: 12) {
+                        ForEach(localItems) { item in
+                            localHistoryCard(item)
+                        }
                         ForEach(items, id: \.id) { item in
                             historyCard(item)
                         }
@@ -155,6 +168,46 @@ struct MobileHomeView: View {
             .tabItem { Label("Settings", systemImage: "gearshape") }
         }
         .onAppear { cloud.refresh() }
+    }
+
+    @ViewBuilder
+    private func localHistoryCard(
+        _ entry: MobileLocalClipboardEntry
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label("Saved on this device", systemImage: "iphone")
+                    .font(.headline)
+                Spacer()
+                Button(role: .destructive) {
+                    cloud.deleteLocalText(entry)
+                } label: {
+                    Image(systemName: "trash")
+                }
+                .buttonStyle(.borderless)
+            }
+            Text(entry.text)
+                .lineLimit(5)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Spacer(minLength: 0)
+            HStack {
+                Text(
+                    Date(timeIntervalSince1970:
+                        TimeInterval(entry.detectedTimeMS) / 1_000),
+                    style: .date
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                Spacer()
+                Button("Copy text") {
+                    cloud.copyLocalText(entry)
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, minHeight: 170, alignment: .topLeading)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 15))
     }
 
     @ViewBuilder

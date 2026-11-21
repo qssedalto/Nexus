@@ -21,6 +21,7 @@ final class MobileClipboardController: ObservableObject {
         didSet { defaults.set(includePaths, forKey: "nexusMobileCloudPaths") }
     }
     @Published private(set) var records: [ClipboardCloudRecord] = []
+    @Published private(set) var localEntries: [MobileLocalClipboardEntry] = []
     @Published private(set) var pendingCount = 0
     @Published private(set) var status = "No cloud network activity until you press Sync"
     @Published private(set) var running = false
@@ -28,6 +29,7 @@ final class MobileClipboardController: ObservableObject {
 
     private let defaults: UserDefaults
     private let journal: ClipboardCloudJournal?
+    private let localStore: MobileClipboardLocalStore?
     private let deviceID: String
     private let zoneID = CKRecordZone.ID(
         zoneName: "NexusClipboard", ownerName: CKCurrentUserDefaultName
@@ -55,8 +57,12 @@ final class MobileClipboardController: ObservableObject {
             journal = try? ClipboardCloudJournal(
                 url: support.appendingPathComponent("NexusMobileCloudJournal.sqlite")
             )
+            localStore = try? MobileClipboardLocalStore(
+                url: support.appendingPathComponent("NexusMobileLocalHistory.sqlite")
+            )
         } else {
             journal = nil
+            localStore = nil
         }
         refresh()
     }
@@ -81,37 +87,79 @@ final class MobileClipboardController: ObservableObject {
     /// Explicit iOS clipboard read; nothing is sampled in the background,
     /// on app launch, from notifications or by SwiftUI rendering.
     func importClipboardText() {
-        guard let journal else { status = "Local database unavailable"; return }
+        guard let localStore else {
+            status = "Local clipboard database unavailable"
+            return
+        }
         guard let text = UIPasteboard.general.string, !text.isEmpty else {
             status = "The clipboard contains no text"
             return
         }
-        guard text.utf8.count <= 64 * 1024 else {
+        guard text.utf8.count <= MobileClipboardLocalStore.maximumTextBytes else {
             status = "Copied text is above the 64 KB content safety limit"
             return
         }
-        let stamp = Int64(Date().timeIntervalSince1970 * 1000)
-        let local = RecordedOperation(detectedTimeMS: stamp, clipboardText: text)
-        // Local privacy is independent of network consent. Without CloudKit
-        // permission this button does not store content in a sync journal.
-        guard cloudEnabled,
-              let payload = ClipboardCloudOperation(record: local, consent: consent),
-              let revision = ClipboardCloudRevision.next(
-                deviceID: deviceID, after: nil
-              ) else {
-            status = "Enable iCloud consent before saving this entry for sync"
-            return
-        }
-        let record = ClipboardCloudRecord(
-            id: ClipboardCloudRecord.operationID(local.id),
-            kind: .operation, revision: revision, payload: .operation(payload)
-        )
+        let stamp = Int64(Date().timeIntervalSince1970 * 1_000)
         do {
-            try journal.stageLocal(record)
+            let saved = try localStore.recordText(
+                text, detectedTimeMS: stamp
+            )
+            // A successful user-triggered local save is independent of
+            // CloudKit consent. CloudKit staging requires explicit opt-in.
+            if cloudEnabled, let journal {
+                let local = RecordedOperation(
+                    id: saved.id, detectedTimeMS: stamp, clipboardText: text
+                )
+                if let payload = ClipboardCloudOperation(
+                    record: local, consent: consent
+                ), let revision = ClipboardCloudRevision.next(
+                    deviceID: deviceID, after: nil
+                ) {
+                    let change = ClipboardCloudRecord(
+                        id: ClipboardCloudRecord.operationID(saved.id),
+                        kind: .operation, revision: revision,
+                        payload: .operation(payload)
+                    )
+                    try journal.stageLocal(change)
+                    status = "Saved locally and queued for manual iCloud sync"
+                } else {
+                    status = "Saved locally, cloud metadata unavailable"
+                }
+            } else {
+                status = "Saved to local clipboard history (iCloud off)"
+            }
             refresh()
-            status = "Clipboard entry saved to local sync queue"
         } catch {
             status = "Could not save clipboard entry: \(error.localizedDescription)"
+        }
+    }
+
+    func copyLocalText(_ entry: MobileLocalClipboardEntry) {
+        UIPasteboard.general.string = entry.text
+        status = "Local text copied to system clipboard"
+    }
+
+    func deleteLocalText(_ entry: MobileLocalClipboardEntry) {
+        guard let localStore else { return }
+        do {
+            guard try localStore.delete(id: entry.id) else { return }
+            // Only a previously staged cloud entry gets a tombstone, and only
+            // under the currently authorized sync settings.
+            if cloudEnabled, let journal,
+               let prior = try journal.record(
+                id: ClipboardCloudRecord.operationID(entry.id)
+               ), !prior.isDeleted,
+               let revision = ClipboardCloudRevision.next(
+                deviceID: deviceID, after: prior.revision
+               ) {
+                try journal.stageLocal(prior.tombstone(revision: revision))
+            }
+            refresh()
+            status = cloudEnabled
+                ? "Local entry deleted; cloud tombstone queued when applicable"
+                : "Local clipboard entry deleted"
+        } catch {
+            status = "Could not delete local entry: \(error.localizedDescription)"
         }
     }
 
@@ -248,12 +296,19 @@ final class MobileClipboardController: ObservableObject {
     }
 
     func refresh() {
+        if let localStore {
+            do {
+                localEntries = try localStore.recent(limit: 500)
+            } catch {
+                status = "Could not load local clipboard history: \(error.localizedDescription)"
+            }
+        }
         guard let journal else { return }
         do {
             records = try journal.cachedRecords(limit: 200)
             pendingCount = try journal.pendingCount()
         } catch {
-            status = "Could not load local cache: \(error.localizedDescription)"
+            status = "Could not load local cloud cache: \(error.localizedDescription)"
         }
     }
 
