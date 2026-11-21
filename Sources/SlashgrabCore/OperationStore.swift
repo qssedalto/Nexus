@@ -777,12 +777,15 @@ public final class OperationStore: @unchecked Sendable {
         // existing literal instr() predicates to preserve all prior matching.
         // One- and two-character terms, punctuation and emoji use the old
         // path so the trigram tokenizer never hides true matches.
-        let useFTS = needle.unicodeScalars.count >= 3
+        let eligibleForFTS = needle.unicodeScalars.count >= 3
             && needle.unicodeScalars.allSatisfy {
                 CharacterSet.letters.contains($0)
                     || CharacterSet.decimalDigits.contains($0)
             }
-            && (try fullTextIndexEnabledLocked())
+        var useFTS = false
+        if eligibleForFTS {
+            useFTS = try fullTextIndexEnabledLocked()
+        }
         let ftsJoin = useFTS ? """
             JOIN clipboard_search_docs d ON d.operation_id=o.id
             JOIN clipboard_search_fts ON clipboard_search_fts.rowid=d.id
