@@ -29,7 +29,7 @@ let package = Package(
         .target(
             name: "SlashgrabCore",
             path: "Sources/SlashgrabCore",
-            linkerSettings: [.linkedLibrary("sqlite3")]
+            linkerSettings: [.linkedLibrary("sqlite3"), .linkedFramework("CloudKit")]
         ),
         .testTarget(
             name: "SlashgrabCoreTests",
