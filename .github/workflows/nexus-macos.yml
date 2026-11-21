@@ -17,6 +17,13 @@ jobs:
       - uses: actions/checkout@v4
       - name: Verify Swift package
         run: swift test -q
+      - name: Validate reference Python API
+        run: python3 -m unittest discover -s Server -p 'test_nexus_api.py'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Validate Worker D1 operation API
+        run: node --test Server/test_worker.mjs
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Generate Xcode project
