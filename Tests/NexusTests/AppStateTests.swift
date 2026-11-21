@@ -1,7 +1,7 @@
 import Foundation
 import Testing
-@testable import Slashgrab
-@testable import SlashgrabCore
+@testable import Nexus
+@testable import NexusCore
 
 @Suite("App state")
 @MainActor
