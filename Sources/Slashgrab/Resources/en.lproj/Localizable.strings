@@ -451,3 +451,8 @@
 "Verify that the selected range is correct before continuing." = "Verify that the selected range is correct before continuing.";
 "This is the ninth confirmation; you can still cancel safely." = "This is the ninth confirmation; you can still cancel safely.";
 "Final confirmation: permanently delete these local statistics." = "Final confirmation: permanently delete these local statistics.";
+"iCloud clipboard (user controlled)" = "iCloud clipboard (user controlled)";
+"Automatically sync iCloud clipboard every 5 minutes" = "Automatically sync iCloud clipboard every 5 minutes";
+"Automatic sync is off by default. If enabled, Nexus prepares at most 200 local history records per cycle and synchronizes only the CloudKit categories you have authorized. The private zone must first be created manually; turning off automatic sync stops future scheduled cycles." = "Automatic sync is off by default. If enabled, Nexus prepares at most 200 local history records per cycle and synchronizes only the CloudKit categories you have authorized. The private zone must first be created manually; turning off automatic sync stops future scheduled cycles.";
+"CloudKit requires a signed container and the selected data permissions. Manual sync works independently of the automatic schedule. Disabling either sync switch prevents future scheduled CloudKit requests." = "CloudKit requires a signed container and the selected data permissions. Manual sync works independently of the automatic schedule. Disabling either sync switch prevents future scheduled CloudKit requests.";
+"Last successful sync:" = "Last successful sync:";
