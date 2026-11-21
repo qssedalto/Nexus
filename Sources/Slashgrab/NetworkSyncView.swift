@@ -53,6 +53,8 @@ final class NetworkSyncController: ObservableObject {
     private let store = InputStatisticsStore.shared()
     private let operationStore = OperationStore.shared()
     private var timer: Timer?
+    private var statisticsRequestRunning = false
+    private var operationRequestRunning = false
     private let keychainService = "com.prof18.slashgrab.nexus-sync"
     private let session: URLSession = {
         let configuration = URLSessionConfiguration.ephemeral
@@ -121,6 +123,12 @@ final class NetworkSyncController: ObservableObject {
     }
 
     func syncNow() async {
+        guard !statisticsRequestRunning else {
+            status = "A statistics request is already in progress"
+            return
+        }
+        statisticsRequestRunning = true
+        defer { statisticsRequestRunning = false }
         guard let store else { status = "Statistics database unavailable"; return }
         do {
             let pending = try store.pendingSync()
@@ -168,6 +176,12 @@ final class NetworkSyncController: ObservableObject {
     }
 
     func syncOperationsNow() async {
+        guard !operationRequestRunning else {
+            operationSyncStatus = "An operation-history request is already in progress"
+            return
+        }
+        operationRequestRunning = true
+        defer { operationRequestRunning = false }
         guard operationSyncEnabled else {
             operationSyncStatus = "Operation history upload requires separate consent"
             return
@@ -251,10 +265,18 @@ final class NetworkSyncController: ObservableObject {
     }
 
     func deleteRemoteOperations() async {
-        guard operationSyncEnabled else {
-            operationSyncStatus = "Enable operation history sync to manage server data"
+        // Deletion is a distinct data right; it must not require granting
+        // upload permission again. Disable any future automated upload first.
+        automatic = false
+        operationSyncEnabled = false
+        operationSyncText = false
+        operationSyncPaths = false
+        guard !operationRequestRunning else {
+            operationSyncStatus = "An upload is still running. Retry deletion after it completes."
             return
         }
+        operationRequestRunning = true
+        defer { operationRequestRunning = false }
         do {
             let request = try makeRequest(
                 path: "/api/nexus/v1/operations/events?device_id=\(persistentDeviceID())",
@@ -308,6 +330,15 @@ final class NetworkSyncController: ObservableObject {
     }
 
     func deleteRemoteDevice() async {
+        // Deleting statistics must not be immediately undone by the
+        // five-minute automatic uploader on this Mac.
+        automatic = false
+        guard !statisticsRequestRunning else {
+            status = "An upload is still running. Retry deletion after it completes."
+            return
+        }
+        statisticsRequestRunning = true
+        defer { statisticsRequestRunning = false }
         do {
             let request = try makeRequest(path: "/api/nexus/v1/statistics/events?device_id=\(persistentDeviceID())", method: "DELETE")
             let response: DeleteResponse = try await fetch(request)
@@ -470,8 +501,10 @@ struct NetworkSyncView: View {
                     }.disabled(!controller.operationSyncEnabled)
                     Button(localized("Delete this device's remote operation history"), role: .destructive) {
                         confirmOperationDelete = true
-                    }.disabled(!controller.operationSyncEnabled)
+                    }.disabled(!controller.hasToken)
                 }
+                Text(localized("Remote deletion is available even when operation uploads are disabled. Automatic sync and operation upload permissions are turned off before deletion."))
+                    .font(.caption).foregroundStyle(.secondary)
                 Text(controller.operationPreview).font(.caption).textSelection(.enabled)
                 LabeledContent(localized("Operation sync status"), value: controller.operationSyncStatus)
             }
