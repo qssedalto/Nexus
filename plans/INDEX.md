@@ -127,3 +127,5 @@ Every implementation task should start by adding or updating one of:
 - a scripted/manual acceptance check for AppKit, menu bar, Sparkle, signing, or notarization behavior that cannot be reliably unit-tested
 
 Do not write production code for a behavior until the expected behavior is captured first.
+
+- [09 — Consolidated task.md clipboard acceptance and release gates](09-integrated-task-acceptance.md)

@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import SQLite3
 
@@ -44,6 +45,16 @@ public struct RecordedOperation: Sendable, Equatable, Identifiable {
     public let items: [RecordedItem]
 }
 
+/// Safe, allowlisted filters for SQLite-backed clipboard history search.
+public enum ClipboardHistoryKind: String, Sendable {
+    case all, files, images, text
+}
+
+public struct ClipboardImageContent: Sendable {
+    public let pasteboardType: String
+    public let data: Data
+}
+
 public final class OperationStore: @unchecked Sendable {
     private let database: OpaquePointer
     private let lock = NSLock()
@@ -68,11 +79,20 @@ public final class OperationStore: @unchecked Sendable {
             let version = sqlite3_step(versionStatement) == SQLITE_ROW ? sqlite3_column_int(versionStatement, 0) : 0
             sqlite3_finalize(versionStatement)
             if version < 2 {
+                // Some local preview builds already added individual columns
+                // without bumping user_version. Never destroy their history.
+                let columns = try operationColumnNames()
                 try execute("BEGIN IMMEDIATE")
                 do {
-                    try execute("ALTER TABLE operations ADD COLUMN target TEXT")
-                    try execute("ALTER TABLE operations ADD COLUMN duration_ms INTEGER")
-                    try execute("ALTER TABLE operations ADD COLUMN clipboard_text TEXT")
+                    if !columns.contains("target") {
+                        try execute("ALTER TABLE operations ADD COLUMN target TEXT")
+                    }
+                    if !columns.contains("duration_ms") {
+                        try execute("ALTER TABLE operations ADD COLUMN duration_ms INTEGER")
+                    }
+                    if !columns.contains("clipboard_text") {
+                        try execute("ALTER TABLE operations ADD COLUMN clipboard_text TEXT")
+                    }
                     try execute("PRAGMA user_version=2")
                     try execute("COMMIT")
                 } catch {
@@ -81,8 +101,55 @@ public final class OperationStore: @unchecked Sendable {
                 }
             }
             try execute("CREATE INDEX IF NOT EXISTS operations_time ON operations(COALESCE(event_time_ms, detected_time_ms))")
+            // Composite order enables bounded recent/older search paging
+            // without building a temporary sort for clipboard-only results.
+            // Match the predicate and ordering used in searchClipboard.
+            try execute("""
+                CREATE INDEX IF NOT EXISTS operations_clipboard_time_id
+                ON operations(COALESCE(event_time_ms, detected_time_ms) DESC, id DESC)
+                WHERE type IN ('copy','path_copy','text_copy','image_copy','drop_copy')
+                """)
             try execute("CREATE TABLE IF NOT EXISTS operation_items (operation_id TEXT NOT NULL REFERENCES operations(id) ON DELETE CASCADE, position INTEGER NOT NULL, name TEXT NOT NULL, source TEXT, extension TEXT, kind TEXT NOT NULL, size INTEGER, PRIMARY KEY(operation_id, position))")
+            try execute("CREATE INDEX IF NOT EXISTS operation_items_kind_by_operation ON operation_items(operation_id, kind)")
             try execute("PRAGMA foreign_keys=ON")
+            try execute("CREATE TABLE IF NOT EXISTS operation_sync_state (operation_id TEXT PRIMARY KEY REFERENCES operations(id) ON DELETE CASCADE, synced_at_ms INTEGER NOT NULL)")
+            try execute("CREATE TABLE IF NOT EXISTS clipboard_collections (id TEXT PRIMARY KEY, name TEXT NOT NULL COLLATE NOCASE UNIQUE, created_time_ms INTEGER NOT NULL)")
+            try execute("CREATE TABLE IF NOT EXISTS clipboard_collection_entries (collection_id TEXT NOT NULL REFERENCES clipboard_collections(id) ON DELETE CASCADE, operation_id TEXT NOT NULL REFERENCES operations(id) ON DELETE CASCADE, position INTEGER NOT NULL, PRIMARY KEY(collection_id, operation_id))")
+            try execute("CREATE INDEX IF NOT EXISTS clipboard_collection_order ON clipboard_collection_entries(collection_id, position)")
+            // Separate payload table: operation metadata/history queries never
+            // deserialize image bytes, while identical images share one blob.
+            try execute("CREATE TABLE IF NOT EXISTS clipboard_image_blobs (hash TEXT PRIMARY KEY, pasteboard_type TEXT NOT NULL, byte_count INTEGER NOT NULL, payload BLOB NOT NULL, thumbnail BLOB NOT NULL)")
+            try execute("CREATE TABLE IF NOT EXISTS clipboard_image_records (operation_id TEXT PRIMARY KEY REFERENCES operations(id) ON DELETE CASCADE, blob_hash TEXT NOT NULL REFERENCES clipboard_image_blobs(hash))")
+            try execute("CREATE INDEX IF NOT EXISTS clipboard_image_records_hash ON clipboard_image_records(blob_hash)")
+            try execute("""
+                CREATE TRIGGER IF NOT EXISTS clipboard_image_unref
+                AFTER DELETE ON clipboard_image_records BEGIN
+                    DELETE FROM clipboard_image_blobs
+                    WHERE hash = OLD.blob_hash
+                      AND NOT EXISTS (SELECT 1 FROM clipboard_image_records WHERE blob_hash = OLD.blob_hash);
+                END
+                """)
+            if version < 3 { try execute("PRAGMA user_version=3") }
+            // A single small, safely decoded presentation cache per event.
+            // Foreign keys delete formatting when its clipboard row is removed.
+            try execute("""
+                CREATE TABLE IF NOT EXISTS clipboard_rich_text (
+                    operation_id TEXT PRIMARY KEY
+                    REFERENCES operations(id) ON DELETE CASCADE,
+                    document BLOB NOT NULL
+                )
+                """)
+            if version < 4 { try execute("PRAGMA user_version=4") }
+            try execute("""
+                CREATE TABLE IF NOT EXISTS clipboard_card_accents (
+                    operation_id TEXT PRIMARY KEY
+                    REFERENCES operations(id) ON DELETE CASCADE,
+                    accent TEXT NOT NULL CHECK (accent IN (
+                        'red','orange','yellow','green','blue','purple','gray'
+                    ))
+                )
+                """)
+            if version < 5 { try execute("PRAGMA user_version=5") }
         } catch {
             sqlite3_close(database)
             throw error
@@ -92,11 +159,28 @@ public final class OperationStore: @unchecked Sendable {
     deinit { sqlite3_close(database) }
 
     public func record(type: String, urls: [URL], sourceApplication: String?, detectionMethod: String, eventTimeMS: Int64? = nil, detectedTimeMS: Int64? = nil, completedTimeMS: Int64? = nil, target: String? = nil, clipboardText: String? = nil) throws {
-        guard !urls.isEmpty else { return }
+        // Text-only clipboard changes have no file URL; keep them as one
+        // operation with a text item rather than silently dropping them.
+        guard !urls.isEmpty || (type == "text_copy" && clipboardText?.isEmpty == false)
+              || type == "image_copy" || type == "paste_request" else { return }
         let detected = detectedTimeMS ?? Int64(Date().timeIntervalSince1970 * 1000)
-        let completed = completedTimeMS ?? detected
         let operationID = UUID().uuidString
-        let items = urls.map(RecordedItem.init(url:))
+        var items = urls.map(RecordedItem.init(url:))
+        if urls.isEmpty, type == "text_copy", let clipboardText {
+            items.append(RecordedItem(name: "Text", source: nil, fileExtension: nil, kind: "text", size: Int64(clipboardText.utf8.count)))
+        } else if urls.isEmpty, type == "image_copy" {
+            // Raw clipboard image data has no reliable file name or source.
+            // Persist an observation only; never inspect pixels or persist bytes.
+            items.append(RecordedItem(name: "Clipboard image", source: nil, fileExtension: nil, kind: "image", size: nil))
+        }
+        // A clipboard reference is not a completed file transfer. Its
+        // completion/duration must remain NULL unless actually confirmed.
+        let status = type == "paste_request" ? "paste_requested"
+            : completedTimeMS == nil ? "clipboard_detected" : "clipboard_written"
+        let duration: Int64? = {
+            guard let eventTimeMS, let completedTimeMS else { return nil }
+            return max(0, completedTimeMS - eventTimeMS)
+        }()
         lock.lock()
         defer { lock.unlock() }
         try execute("BEGIN IMMEDIATE")
@@ -107,12 +191,12 @@ public final class OperationStore: @unchecked Sendable {
             bind(type, to: 2, in: operation)
             bind(eventTimeMS, to: 3, in: operation)
             bind(detected, to: 4, in: operation)
-            bind(completed, to: 5, in: operation)
+            bind(completedTimeMS, to: 5, in: operation)
             bind(sourceApplication, to: 6, in: operation)
             bind(detectionMethod, to: 7, in: operation)
-            bind("clipboard_written", to: 8, in: operation)
+            bind(status, to: 8, in: operation)
             bind(target, to: 9, in: operation)
-            bind(eventTimeMS.map { max(0, completed - $0) }, to: 10, in: operation)
+            bind(duration, to: 10, in: operation)
             bind(clipboardText, to: 11, in: operation)
             guard sqlite3_step(operation) == SQLITE_DONE else { throw StoreError.write }
             let item = try prepare("INSERT INTO operation_items VALUES (?, ?, ?, ?, ?, ?, ?)")
@@ -136,26 +220,1176 @@ public final class OperationStore: @unchecked Sendable {
         }
     }
 
-    public func query(from startMS: Int64, to endMS: Int64) throws -> [RecordedOperation] {
+    /// Exact-text deduplication with durable history identity. Default keeps
+    /// every event. The opt-in strategy refreshes only the most recent local
+    /// *plain* clipboard text copy within ten minutes; any intervening file,
+    /// image or rich-text copy breaks the sequence. Existing pins and
+    /// collection links remain attached to the stable operation UUID.
+    @discardableResult
+    public func recordTextCopy(
+        _ text: String, detectedTimeMS: Int64,
+        observedForegroundBundleID: String? = nil,
+        policy: ClipboardTextDuplicatePolicy = .keepAll
+    ) throws -> String {
+        guard !text.isEmpty, text.utf8.count <= 1_048_576,
+              detectedTimeMS >= 0 else { throw StoreError.write }
         lock.lock()
         defer { lock.unlock() }
-        let statement = try prepare("SELECT id, type, event_time_ms, detected_time_ms, completed_time_ms, source_application, detection_method, status, target, duration_ms, clipboard_text FROM operations WHERE COALESCE(event_time_ms, detected_time_ms) >= ? AND COALESCE(event_time_ms, detected_time_ms) < ? ORDER BY COALESCE(event_time_ms, detected_time_ms) DESC, id DESC")
+        try execute("BEGIN IMMEDIATE")
+        do {
+            if policy == .refreshLatest {
+                let latest = try prepare("""
+                    SELECT id,type,detected_time_ms,clipboard_text,detection_method
+                    FROM operations
+                    WHERE type IN ('copy','path_copy','text_copy','image_copy','drop_copy')
+                      AND id NOT LIKE 'cloudkit:%' AND id NOT LIKE 'remote:%'
+                    ORDER BY COALESCE(event_time_ms,detected_time_ms) DESC,id DESC
+                    LIMIT 1
+                    """)
+                let step = sqlite3_step(latest)
+                var existingID: String?
+                if step == SQLITE_ROW,
+                   string(latest, 1) == "text_copy",
+                   string(latest, 3) == text,
+                   string(latest, 4) == "clipboard_frontmost_observed",
+                   let previous = integer(latest, 2),
+                   previous >= 0, previous <= detectedTimeMS,
+                   previous >= max(0, detectedTimeMS - 600_000) {
+                    existingID = string(latest, 0)
+                } else if step != SQLITE_DONE && step != SQLITE_ROW {
+                    sqlite3_finalize(latest)
+                    throw StoreError.write
+                }
+                sqlite3_finalize(latest)
+                if let existingID {
+                    let update = try prepare("""
+                        UPDATE operations SET detected_time_ms=?,
+                            source_application=?,
+                            detection_method='clipboard_frontmost_observed',
+                            status='clipboard_detected'
+                        WHERE id=? AND type='text_copy'
+                        """)
+                    bind(detectedTimeMS, to: 1, in: update)
+                    bind(observedForegroundBundleID, to: 2, in: update)
+                    bind(existingID, to: 3, in: update)
+                    let updated = sqlite3_step(update) == SQLITE_DONE
+                    sqlite3_finalize(update)
+                    guard updated else { throw StoreError.write }
+                    let receipt = try prepare("""
+                        DELETE FROM operation_sync_state WHERE operation_id=?
+                        """)
+                    bind(existingID, to: 1, in: receipt)
+                    let cleared = sqlite3_step(receipt) == SQLITE_DONE
+                    sqlite3_finalize(receipt)
+                    guard cleared else { throw StoreError.write }
+                    try execute("COMMIT")
+                    return existingID
+                }
+            }
+            let id = UUID().uuidString
+            let operation = try prepare("""
+                INSERT INTO operations
+                (id,type,event_time_ms,detected_time_ms,completed_time_ms,
+                 source_application,detection_method,status,target,duration_ms,clipboard_text)
+                VALUES(?,'text_copy',NULL,?,NULL,?,'clipboard_frontmost_observed',
+                       'clipboard_detected',NULL,NULL,?)
+                """)
+            bind(id, to: 1, in: operation)
+            bind(detectedTimeMS, to: 2, in: operation)
+            bind(observedForegroundBundleID, to: 3, in: operation)
+            bind(text, to: 4, in: operation)
+            let inserted = sqlite3_step(operation) == SQLITE_DONE
+            sqlite3_finalize(operation)
+            guard inserted else { throw StoreError.write }
+            let item = try prepare("""
+                INSERT INTO operation_items
+                (operation_id,position,name,source,extension,kind,size)
+                VALUES(?,0,'Text',NULL,NULL,'text',?)
+                """)
+            bind(id, to: 1, in: item)
+            bind(Int64(text.utf8.count), to: 2, in: item)
+            let itemOK = sqlite3_step(item) == SQLITE_DONE
+            sqlite3_finalize(item)
+            guard itemOK else { throw StoreError.write }
+            try execute("COMMIT")
+            return id
+        } catch {
+            try? execute("ROLLBACK")
+            throw error
+        }
+    }
+
+    /// One opt-in formatted-text event, committed with its safe formatting
+    /// cache in the same SQLite transaction. The content is never sent in the
+    /// operation metadata network API without the user's text permission.
+    @discardableResult
+    public func recordRichText(
+        _ preview: ClipboardRichTextPreview, detectedTimeMS: Int64,
+        observedForegroundBundleID: String? = nil,
+        sourceFormat: String = "rtf"
+    ) throws -> String {
+        let document = try JSONEncoder().encode(preview)
+        guard detectedTimeMS >= 0, document.count <= 128 * 1024 else {
+            throw StoreError.write
+        }
+        let id = UUID().uuidString
+        lock.lock()
+        defer { lock.unlock() }
+        try execute("BEGIN IMMEDIATE")
+        do {
+            let operation = try prepare("""
+                INSERT INTO operations
+                (id,type,event_time_ms,detected_time_ms,completed_time_ms,
+                 source_application,detection_method,status,target,duration_ms,clipboard_text)
+                VALUES(?,'text_copy',NULL,?,NULL,?,?,'clipboard_detected',NULL,NULL,?)
+                """)
+            bind(id, to: 1, in: operation)
+            bind(detectedTimeMS, to: 2, in: operation)
+            bind(observedForegroundBundleID, to: 3, in: operation)
+            bind(sourceFormat == "html"
+                ? "clipboard_html_frontmost_observed"
+                : "clipboard_rtf_frontmost_observed", to: 4, in: operation)
+            bind(preview.text, to: 5, in: operation)
+            let inserted = sqlite3_step(operation) == SQLITE_DONE
+            sqlite3_finalize(operation)
+            guard inserted else { throw StoreError.write }
+
+            let item = try prepare("""
+                INSERT INTO operation_items
+                (operation_id,position,name,source,extension,kind,size)
+                VALUES(?,0,'Rich Text',NULL,NULL,'text',?)
+                """)
+            bind(id, to: 1, in: item)
+            bind(Int64(preview.text.utf8.count), to: 2, in: item)
+            let insertedItem = sqlite3_step(item) == SQLITE_DONE
+            sqlite3_finalize(item)
+            guard insertedItem else { throw StoreError.write }
+
+            let formatted = try prepare("""
+                INSERT INTO clipboard_rich_text(operation_id,document) VALUES(?,?)
+                """)
+            bind(id, to: 1, in: formatted)
+            bindBlob(document, to: 2, in: formatted)
+            let saved = sqlite3_step(formatted) == SQLITE_DONE
+            sqlite3_finalize(formatted)
+            guard saved else { throw StoreError.write }
+            try execute("COMMIT")
+            return id
+        } catch {
+            try? execute("ROLLBACK")
+            throw error
+        }
+    }
+
+    /// Lazy formatted preview lookup; ordinary history queries never read
+    /// document blobs or allocate an attributed string.
+    public func richTextPreview(operationID: String) throws -> ClipboardRichTextPreview? {
+        lock.lock()
+        defer { lock.unlock() }
+        let stmt = try prepare("""
+            SELECT document FROM clipboard_rich_text WHERE operation_id=?
+            """)
+        defer { sqlite3_finalize(stmt) }
+        bind(operationID, to: 1, in: stmt)
+        let step = sqlite3_step(stmt)
+        if step == SQLITE_DONE { return nil }
+        guard step == SQLITE_ROW else { throw StoreError.write }
+        let count = Int(sqlite3_column_bytes(stmt, 0))
+        guard count > 0, count <= 128 * 1024,
+              let bytes = sqlite3_column_blob(stmt, 0) else { throw StoreError.write }
+        let preview = try JSONDecoder().decode(
+            ClipboardRichTextPreview.self, from: Data(bytes: bytes, count: count)
+        )
+        return ClipboardRichTextPreview(text: preview.text, runs: preview.runs)
+    }
+
+    public func query(from startMS: Int64, to endMS: Int64,
+                      limit: Int? = nil) throws -> [RecordedOperation] {
+        lock.lock()
+        defer { lock.unlock() }
+        let sql = """
+            SELECT id, type, event_time_ms, detected_time_ms, completed_time_ms,
+                   source_application, detection_method, status, target, duration_ms, clipboard_text
+            FROM operations
+            WHERE COALESCE(event_time_ms, detected_time_ms) >= ?
+              AND COALESCE(event_time_ms, detected_time_ms) < ?
+            ORDER BY COALESCE(event_time_ms, detected_time_ms) DESC, id DESC
+            """ + (limit == nil ? "" : " LIMIT ?")
+        let statement = try prepare(sql)
         defer { sqlite3_finalize(statement) }
         bind(startMS, to: 1, in: statement)
         bind(endMS, to: 2, in: statement)
+        if let limit { bind(Int64(max(1, min(5000, limit))), to: 3, in: statement) }
         var results: [RecordedOperation] = []
         while sqlite3_step(statement) == SQLITE_ROW {
-            let id = string(statement, 0) ?? ""
-            let itemStatement = try prepare("SELECT name, source, extension, kind, size FROM operation_items WHERE operation_id = ? ORDER BY position")
-            bind(id, to: 1, in: itemStatement)
-            var items: [RecordedItem] = []
-            while sqlite3_step(itemStatement) == SQLITE_ROW {
-                items.append(RecordedItem(name: string(itemStatement, 0) ?? "", source: string(itemStatement, 1), fileExtension: string(itemStatement, 2), kind: string(itemStatement, 3) ?? "file", size: integer(itemStatement, 4)))
-            }
-            sqlite3_finalize(itemStatement)
-            results.append(RecordedOperation(id: id, type: string(statement, 1) ?? "", eventTimeMS: integer(statement, 2), detectedTimeMS: sqlite3_column_int64(statement, 3), completedTimeMS: integer(statement, 4), sourceApplication: string(statement, 5), detectionMethod: string(statement, 6) ?? "", status: string(statement, 7) ?? "", target: string(statement, 8), durationMS: integer(statement, 9), clipboardText: string(statement, 10), items: items))
+            results.append(try readOperation(from: statement))
         }
         return results
+    }
+
+    /// Bounded stable history page for opt-in cloud staging. Does not read
+    /// local image pixels. The explicit caller can resume with the offset.
+    public func cloudEligibleHistoryPage(
+        offset: Int, limit: Int = 100
+    ) throws -> [RecordedOperation] {
+        guard offset >= 0 else { return [] }
+        lock.lock()
+        defer { lock.unlock() }
+        let stmt = try prepare("""
+            SELECT id, type, event_time_ms, detected_time_ms, completed_time_ms,
+                   source_application, detection_method, status, target, duration_ms, clipboard_text
+            FROM operations
+            WHERE type IN ('copy','text_copy','path_copy','image_copy','drop_copy')
+              AND id NOT LIKE 'cloudkit:%'
+              AND id NOT LIKE 'remote:%'
+            ORDER BY COALESCE(event_time_ms, detected_time_ms) DESC, id DESC
+            LIMIT ? OFFSET ?
+            """)
+        defer { sqlite3_finalize(stmt) }
+        bind(Int64(max(1, min(200, limit))), to: 1, in: stmt)
+        bind(Int64(offset), to: 2, in: stmt)
+        var rows: [RecordedOperation] = []
+        while true {
+            let step = sqlite3_step(stmt)
+            if step == SQLITE_DONE { break }
+            guard step == SQLITE_ROW else { throw StoreError.write }
+            rows.append(try readOperation(from: stmt))
+        }
+        return rows
+    }
+
+    /// Bounded direct lookup for older pinned/permanent-collection history.
+    /// Avoids loading every operation just to show one old favorite card.
+    public func query(ids: [String]) throws -> [RecordedOperation] {
+        let unique = Array(Set(ids.filter { !$0.isEmpty })).sorted().prefix(500)
+        guard !unique.isEmpty else { return [] }
+        lock.lock()
+        defer { lock.unlock() }
+        let placeholders = Array(repeating: "?", count: unique.count).joined(separator: ",")
+        let statement = try prepare("""
+            SELECT id, type, event_time_ms, detected_time_ms, completed_time_ms,
+                   source_application, detection_method, status, target, duration_ms, clipboard_text
+            FROM operations
+            WHERE id IN (\(placeholders))
+            ORDER BY COALESCE(event_time_ms, detected_time_ms) DESC, id DESC
+            """)
+        defer { sqlite3_finalize(statement) }
+        for (index, id) in unique.enumerated() {
+            bind(id, to: Int32(index + 1), in: statement)
+        }
+        var results: [RecordedOperation] = []
+        while sqlite3_step(statement) == SQLITE_ROW {
+            results.append(try readOperation(from: statement))
+        }
+        return results
+    }
+
+
+    /// Search the complete retained SQLite history, not just the recent
+    /// 200-card shelf. Queries and output are bounded; no file contents or
+    /// image pixels are loaded. Unknown originating apps stay NULL.
+    public func searchClipboard(
+        query: String,
+        kind: ClipboardHistoryKind = .all,
+        sourceApplication: String = "",
+        from startMS: Int64 = 0,
+        to endMS: Int64 = Int64.max,
+        limit: Int = 100,
+        offset: Int = 0
+    ) throws -> [RecordedOperation] {
+        guard startMS < endMS, offset >= 0, offset <= 50_000 else { return [] }
+        let needle = String(query.trimmingCharacters(in: .whitespacesAndNewlines).prefix(256))
+        let app = String(sourceApplication.trimmingCharacters(in: .whitespacesAndNewlines).prefix(128))
+        let kindClause: String
+        switch kind {
+        case .all: kindClause = ""
+        case .text: kindClause = " AND o.type = 'text_copy'"
+        case .images:
+            kindClause = """
+                 AND (o.type = 'image_copy' OR EXISTS
+                   (SELECT 1 FROM operation_items image WHERE image.operation_id = o.id AND image.kind = 'image'))
+                """
+        case .files:
+            kindClause = """
+                 AND o.type IN ('copy', 'path_copy', 'drop_copy')
+                 AND EXISTS (SELECT 1 FROM operation_items file
+                             WHERE file.operation_id = o.id AND file.kind != 'image')
+                """
+        }
+
+        lock.lock()
+        defer { lock.unlock() }
+        // instr() searches literal text, including '%' and '_', unlike LIKE.
+        // SQLite's lower() is ASCII-oriented; CJK terms match literally.
+        let statement = try prepare("""
+            SELECT o.id, o.type, o.event_time_ms, o.detected_time_ms,
+                   o.completed_time_ms, o.source_application, o.detection_method,
+                   o.status, o.target, o.duration_ms, o.clipboard_text
+            FROM operations o
+            WHERE o.type IN ('copy', 'path_copy', 'text_copy', 'image_copy', 'drop_copy')
+              AND COALESCE(o.event_time_ms, o.detected_time_ms) >= ?
+              AND COALESCE(o.event_time_ms, o.detected_time_ms) < ?
+              AND (? = '' OR instr(lower(COALESCE(o.clipboard_text, '')), lower(?)) > 0
+                    OR EXISTS (
+                        SELECT 1 FROM operation_items i
+                        WHERE i.operation_id = o.id
+                          AND (instr(lower(i.name), lower(?)) > 0
+                               OR instr(lower(COALESCE(i.source, '')), lower(?)) > 0)
+                    ))
+              AND (? = '' OR instr(lower(COALESCE(o.source_application, '')), lower(?)) > 0)
+            \(kindClause)
+            ORDER BY COALESCE(o.event_time_ms, o.detected_time_ms) DESC, o.id DESC
+            LIMIT ? OFFSET ?
+            """)
+        defer { sqlite3_finalize(statement) }
+        bind(startMS, to: 1, in: statement)
+        bind(endMS, to: 2, in: statement)
+        bind(needle, to: 3, in: statement)
+        bind(needle, to: 4, in: statement)
+        bind(needle, to: 5, in: statement)
+        bind(needle, to: 6, in: statement)
+        bind(app, to: 7, in: statement)
+        bind(app, to: 8, in: statement)
+        bind(Int64(max(1, min(200, limit))), to: 9, in: statement)
+        bind(Int64(offset), to: 10, in: statement)
+        var results: [RecordedOperation] = []
+        while true {
+            let step = sqlite3_step(statement)
+            if step == SQLITE_DONE { break }
+            guard step == SQLITE_ROW else { throw StoreError.write }
+            results.append(try readOperation(from: statement))
+        }
+        return results
+    }
+
+
+    /// Only called after separate opt-in and safe image-type classification.
+    /// Store original image bytes (for actual copy-again) separately from a
+    /// small thumbnail (for cards). Repeated copies reuse the same SHA-256
+    /// blob while preserving separate event timestamps and UUIDs.
+    @discardableResult
+    public func recordClipboardImage(
+        data: Data,
+        thumbnail: Data,
+        pasteboardType: String,
+        detectedTimeMS: Int64,
+        observedForegroundBundleID: String? = nil
+    ) throws -> String {
+        let allowed = Set(["public.png", "public.tiff", "public.jpeg", "public.heic",
+                           "com.compuserve.gif"])
+        guard allowed.contains(pasteboardType), !data.isEmpty,
+              data.count <= 8 * 1_024 * 1_024,
+              !thumbnail.isEmpty, thumbnail.count <= 256 * 1_024,
+              detectedTimeMS >= 0 else { throw StoreError.write }
+        // The same bytes advertised as different pasteboard UTIs must not
+        // accidentally share a format declaration when restored later.
+        var hasher = SHA256()
+        hasher.update(data: Data(pasteboardType.utf8))
+        hasher.update(data: Data([0]))
+        hasher.update(data: data)
+        let digest = hasher.finalize().map { String(format: "%02x", $0) }.joined()
+        let id = UUID().uuidString
+        lock.lock()
+        defer { lock.unlock() }
+        try execute("BEGIN IMMEDIATE")
+        do {
+            let operation = try prepare("""
+                INSERT INTO operations
+                (id,type,event_time_ms,detected_time_ms,completed_time_ms,
+                 source_application,detection_method,status,target,duration_ms,clipboard_text)
+                VALUES(?,'image_copy',NULL,?,NULL,?,'clipboard_image_frontmost_observed','clipboard_detected',NULL,NULL,NULL)
+                """)
+            bind(id, to: 1, in: operation)
+            bind(detectedTimeMS, to: 2, in: operation)
+            bind(observedForegroundBundleID, to: 3, in: operation)
+            let operationOK = sqlite3_step(operation) == SQLITE_DONE
+            sqlite3_finalize(operation)
+            guard operationOK else { throw StoreError.write }
+
+            let item = try prepare("""
+                INSERT INTO operation_items
+                (operation_id,position,name,source,extension,kind,size)
+                VALUES(?,0,'Clipboard image',NULL,NULL,'image',?)
+                """)
+            bind(id, to: 1, in: item)
+            bind(Int64(data.count), to: 2, in: item)
+            let itemOK = sqlite3_step(item) == SQLITE_DONE
+            sqlite3_finalize(item)
+            guard itemOK else { throw StoreError.write }
+
+            let blob = try prepare("""
+                INSERT OR IGNORE INTO clipboard_image_blobs
+                (hash,pasteboard_type,byte_count,payload,thumbnail) VALUES(?,?,?,?,?)
+                """)
+            bind(digest, to: 1, in: blob)
+            bind(pasteboardType, to: 2, in: blob)
+            bind(Int64(data.count), to: 3, in: blob)
+            bindBlob(data, to: 4, in: blob)
+            bindBlob(thumbnail, to: 5, in: blob)
+            let blobOK = sqlite3_step(blob) == SQLITE_DONE
+            sqlite3_finalize(blob)
+            guard blobOK else { throw StoreError.write }
+
+            let link = try prepare("""
+                INSERT INTO clipboard_image_records(operation_id,blob_hash) VALUES(?,?)
+                """)
+            bind(id, to: 1, in: link)
+            bind(digest, to: 2, in: link)
+            let linkOK = sqlite3_step(link) == SQLITE_DONE
+            sqlite3_finalize(link)
+            guard linkOK else { throw StoreError.write }
+            try execute("COMMIT")
+            return id
+        } catch {
+            try? execute("ROLLBACK")
+            throw error
+        }
+    }
+
+    /// Read only the bounded preview; lazy cards must not load original bytes.
+    public func imageThumbnail(operationID: String) throws -> Data? {
+        lock.lock()
+        defer { lock.unlock() }
+        let stmt = try prepare("""
+            SELECT b.thumbnail FROM clipboard_image_records r
+            JOIN clipboard_image_blobs b ON b.hash = r.blob_hash
+            WHERE r.operation_id = ?
+            """)
+        defer { sqlite3_finalize(stmt) }
+        bind(operationID, to: 1, in: stmt)
+        guard sqlite3_step(stmt) == SQLITE_ROW else { return nil }
+        let count = Int(sqlite3_column_bytes(stmt, 0))
+        guard count > 0, count <= 256 * 1_024,
+              let bytes = sqlite3_column_blob(stmt, 0) else { return nil }
+        return Data(bytes: bytes, count: count)
+    }
+
+    /// Restore a copied screenshot with the original pasteboard data type.
+    /// No payload is included in the operation metadata network API.
+    public func imageContent(operationID: String) throws -> ClipboardImageContent? {
+        lock.lock()
+        defer { lock.unlock() }
+        let stmt = try prepare("""
+            SELECT b.pasteboard_type, b.payload FROM clipboard_image_records r
+            JOIN clipboard_image_blobs b ON b.hash = r.blob_hash
+            WHERE r.operation_id = ?
+            """)
+        defer { sqlite3_finalize(stmt) }
+        bind(operationID, to: 1, in: stmt)
+        guard sqlite3_step(stmt) == SQLITE_ROW,
+              let type = string(stmt, 0) else { return nil }
+        let count = Int(sqlite3_column_bytes(stmt, 1))
+        guard count > 0, count <= 8 * 1_024 * 1_024,
+              let bytes = sqlite3_column_blob(stmt, 1) else { return nil }
+        return ClipboardImageContent(pasteboardType: type,
+                                     data: Data(bytes: bytes, count: count))
+    }
+
+    /// Diagnostic count for deduplication and deletion regression tests.
+    public func imageBlobCount() throws -> Int {
+        lock.lock()
+        defer { lock.unlock() }
+        let stmt = try prepare("SELECT COUNT(*) FROM clipboard_image_blobs")
+        defer { sqlite3_finalize(stmt) }
+        guard sqlite3_step(stmt) == SQLITE_ROW else { throw StoreError.write }
+        return Int(sqlite3_column_int64(stmt, 0))
+    }
+
+    /// A small, batched lookup for the currently visible lazy cards.
+    /// Missing rows mean automatic color and never store extra PII.
+    public func cardAccents(operationIDs: [String]) throws -> [String: ClipboardCardAccent] {
+        let ids = Array(Set(operationIDs.filter { !$0.isEmpty })).sorted().prefix(500)
+        guard !ids.isEmpty else { return [:] }
+        lock.lock()
+        defer { lock.unlock() }
+        let placeholders = Array(repeating: "?", count: ids.count).joined(separator: ",")
+        let stmt = try prepare("""
+            SELECT operation_id, accent FROM clipboard_card_accents
+            WHERE operation_id IN (\(placeholders))
+            """)
+        defer { sqlite3_finalize(stmt) }
+        for (position, id) in ids.enumerated() {
+            bind(id, to: Int32(position + 1), in: stmt)
+        }
+        var result: [String: ClipboardCardAccent] = [:]
+        while true {
+            let code = sqlite3_step(stmt)
+            if code == SQLITE_DONE { break }
+            guard code == SQLITE_ROW else { throw StoreError.write }
+            if let id = string(stmt, 0), let value = string(stmt, 1),
+               let accent = ClipboardCardAccent(rawValue: value) {
+                result[id] = accent
+            }
+        }
+        return result
+    }
+
+    /// User-selected color only; reset removes the tag completely.
+    /// Foreign-key cascade removes tags with their operation history.
+    public func setCardAccent(
+        _ accent: ClipboardCardAccent, operationID: String
+    ) throws {
+        guard !operationID.isEmpty else { throw StoreError.write }
+        lock.lock()
+        defer { lock.unlock() }
+        if accent == .automatic {
+            let stmt = try prepare(
+                "DELETE FROM clipboard_card_accents WHERE operation_id = ?"
+            )
+            defer { sqlite3_finalize(stmt) }
+            bind(operationID, to: 1, in: stmt)
+            guard sqlite3_step(stmt) == SQLITE_DONE else { throw StoreError.write }
+        } else {
+            let stmt = try prepare("""
+                INSERT INTO clipboard_card_accents(operation_id,accent) VALUES(?,?)
+                ON CONFLICT(operation_id) DO UPDATE SET accent=excluded.accent
+                """)
+            defer { sqlite3_finalize(stmt) }
+            bind(operationID, to: 1, in: stmt)
+            bind(accent.rawValue, to: 2, in: stmt)
+            guard sqlite3_step(stmt) == SQLITE_DONE else { throw StoreError.write }
+        }
+    }
+
+    public func listCollections() throws -> [ClipboardCollection] {
+        lock.lock()
+        defer { lock.unlock() }
+        let stmt = try prepare("SELECT id, name, created_time_ms FROM clipboard_collections ORDER BY created_time_ms, name")
+        defer { sqlite3_finalize(stmt) }
+        var list: [ClipboardCollection] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            list.append(ClipboardCollection(id: string(stmt, 0) ?? "",
+                                             name: string(stmt, 1) ?? "",
+                                             createdTimeMS: sqlite3_column_int64(stmt, 2)))
+        }
+        return list
+    }
+
+    @discardableResult
+    public func createCollection(named name: String) throws -> ClipboardCollection {
+        let normalized = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalized.isEmpty, normalized.count <= 50 else { throw StoreError.write }
+        let created = Int64(Date().timeIntervalSince1970 * 1000)
+        let collection = ClipboardCollection(id: UUID().uuidString,
+                                             name: normalized,
+                                             createdTimeMS: created)
+        lock.lock()
+        defer { lock.unlock() }
+        let stmt = try prepare("INSERT INTO clipboard_collections(id,name,created_time_ms) VALUES(?,?,?)")
+        defer { sqlite3_finalize(stmt) }
+        bind(collection.id, to: 1, in: stmt)
+        bind(collection.name, to: 2, in: stmt)
+        bind(created, to: 3, in: stmt)
+        guard sqlite3_step(stmt) == SQLITE_DONE else { throw StoreError.write }
+        return collection
+    }
+
+    @discardableResult
+    public func deleteCollection(id: String) throws -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        let stmt = try prepare("DELETE FROM clipboard_collections WHERE id = ?")
+        defer { sqlite3_finalize(stmt) }
+        bind(id, to: 1, in: stmt)
+        guard sqlite3_step(stmt) == SQLITE_DONE else { throw StoreError.write }
+        return sqlite3_changes(database) > 0
+    }
+
+    public func collectionOperationIDs(collectionID: String) throws -> [String] {
+        lock.lock()
+        defer { lock.unlock() }
+        return try collectionIDsLocked(collectionID: collectionID)
+    }
+
+    @discardableResult
+    public func addOperation(id: String, toCollection collectionID: String) throws -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        // Foreign key checks prevent adding a stale operation or collection.
+        let stmt = try prepare("""
+            INSERT INTO clipboard_collection_entries(collection_id, operation_id, position)
+            VALUES(?, ?, COALESCE((SELECT MAX(position)+1 FROM clipboard_collection_entries
+                                   WHERE collection_id = ?), 0))
+            ON CONFLICT(collection_id, operation_id) DO NOTHING
+            """)
+        defer { sqlite3_finalize(stmt) }
+        bind(collectionID, to: 1, in: stmt)
+        bind(id, to: 2, in: stmt)
+        bind(collectionID, to: 3, in: stmt)
+        guard sqlite3_step(stmt) == SQLITE_DONE else { throw StoreError.write }
+        return sqlite3_changes(database) > 0
+    }
+
+    @discardableResult
+    public func removeOperation(id: String, fromCollection collectionID: String) throws -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        let stmt = try prepare("DELETE FROM clipboard_collection_entries WHERE collection_id = ? AND operation_id = ?")
+        defer { sqlite3_finalize(stmt) }
+        bind(collectionID, to: 1, in: stmt)
+        bind(id, to: 2, in: stmt)
+        guard sqlite3_step(stmt) == SQLITE_DONE else { throw StoreError.write }
+        return sqlite3_changes(database) > 0
+    }
+
+    /// Move an entry before another one; nil means to the end of the shelf.
+    @discardableResult
+    public func moveOperation(
+        id: String, before otherID: String?, inCollection collectionID: String
+    ) throws -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        var ids = try collectionIDsLocked(collectionID: collectionID)
+        guard let from = ids.firstIndex(of: id) else { return false }
+        ids.remove(at: from)
+        let destination = otherID.flatMap { ids.firstIndex(of: $0) } ?? ids.count
+        ids.insert(id, at: destination)
+        try execute("BEGIN IMMEDIATE")
+        do {
+            let stmt = try prepare("""
+                UPDATE clipboard_collection_entries SET position = ?
+                WHERE collection_id = ? AND operation_id = ?
+                """)
+            defer { sqlite3_finalize(stmt) }
+            for (position, entryID) in ids.enumerated() {
+                sqlite3_reset(stmt)
+                sqlite3_clear_bindings(stmt)
+                bind(Int64(position), to: 1, in: stmt)
+                bind(collectionID, to: 2, in: stmt)
+                bind(entryID, to: 3, in: stmt)
+                guard sqlite3_step(stmt) == SQLITE_DONE else { throw StoreError.write }
+            }
+            try execute("COMMIT")
+            return true
+        } catch {
+            try? execute("ROLLBACK")
+            throw error
+        }
+    }
+
+    private func collectionIDsLocked(collectionID: String) throws -> [String] {
+        let stmt = try prepare("""
+            SELECT operation_id FROM clipboard_collection_entries
+            WHERE collection_id = ? ORDER BY position, operation_id
+            """)
+        defer { sqlite3_finalize(stmt) }
+        bind(collectionID, to: 1, in: stmt)
+        var ids: [String] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            if let id = string(stmt, 0) { ids.append(id) }
+        }
+        return ids
+    }
+
+    /// Remove one local history record and its items and sync receipt via FK
+    /// cascades. Remote history is deliberately managed by a separate action.
+    @discardableResult
+    public func deleteOperation(id: String) throws -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        let stmt = try prepare("DELETE FROM operations WHERE id = ?")
+        defer { sqlite3_finalize(stmt) }
+        bind(id, to: 1, in: stmt)
+        guard sqlite3_step(stmt) == SQLITE_DONE else { throw StoreError.write }
+        return sqlite3_changes(database) > 0
+    }
+
+    /// Bounded local retention. Defaults are unlimited; callers must opt in.
+    /// Pinned UUIDs are excluded from both age and count based cleanup.
+    /// Existing history is always preserved when the operation is cancelled
+    /// or the cleanup query fails.
+    @discardableResult
+    public func pruneHistory(
+        olderThan cutoffMS: Int64? = nil,
+        keepingNewest maxCount: Int? = nil,
+        protectedIDs: Set<String> = [],
+        maxDeletions: Int = 1000
+    ) throws -> Int {
+        guard cutoffMS != nil || (maxCount ?? 0) > 0 else { return 0 }
+        lock.lock()
+        defer { lock.unlock() }
+        try execute("BEGIN IMMEDIATE")
+        do {
+            // Any record in a permanent collection is protected from
+            // automatic/manual unpinned cleanup, even when it is not also
+            // present in the legacy UserDefaults pin set.
+            var protected = protectedIDs
+            let permanent = try prepare("SELECT DISTINCT operation_id FROM clipboard_collection_entries")
+            while sqlite3_step(permanent) == SQLITE_ROW {
+                if let id = string(permanent, 0) { protected.insert(id) }
+            }
+            sqlite3_finalize(permanent)
+            var candidates: [String] = []
+            let scanLimit = max(1, min(10_000, maxDeletions * 4))
+            if let cutoffMS {
+                let stmt = try prepare("SELECT id FROM operations WHERE detected_time_ms < ? ORDER BY detected_time_ms")
+                bind(cutoffMS, to: 1, in: stmt)
+                while sqlite3_step(stmt) == SQLITE_ROW {
+                    if let id = string(stmt, 0), !protected.contains(id) { candidates.append(id) }
+                    if candidates.count >= scanLimit { break }
+                }
+                sqlite3_finalize(stmt)
+            }
+            if let maxCount, maxCount > 0 {
+                // Count only unpinned rows toward the retention budget.
+                let stmt = try prepare("SELECT id FROM operations ORDER BY detected_time_ms DESC, id DESC")
+                var retained = 0
+                while sqlite3_step(stmt) == SQLITE_ROW {
+                    guard let id = string(stmt, 0), !protected.contains(id) else { continue }
+                    retained += 1
+                    if retained > maxCount, !candidates.contains(id) { candidates.append(id) }
+                    if candidates.count >= scanLimit { break }
+                }
+                sqlite3_finalize(stmt)
+            }
+            let remove = try prepare("DELETE FROM operations WHERE id = ?")
+            defer { sqlite3_finalize(remove) }
+            var deleted = 0
+            for id in candidates.prefix(max(1, maxDeletions)) {
+                sqlite3_reset(remove)
+                sqlite3_clear_bindings(remove)
+                bind(id, to: 1, in: remove)
+                guard sqlite3_step(remove) == SQLITE_DONE else { throw StoreError.write }
+                deleted += Int(sqlite3_changes(database))
+            }
+            try execute("COMMIT")
+            return deleted
+        } catch {
+            try? execute("ROLLBACK")
+            throw error
+        }
+    }
+
+    // Local-only, bounded queue: the same operation UUID is retried until a
+    // server response explicitly acknowledges it. Nothing is deleted on error.
+    public func pendingSync(limit: Int = 25) throws -> [RecordedOperation] {
+        lock.lock()
+        defer { lock.unlock() }
+        let sql = """
+            SELECT id, type, event_time_ms, detected_time_ms, completed_time_ms,
+                   source_application, detection_method, status, target, duration_ms, clipboard_text
+            FROM operations
+            WHERE id NOT IN (SELECT operation_id FROM operation_sync_state)
+              AND id NOT LIKE 'remote:%'
+              AND id NOT LIKE 'cloudkit:%'
+            ORDER BY detected_time_ms, id
+            LIMIT ?
+            """
+        let stmt = try prepare(sql)
+        defer { sqlite3_finalize(stmt) }
+        bind(Int64(max(1, min(50, limit))), to: 1, in: stmt)
+        var records: [RecordedOperation] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            records.append(try readOperation(from: stmt))
+        }
+        return records
+    }
+
+    /// Background scan results may update a single selected top-level
+    /// directory/package only if the source still matches the recorded path.
+    /// The original event, source, time, and child list are unchanged.
+    @discardableResult
+    public func updateComputedSize(
+        operationID: String, position: Int, expectedSource: String, bytes: Int64
+    ) throws -> Bool {
+        guard position >= 0, bytes >= 0 else { return false }
+        lock.lock()
+        defer { lock.unlock() }
+        try execute("BEGIN IMMEDIATE")
+        do {
+            let stmt = try prepare("""
+                UPDATE operation_items SET size = ?
+                WHERE operation_id = ? AND position = ? AND source = ?
+                  AND kind IN ('folder', 'package')
+                  AND (size IS NULL OR size <> ?)
+                """)
+            bind(bytes, to: 1, in: stmt)
+            bind(operationID, to: 2, in: stmt)
+            bind(Int64(position), to: 3, in: stmt)
+            bind(expectedSource, to: 4, in: stmt)
+            bind(bytes, to: 5, in: stmt)
+            let result = sqlite3_step(stmt)
+            let changed = sqlite3_changes(database) > 0
+            sqlite3_finalize(stmt)
+            guard result == SQLITE_DONE else { throw StoreError.write }
+            if changed {
+                // Changing metadata invalidates a previously confirmed upload.
+                // The server upserts the same stable UUID on the next retry.
+                let reset = try prepare("DELETE FROM operation_sync_state WHERE operation_id = ?")
+                bind(operationID, to: 1, in: reset)
+                let resetResult = sqlite3_step(reset)
+                sqlite3_finalize(reset)
+                guard resetResult == SQLITE_DONE else { throw StoreError.write }
+            }
+            try execute("COMMIT")
+            return changed
+        } catch {
+            try? execute("ROLLBACK")
+            throw error
+        }
+    }
+
+    public func markSynced(operationIDs ids: [String]) throws {
+        guard !ids.isEmpty else { return }
+        lock.lock()
+        defer { lock.unlock() }
+        try execute("BEGIN IMMEDIATE")
+        do {
+            let stmt = try prepare("""
+                INSERT INTO operation_sync_state(operation_id, synced_at_ms)
+                VALUES(?, ?)
+                ON CONFLICT(operation_id) DO UPDATE SET synced_at_ms=excluded.synced_at_ms
+                """)
+            defer { sqlite3_finalize(stmt) }
+            let now = Int64(Date().timeIntervalSince1970 * 1000)
+            for id in Set(ids) {
+                sqlite3_reset(stmt)
+                sqlite3_clear_bindings(stmt)
+                bind(id, to: 1, in: stmt)
+                bind(now, to: 2, in: stmt)
+                guard sqlite3_step(stmt) == SQLITE_DONE else { throw StoreError.write }
+            }
+            try execute("COMMIT")
+        } catch {
+            try? execute("ROLLBACK")
+            throw error
+        }
+    }
+
+    /// Remote device records are materialized under stable namespaced IDs and
+    /// excluded from the local outbound queue. Replaying the same page does
+    /// not insert duplicates or add event counts.
+    public func importRemote(_ remote: [RemoteOperationRecord]) throws -> Int {
+        guard !remote.isEmpty else { return 0 }
+        lock.lock()
+        defer { lock.unlock() }
+        try execute("BEGIN IMMEDIATE")
+        do {
+            let opStmt = try prepare("""
+                INSERT OR IGNORE INTO operations
+                (id,type,event_time_ms,detected_time_ms,completed_time_ms,source_application,
+                detection_method,status,target,duration_ms,clipboard_text)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?)
+                """)
+            defer { sqlite3_finalize(opStmt) }
+            let itemStmt = try prepare("""
+                INSERT OR IGNORE INTO operation_items
+                (operation_id,position,name,source,extension,kind,size)
+                VALUES(?,?,?,?,?,?,?)
+                """)
+            defer { sqlite3_finalize(itemStmt) }
+            var inserted = 0
+            for entry in remote {
+                let op = entry.operation
+                guard !entry.deviceID.isEmpty, entry.deviceID.count <= 80,
+                      UUID(uuidString: op.id) != nil,
+                      op.detectedTimeMS >= 0, op.items.count <= 100 else { continue }
+                let localID = "remote:\(entry.deviceID):\(op.id)"
+                // Skip imports of an unchanged local source operation.
+                let exists = try prepare("SELECT 1 FROM operations WHERE id IN (?, ?) LIMIT 1")
+                bind(op.id, to: 1, in: exists)
+                bind(localID, to: 2, in: exists)
+                let alreadyExists = sqlite3_step(exists) == SQLITE_ROW
+                sqlite3_finalize(exists)
+                if alreadyExists { continue }
+
+                sqlite3_reset(opStmt)
+                sqlite3_clear_bindings(opStmt)
+                bind(localID, to: 1, in: opStmt)
+                bind(op.type, to: 2, in: opStmt)
+                bind(op.eventTimeMS, to: 3, in: opStmt)
+                bind(op.detectedTimeMS, to: 4, in: opStmt)
+                bind(op.completedTimeMS, to: 5, in: opStmt)
+                bind(op.sourceApplication, to: 6, in: opStmt)
+                bind("remote_restore", to: 7, in: opStmt)
+                bind(op.status, to: 8, in: opStmt)
+                bind(op.target, to: 9, in: opStmt)
+                bind(op.durationMS, to: 10, in: opStmt)
+                bind(op.clipboardText, to: 11, in: opStmt)
+                guard sqlite3_step(opStmt) == SQLITE_DONE else { throw StoreError.write }
+                for item in op.items {
+                    guard item.position >= 0, item.position < 100 else { throw StoreError.write }
+                    sqlite3_reset(itemStmt)
+                    sqlite3_clear_bindings(itemStmt)
+                    bind(localID, to: 1, in: itemStmt)
+                    bind(Int64(item.position), to: 2, in: itemStmt)
+                    bind(item.name, to: 3, in: itemStmt)
+                    bind(item.source, to: 4, in: itemStmt)
+                    bind(item.fileExtension, to: 5, in: itemStmt)
+                    bind(item.kind, to: 6, in: itemStmt)
+                    bind(item.size, to: 7, in: itemStmt)
+                    guard sqlite3_step(itemStmt) == SQLITE_DONE else { throw StoreError.write }
+                }
+                inserted += 1
+            }
+            try execute("COMMIT")
+            return inserted
+        } catch {
+            try? execute("ROLLBACK")
+            throw error
+        }
+    }
+
+    /// Restore cloud-only permanent collections and membership ordering into
+    /// separate, visibly named local mirrors. Never overwrite an original
+    /// user-created collection with the same UUID or display name.
+    /// Tombstones are limited to cloudkit-prefixed collection IDs.
+    @discardableResult
+    public func importCloudCollections(
+        _ records: [ClipboardCloudRecord], consent: ClipboardCloudConsent
+    ) throws -> Int {
+        guard consent.enabled && consent.includeNames else { return 0 }
+        guard records.count <= 200 else { throw StoreError.write }
+        let ordered = try ClipboardCloudMerge.merged(existing: [], incoming: records)
+        let collections = ordered.filter { $0.kind == .collection }
+        let memberships = ordered.filter { $0.kind == .membership }
+        guard (collections + memberships).allSatisfy({ consent.permits($0) }) else {
+            throw ClipboardCloudModelError.invalidRecord
+        }
+        lock.lock()
+        defer { lock.unlock() }
+        try execute("BEGIN IMMEDIATE")
+        do {
+            var changed = 0
+            for change in collections {
+                let sourceID = String(change.id.dropFirst("collection:".count))
+                guard UUID(uuidString: sourceID) != nil else { continue }
+                let mirror = "cloudkit:" + sourceID
+                if change.isDeleted {
+                    let stmt = try prepare(
+                        "DELETE FROM clipboard_collections WHERE id=?"
+                    )
+                    bind(mirror, to: 1, in: stmt)
+                    let done = sqlite3_step(stmt) == SQLITE_DONE
+                    changed += Int(sqlite3_changes(database))
+                    sqlite3_finalize(stmt)
+                    guard done else { throw StoreError.write }
+                    continue
+                }
+                guard case .collection(let data)? = change.payload else {
+                    throw ClipboardCloudModelError.invalidRecord
+                }
+                let trimmed = data.name.trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
+                guard !trimmed.isEmpty,
+                      !trimmed.unicodeScalars.contains(where: {
+                          CharacterSet.controlCharacters.contains($0)
+                      }) else { continue }
+                // Full UUID suffix prevents coincidental collisions between
+                // distinct remote collections sharing a title on this Mac.
+                let title = "iCloud · " + String(trimmed.prefix(28))
+                    + " · " + sourceID
+                let stmt = try prepare("""
+                    INSERT INTO clipboard_collections(id,name,created_time_ms)
+                    VALUES(?,?,?)
+                    ON CONFLICT(id) DO UPDATE SET name=excluded.name
+                    WHERE clipboard_collections.name <> excluded.name
+                    """)
+                bind(mirror, to: 1, in: stmt)
+                bind(title, to: 2, in: stmt)
+                bind(Int64(Date().timeIntervalSince1970 * 1_000), to: 3, in: stmt)
+                let done = sqlite3_step(stmt) == SQLITE_DONE
+                changed += Int(sqlite3_changes(database))
+                sqlite3_finalize(stmt)
+                guard done else { throw StoreError.write }
+            }
+
+            for change in memberships {
+                let id = String(change.id.dropFirst("membership:".count))
+                let fields = id.split(separator: ":", omittingEmptySubsequences: false)
+                guard fields.count == 2,
+                      UUID(uuidString: String(fields[0])) != nil,
+                      UUID(uuidString: String(fields[1])) != nil else { continue }
+                let collectionID = "cloudkit:" + String(fields[0])
+                let originalID = String(fields[1])
+                let mirroredID = "cloudkit:" + originalID
+                if change.isDeleted {
+                    let stmt = try prepare("""
+                        DELETE FROM clipboard_collection_entries
+                        WHERE collection_id=? AND operation_id IN (?,?)
+                        """)
+                    bind(collectionID, to: 1, in: stmt)
+                    bind(originalID, to: 2, in: stmt)
+                    bind(mirroredID, to: 3, in: stmt)
+                    let done = sqlite3_step(stmt) == SQLITE_DONE
+                    changed += Int(sqlite3_changes(database))
+                    sqlite3_finalize(stmt)
+                    guard done else { throw StoreError.write }
+                    continue
+                }
+                guard case .membership(let data)? = change.payload,
+                      data.collectionID == String(fields[0]),
+                      data.operationID == originalID,
+                      data.sortPosition >= 0,
+                      data.sortPosition < 10_000_000 else {
+                    throw ClipboardCloudModelError.invalidRecord
+                }
+                // A cloud member may precede its operation page or collection
+                // page. Skip until the user imports those pages; never create
+                // placeholder file URLs or untrusted local records.
+                let resolve = try prepare("""
+                    SELECT id FROM operations
+                    WHERE id IN (?,?)
+                    ORDER BY CASE WHEN id=? THEN 0 ELSE 1 END LIMIT 1
+                    """)
+                bind(originalID, to: 1, in: resolve)
+                bind(mirroredID, to: 2, in: resolve)
+                bind(originalID, to: 3, in: resolve)
+                let state = sqlite3_step(resolve)
+                let resolved = state == SQLITE_ROW ? string(resolve, 0) : nil
+                sqlite3_finalize(resolve)
+                guard state == SQLITE_ROW || state == SQLITE_DONE else {
+                    throw StoreError.write
+                }
+                guard let resolved else { continue }
+                let stmt = try prepare("""
+                    INSERT INTO clipboard_collection_entries
+                    (collection_id,operation_id,position) VALUES(?,?,?)
+                    ON CONFLICT(collection_id,operation_id)
+                    DO UPDATE SET position=excluded.position
+                    WHERE clipboard_collection_entries.position <> excluded.position
+                    """)
+                bind(collectionID, to: 1, in: stmt)
+                bind(resolved, to: 2, in: stmt)
+                bind(data.sortPosition, to: 3, in: stmt)
+                let done = sqlite3_step(stmt) == SQLITE_DONE
+                changed += Int(sqlite3_changes(database))
+                sqlite3_finalize(stmt)
+                // Missing collection pages should not delete or mutate local
+                // collections. An FK failure rolls back the entire page.
+                guard done else { throw StoreError.write }
+            }
+            try execute("COMMIT")
+            return changed
+        } catch {
+            try? execute("ROLLBACK")
+            throw error
+        }
+    }
+
+    /// Explicitly mirror consent-approved cloud history without restoring
+    /// remote file paths as local URLs. Entries are excluded from outbound
+    /// queues; tombstones remove only mirrors, never original local copies.
+    @discardableResult
+    public func importCloudHistory(
+        _ records: [ClipboardCloudRecord], consent: ClipboardCloudConsent
+    ) throws -> Int {
+        guard consent.enabled else { return 0 }
+        guard records.count <= 200 else { throw StoreError.write }
+        let approved = try records.filter {
+            _ = try $0.validated()
+            return $0.kind == .operation && consent.permits($0)
+        }
+        lock.lock()
+        defer { lock.unlock() }
+        try execute("BEGIN IMMEDIATE")
+        do {
+            let insert = try prepare("""
+                INSERT OR IGNORE INTO operations
+                (id,type,event_time_ms,detected_time_ms,completed_time_ms,
+                 source_application,detection_method,status,target,duration_ms,clipboard_text)
+                VALUES(?,?,NULL,?,NULL,NULL,'cloudkit_remote_restore',
+                       'cloud_metadata_restored',NULL,NULL,?)
+                """)
+            defer { sqlite3_finalize(insert) }
+            let items = try prepare("""
+                INSERT OR IGNORE INTO operation_items
+                (operation_id,position,name,source,extension,kind,size)
+                VALUES(?,?,?,NULL,NULL,?,?)
+                """)
+            defer { sqlite3_finalize(items) }
+            let remove = try prepare("""
+                DELETE FROM operations
+                WHERE id=? AND detection_method='cloudkit_remote_restore'
+                """)
+            defer { sqlite3_finalize(remove) }
+            let exists = try prepare("SELECT 1 FROM operations WHERE id IN (?,?) LIMIT 1")
+            defer { sqlite3_finalize(exists) }
+            var inserted = 0
+            for change in approved {
+                let sourceID = String(change.id.dropFirst("operation:".count))
+                guard UUID(uuidString: sourceID) != nil else { continue }
+                let localID = "cloudkit:" + sourceID
+                if change.isDeleted {
+                    sqlite3_reset(remove)
+                    sqlite3_clear_bindings(remove)
+                    bind(localID, to: 1, in: remove)
+                    guard sqlite3_step(remove) == SQLITE_DONE else { throw StoreError.write }
+                    continue
+                }
+                guard case .operation(let operation)? = change.payload,
+                      ["copy","text_copy","path_copy","image_copy","drop_copy"].contains(operation.type),
+                      operation.detectedTimeMS >= 0, operation.items.count <= 100 else { continue }
+                sqlite3_reset(exists)
+                sqlite3_clear_bindings(exists)
+                bind(sourceID, to: 1, in: exists)
+                bind(localID, to: 2, in: exists)
+                let found = sqlite3_step(exists)
+                guard found == SQLITE_ROW || found == SQLITE_DONE else { throw StoreError.write }
+                if found == SQLITE_ROW { continue }
+                sqlite3_reset(insert)
+                sqlite3_clear_bindings(insert)
+                bind(localID, to: 1, in: insert)
+                bind(operation.type, to: 2, in: insert)
+                bind(operation.detectedTimeMS, to: 3, in: insert)
+                bind(operation.text, to: 4, in: insert)
+                guard sqlite3_step(insert) == SQLITE_DONE else { throw StoreError.write }
+                for (index, item) in operation.items.enumerated() {
+                    sqlite3_reset(items)
+                    sqlite3_clear_bindings(items)
+                    bind(localID, to: 1, in: items)
+                    bind(Int64(index), to: 2, in: items)
+                    bind(item.name ?? "Remote \(item.kind)", to: 3, in: items)
+                    bind(item.kind, to: 4, in: items)
+                    bind(item.size, to: 5, in: items)
+                    guard sqlite3_step(items) == SQLITE_DONE else { throw StoreError.write }
+                }
+                inserted += 1
+            }
+            try execute("COMMIT")
+            return inserted
+        } catch {
+            try? execute("ROLLBACK")
+            throw error
+        }
+    }
+
+    private func readOperation(from statement: OpaquePointer) throws -> RecordedOperation {
+        let id = string(statement, 0) ?? ""
+        let itemStmt = try prepare("SELECT name, source, extension, kind, size FROM operation_items WHERE operation_id = ? ORDER BY position")
+        defer { sqlite3_finalize(itemStmt) }
+        bind(id, to: 1, in: itemStmt)
+        var items: [RecordedItem] = []
+        while sqlite3_step(itemStmt) == SQLITE_ROW {
+            items.append(RecordedItem(name: string(itemStmt, 0) ?? "",
+                                      source: string(itemStmt, 1),
+                                      fileExtension: string(itemStmt, 2),
+                                      kind: string(itemStmt, 3) ?? "file",
+                                      size: integer(itemStmt, 4)))
+        }
+        return RecordedOperation(
+            id: id, type: string(statement, 1) ?? "",
+            eventTimeMS: integer(statement, 2),
+            detectedTimeMS: sqlite3_column_int64(statement, 3),
+            completedTimeMS: integer(statement, 4),
+            sourceApplication: string(statement, 5),
+            detectionMethod: string(statement, 6) ?? "",
+            status: string(statement, 7) ?? "",
+            target: string(statement, 8),
+            durationMS: integer(statement, 9),
+            clipboardText: string(statement, 10),
+            items: items)
+    }
+
+    private func operationColumnNames() throws -> Set<String> {
+        let statement = try prepare("PRAGMA table_info(operations)")
+        defer { sqlite3_finalize(statement) }
+        var names = Set<String>()
+        while sqlite3_step(statement) == SQLITE_ROW {
+            if let name = string(statement, 1) { names.insert(name) }
+        }
+        return names
     }
 
     private func execute(_ sql: String) throws {
@@ -170,6 +1404,13 @@ public final class OperationStore: @unchecked Sendable {
         if let value { sqlite3_bind_text(statement, column, value, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self)) }
         else { sqlite3_bind_null(statement, column) }
     }
+    private func bindBlob(_ data: Data, to column: Int32, in statement: OpaquePointer) {
+        data.withUnsafeBytes { raw in
+            _ = sqlite3_bind_blob(statement, column, raw.baseAddress, Int32(data.count),
+                                  unsafeBitCast(-1, to: sqlite3_destructor_type.self))
+        }
+    }
+
     private func bind(_ value: Int64?, to column: Int32, in statement: OpaquePointer) {
         if let value { sqlite3_bind_int64(statement, column, value) }
         else { sqlite3_bind_null(statement, column) }

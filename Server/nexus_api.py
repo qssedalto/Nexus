@@ -23,6 +23,16 @@ def open_database(path):
         )
     """)
     connection.execute("CREATE INDEX IF NOT EXISTS input_events_range ON input_events(time_ms, device_id)")
+    connection.execute("""
+        CREATE TABLE IF NOT EXISTS operation_events (
+            device_id TEXT NOT NULL,
+            operation_id TEXT NOT NULL,
+            detected_time_ms INTEGER NOT NULL,
+            payload_json TEXT NOT NULL,
+            PRIMARY KEY(device_id, operation_id)
+        )
+    """)
+    connection.execute("CREATE INDEX IF NOT EXISTS operation_events_range ON operation_events(detected_time_ms, device_id)")
     return connection
 
 
@@ -39,6 +49,56 @@ def valid_event_name(category, name):
     return name in names.get(category, set()) or (category == "keyboard" and re.fullmatch(r"f(?:[1-9]|1\d|2[0-4])", name)) or (category == "mouse" and re.fullmatch(r"mouse_extra_\d{1,2}", name)) or (category == "shortcut" and re.fullmatch(r"fn_f(?:[1-9]|1\d|2[0-4])", name))
 
 
+def valid_operation(operation):
+    """Validate a bounded metadata record; never accept binary payloads."""
+    if not isinstance(operation, dict):
+        return False
+    operation_id = operation.get("id")
+    if not isinstance(operation_id, str) or not re.fullmatch(
+        r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}", operation_id
+    ):
+        return False
+    def integer(value):
+        return type(value) is int and 0 <= value <= 9_000_000_000_000_000
+    def optional_string(value, maximum):
+        return value is None or isinstance(value, str) and len(value) <= maximum
+    if not integer(operation.get("detected_time_ms")):
+        return False
+    for field in ("event_time_ms", "completed_time_ms", "duration_ms"):
+        value = operation.get(field)
+        if value is not None and not integer(value):
+            return False
+    if not isinstance(operation.get("type"), str) or not re.fullmatch(r"[a-z_]{1,32}", operation["type"]):
+        return False
+    if not isinstance(operation.get("detection_method"), str) or not re.fullmatch(r"[a-z_]{1,40}", operation["detection_method"]):
+        return False
+    if not isinstance(operation.get("status"), str) or not re.fullmatch(r"[a-z_]{1,40}", operation["status"]):
+        return False
+    for field, limit in (("source_application", 256), ("target", 4096), ("clipboard_text", 100_000)):
+        if not optional_string(operation.get(field), limit):
+            return False
+    items = operation.get("items")
+    if not isinstance(items, list) or len(items) > 100:
+        return False
+    seen = set()
+    for item in items:
+        if not isinstance(item, dict):
+            return False
+        position = item.get("position")
+        if type(position) is not int or position < 0 or position >= len(items) or position in seen:
+            return False
+        seen.add(position)
+        if not isinstance(item.get("name"), str) or len(item["name"]) > 1024:
+            return False
+        if not isinstance(item.get("kind"), str) or not re.fullmatch(r"[a-z_]{1,32}", item["kind"]):
+            return False
+        if not optional_string(item.get("source"), 4096) or not optional_string(item.get("extension"), 64):
+            return False
+        if item.get("size") is not None and not integer(item["size"]):
+            return False
+    return True
+
+
 class NexusAPI(BaseHTTPRequestHandler):
     server_version = "NexusAPI/1"
 
@@ -47,7 +107,14 @@ class NexusAPI(BaseHTTPRequestHandler):
             return
         path = urlsplit(self.path)
         if path.path == "/api/nexus/v1/me":
-            self.respond(200, {"authenticated": True})
+            self.respond(200, {
+                "authenticated": True,
+                "schema_version": 1,
+                "capabilities": [
+                    "statistics.events", "statistics.summary",
+                    "operations.events", "operations.restore"
+                ],
+            })
         elif path.path == "/api/nexus/v1/statistics/summary":
             bounds = self.bounds(path.query)
             if bounds is None:
@@ -59,6 +126,27 @@ class NexusAPI(BaseHTTPRequestHandler):
                     (start, end, device, device),
                 ).fetchall()
             self.respond(200, {"start_ms": start, "end_ms": end, "statistics": [{"category": row[0], "name": row[1], "count": row[2]} for row in rows]})
+        elif path.path == "/api/nexus/v1/operations/events":
+            bounds = self.bounds(path.query)
+            if bounds is None:
+                return
+            start, end, device = bounds
+            try:
+                offset = int(parse_qs(path.query).get("offset", ["0"])[0])
+                if not 0 <= offset <= 1_000_000:
+                    raise ValueError()
+            except ValueError:
+                self.respond(400, {"error": "invalid_offset"})
+                return
+            with self.server.database_lock:
+                rows = self.server.database.execute(
+                    "SELECT device_id, payload_json FROM operation_events WHERE detected_time_ms >= ? AND detected_time_ms < ? AND (? IS NULL OR device_id = ?) ORDER BY detected_time_ms, device_id, operation_id LIMIT 100 OFFSET ?",
+                    (start, end, device, device, offset),
+                ).fetchall()
+            self.respond(200, {
+                "operations": [{"device_id": row[0], "operation": json.loads(row[1])} for row in rows],
+                "next_offset": offset + 100 if len(rows) == 100 else None,
+            })
         elif path.path == "/api/nexus/v1/statistics/events":
             bounds = self.bounds(path.query)
             if bounds is None:
@@ -83,6 +171,8 @@ class NexusAPI(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self.authorized():
             return
+        if urlsplit(self.path).path == "/api/nexus/v1/operations/events":
+            return self.post_operations()
         if urlsplit(self.path).path != "/api/nexus/v1/statistics/events":
             self.respond(404, {"error": "not_found"})
             return
@@ -114,19 +204,44 @@ class NexusAPI(BaseHTTPRequestHandler):
                 self.server.database.executemany("INSERT INTO input_events VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(device_id, event_id) DO NOTHING", records)
         self.respond(200, {"accepted_ids": [event[1] for event in records]})
 
+    def post_operations(self):
+        try:
+            size = int(self.headers.get("Content-Length", "0"))
+            if not 1 <= size <= 1_000_000:
+                raise ValueError()
+            body = json.loads(self.rfile.read(size))
+            device = body.get("device_id")
+            records = body.get("operations")
+            if body.get("schema_version") != 1 or not isinstance(device, str) or not 1 <= len(device) <= 80:
+                raise ValueError()
+            if not isinstance(records, list) or not 1 <= len(records) <= 25 or not all(map(valid_operation, records)):
+                raise ValueError()
+        except (ValueError, TypeError, AttributeError, json.JSONDecodeError):
+            self.respond(400, {"error": "invalid_request"})
+            return
+        rows = [(device, op["id"], op["detected_time_ms"], json.dumps(op, ensure_ascii=False, separators=(",", ":"))) for op in records]
+        with self.server.database_lock:
+            with self.server.database:
+                self.server.database.executemany(
+                    "INSERT INTO operation_events VALUES (?, ?, ?, ?) ON CONFLICT(device_id, operation_id) DO UPDATE SET detected_time_ms=excluded.detected_time_ms, payload_json=excluded.payload_json", rows
+                )
+        self.respond(200, {"accepted_ids": [op["id"] for op in records]})
+
     def do_DELETE(self):
         if not self.authorized():
             return
-        if urlsplit(self.path).path != "/api/nexus/v1/statistics/events":
+        path = urlsplit(self.path)
+        if path.path not in ("/api/nexus/v1/statistics/events", "/api/nexus/v1/operations/events"):
             self.respond(404, {"error": "not_found"})
             return
-        device = parse_qs(urlsplit(self.path).query).get("device_id", [None])[0]
+        device = parse_qs(path.query).get("device_id", [None])[0]
         if not device:
             self.respond(400, {"error": "device_id_required"})
             return
         with self.server.database_lock:
             with self.server.database:
-                count = self.server.database.execute("DELETE FROM input_events WHERE device_id = ?", (device,)).rowcount
+                table = "operation_events" if path.path == "/api/nexus/v1/operations/events" else "input_events"
+                count = self.server.database.execute(f"DELETE FROM {table} WHERE device_id = ?", (device,)).rowcount
         self.respond(200, {"deleted": count})
 
     def authorized(self):

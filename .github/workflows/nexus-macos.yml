@@ -1,0 +1,78 @@
+name: Nexus macOS regression checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: nexus-macos-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  swift:
+    name: Swift tests and unsigned Xcode build
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Swift package
+        run: swift test -q
+      - name: Validate reference Python API
+        run: python3 -m unittest discover -s Server -p 'test_nexus_api.py'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Validate Worker D1 operation API
+        run: node --test Server/test_worker.mjs
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: ./Scripts/generate_project.sh
+      - name: Build app and Finder extension in isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          source version.env
+          xcodebuild -project Slashgrab.xcodeproj -scheme Slashgrab \
+            -configuration Debug -derivedDataPath "$RUNNER_TEMP/nexus-derived" \
+            -destination 'platform=macOS' \
+            CODE_SIGNING_ALLOWED=NO ENABLE_DEBUG_DYLIB=NO \
+            MARKETING_VERSION="$MARKETING_VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            build -quiet
+          # Guard the existing Debug app against accidentally registering a
+          # second system-wide copy-path service.
+          BASELINE_INFO="$RUNNER_TEMP/nexus-derived/Build/Products/Debug/Nexus Dev.app/Contents/Info.plist"
+          test -f "$BASELINE_INFO"
+          if /usr/libexec/PlistBuddy -c 'Print :NSServices' "$BASELINE_INFO" >/dev/null 2>&1; then
+            echo 'ERROR: Production-like Debug build unexpectedly declares NSServices' >&2
+            exit 1
+          fi
+
+      - name: Verify isolated NSServices-only Finder prototype
+        run: bash Scripts/test_services_prototype.sh
+      - name: Verify ServicesOnly replacement retains existing production IDs and one entry
+        run: bash Scripts/test_services_only_release.sh
+
+  ios:
+    name: Universal iPhone/iPad simulator build (unsigned)
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate isolated iOS project
+        run: xcodegen generate --spec project.ios.yml
+      - name: Build universal iPhone/iPad client for simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -project NexusClipboardMobile.xcodeproj \
+            -scheme NexusClipboardMobile -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/nexus-mobile-derived" \
+            CODE_SIGNING_ALLOWED=NO build -quiet

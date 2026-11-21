@@ -56,6 +56,21 @@ struct AppStateTests {
         #expect(sharedSettings.loadHistory().entries == ["copied in Finder", "existing"])
     }
 
+    @Test("Observed clipboard and paste requests use neutral feedback, not success")
+    func observationDoesNotClaimCompletion() {
+        let appState = AppState(
+            settings: AppSettingsStore(defaults: makeDefaults()),
+            clipboardWriter: SpyClipboardWriter(),
+            launchAtLoginController: FakeLaunchAtLoginController(),
+            finderExtensionController: FakeFinderExtensionController()
+        )
+        appState.clipboardDidChange("Paste request detected")
+        #expect(appState.feedback?.kind == .observation)
+        #expect(appState.feedback?.message == localized("Paste request detected"))
+        appState.finderCopyDidSucceed()
+        #expect(appState.feedback?.kind == .success)
+    }
+
     @Test("The current format is migrated to shared Finder settings")
     func selectedFormatIsMigratedToSharedSettings() {
         let settings = AppSettingsStore(defaults: makeDefaults())

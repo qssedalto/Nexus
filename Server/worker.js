@@ -41,13 +41,81 @@ function validEvent(event) {
     (event.category === "shortcut" && /^fn_f(?:[1-9]|1\d|2[0-4])$/.test(event.name));
 }
 
+// This endpoint never inspects image bytes. It carries bounded metadata and
+// only optional text/paths independently approved by the desktop user.
+function validOperation(op) {
+  if (!op || typeof op !== "object") return false;
+  if (typeof op.id !== "string" || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(op.id)) return false;
+  const integer = value => Number.isSafeInteger(value) && value >= 0;
+  const optionalInteger = value => value == null || integer(value);
+  const optionalString = (value, maximum) => value == null || (typeof value === "string" && value.length <= maximum);
+  if (!integer(op.detected_time_ms) || !optionalInteger(op.event_time_ms) ||
+      !optionalInteger(op.completed_time_ms) || !optionalInteger(op.duration_ms)) return false;
+  if (typeof op.type !== "string" || !/^[a-z_]{1,32}$/.test(op.type) ||
+      typeof op.detection_method !== "string" || !/^[a-z_]{1,40}$/.test(op.detection_method) ||
+      typeof op.status !== "string" || !/^[a-z_]{1,40}$/.test(op.status)) return false;
+  if (!optionalString(op.source_application, 256) || !optionalString(op.target, 4096) ||
+      !optionalString(op.clipboard_text, 100000)) return false;
+  if (!Array.isArray(op.items) || op.items.length > 100) return false;
+  const positions = new Set();
+  for (const item of op.items) {
+    if (!item || !integer(item.position) || item.position >= op.items.length ||
+        positions.has(item.position)) return false;
+    positions.add(item.position);
+    if (typeof item.name !== "string" || item.name.length > 1024 ||
+        typeof item.kind !== "string" || !/^[a-z_]{1,32}$/.test(item.kind) ||
+        !optionalString(item.source, 4096) || !optionalString(item.extension, 64) ||
+        !optionalInteger(item.size)) return false;
+  }
+  return true;
+}
+
 export default {
   async fetch(request, env) {
     try {
       if (!(await authorized(request, env.API_TOKEN))) return json({ error: "unauthorized" }, 401);
       const url = new URL(request.url);
       const path = url.pathname;
-      if (path === "/api/nexus/v1/me" && request.method === "GET") return json({ authenticated: true });
+      if (path === "/api/nexus/v1/me" && request.method === "GET") {
+        return json({
+          authenticated: true,
+          schema_version: 1,
+          capabilities: ["statistics.events", "statistics.summary", "operations.events", "operations.restore"]
+        });
+      }
+      if (path === "/api/nexus/v1/operations/events" && request.method === "POST") {
+        const length = Number(request.headers.get("Content-Length"));
+        if (!Number.isSafeInteger(length) || length < 1 || length > 1_000_000) return json({ error: "invalid_size" }, 400);
+        const body = await request.json().catch(() => null);
+        if (body?.schema_version !== 1 || typeof body.device_id !== "string" ||
+            body.device_id.length < 1 || body.device_id.length > 80 ||
+            !Array.isArray(body.operations) || body.operations.length < 1 ||
+            body.operations.length > 25 || !body.operations.every(validOperation)) return json({ error: "invalid_request" }, 400);
+        const statements = body.operations.map(op => env.DB.prepare(
+          "INSERT INTO operation_events(device_id,operation_id,detected_time_ms,payload_json) VALUES(?,?,?,?) ON CONFLICT(device_id,operation_id) DO UPDATE SET detected_time_ms=excluded.detected_time_ms, payload_json=excluded.payload_json"
+        ).bind(body.device_id, op.id, op.detected_time_ms, JSON.stringify(op)));
+        await env.DB.batch(statements);
+        return json({ accepted_ids: body.operations.map(op => op.id) });
+      }
+      if (path === "/api/nexus/v1/operations/events" && request.method === "GET") {
+        const range = bounds(url);
+        if (!range) return json({ error: "invalid_range" }, 400);
+        const offset = Number(url.searchParams.get("offset") || 0);
+        if (!Number.isSafeInteger(offset) || offset < 0 || offset > 1_000_000) return json({ error: "invalid_offset" }, 400);
+        const result = await env.DB.prepare(
+          "SELECT device_id, payload_json FROM operation_events WHERE detected_time_ms >= ? AND detected_time_ms < ? AND (? IS NULL OR device_id = ?) ORDER BY detected_time_ms,device_id,operation_id LIMIT 100 OFFSET ?"
+        ).bind(range.start, range.end, range.device, range.device, offset).all();
+        return json({
+          operations: result.results.map(item => ({ device_id: item.device_id, operation: JSON.parse(item.payload_json) })),
+          next_offset: result.results.length === 100 ? offset + 100 : null,
+        });
+      }
+      if (path === "/api/nexus/v1/operations/events" && request.method === "DELETE") {
+        const device = url.searchParams.get("device_id");
+        if (!device) return json({ error: "device_id_required" }, 400);
+        const result = await env.DB.prepare("DELETE FROM operation_events WHERE device_id = ?").bind(device).run();
+        return json({ deleted: result.meta.changes });
+      }
       if (path === "/api/nexus/v1/statistics/events" && request.method === "POST") {
         const length = Number(request.headers.get("Content-Length"));
         if (!Number.isSafeInteger(length) || length < 1 || length > 1_000_000) return json({ error: "invalid_size" }, 400);
