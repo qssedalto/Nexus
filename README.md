@@ -126,3 +126,15 @@ Run the local CI gate:
 Nexus modifications © 2026 qssedalto. Upstream portions © 2026 Marco Gomiero; see [NOTICE.md](NOTICE.md).
 
 Nexus retains Apache-2.0 licensing for its upstream portions and contributions are licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for the full license text.
+
+## GitHub Actions builds and development signing
+
+Open [Build Nexus.app (macOS Apple Silicon)](https://github.com/qssedalto/Nexus/actions/workflows/build-nexus.yml), then choose **Run workflow**.
+
+- **development** (the manual default): produces `Nexus Dev.app`, bundle ID `com.qssedalto.nexus.dev`, signed with the Apple Development identity from the imported P12. This is for development/testing and does not replace `Nexus.app`.
+- **adhoc**: produces `Nexus.app` with Ad Hoc signing, without needing any Apple certificate. This also runs automatically on pushes to `main`.
+- Both builds archive the `.app` and its Finder extension as a downloadable GitHub Actions **Artifact** (not a GitHub Release).
+
+For development signing, create three repository Actions Secrets: `BUILD_CERTIFICATE_BASE64` (Base64 of a `.p12` export containing its private key), `P12_PASSWORD` (password protecting the exported P12), and `KEYCHAIN_PASSWORD` (an independent temporary keychain password). The workflow imports the certificate into a temporary keychain, and cleans up the keychain afterward. Never commit certificate files or passwords.
+
+**Limitations:** Apple Development signing is not Developer ID distribution signing, and these artifacts are not notarized. App Groups and Finder Sync can require properly configured signing capabilities/provisioning profiles; importing a P12 does not guarantee they will work on a target Mac. The workflow reports signing failures instead of silently falling back to Ad Hoc.

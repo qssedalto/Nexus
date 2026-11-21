@@ -80,6 +80,20 @@ FINDER_EXTENSION_DISPLAY_NAME="$APP_NAME Finder Extension"
 MACOS_MIN_VERSION=${MACOS_MIN_VERSION:-13.0}
 SIGNING_MODE=${EXPLICIT_SIGNING_MODE:-${SIGNING_MODE:-adhoc}}
 APP_IDENTITY=${EXPLICIT_APP_IDENTITY:-${APP_IDENTITY:-}}
+# Do not silently convert a requested certificate-signed build to Ad Hoc.
+case "$SIGNING_MODE" in
+  adhoc) ;;
+  development|developer-id)
+    if [[ -z "$APP_IDENTITY" ]]; then
+      echo "ERROR: SIGNING_MODE=$SIGNING_MODE requires APP_IDENTITY." >&2
+      exit 1
+    fi
+    ;;
+  *)
+    echo "ERROR: Unsupported SIGNING_MODE: $SIGNING_MODE" >&2
+    exit 2
+    ;;
+esac
 ARCHES_VALUE=${EXPLICIT_ARCHES:-${ARCHES:-}}
 SPARKLE_FEED_URL=${EXPLICIT_SPARKLE_FEED_URL:-${SPARKLE_FEED_URL:-"https://raw.githubusercontent.com/qssedalto/Nexus/main/appcast.xml"}}
 # Do not install an updater that silently fetches releases from the upstream app.
@@ -275,11 +289,17 @@ EXTENSION_ENTITLEMENTS="$ENTITLEMENTS_DIR/NexusFinderSync.entitlements"
 /usr/libexec/PlistBuddy -c "Set :com.apple.security.application-groups:1 $LEGACY_APP_GROUP_ID" "$EXTENSION_ENTITLEMENTS"
 /usr/bin/plutil -lint "$APP_ENTITLEMENTS" "$EXTENSION_ENTITLEMENTS" >/dev/null
 
-if [[ "$SIGNING_MODE" == "adhoc" || -z "$APP_IDENTITY" ]]; then
-  CODESIGN_ARGS=(--force --sign -)
-else
-  CODESIGN_ARGS=(--force --timestamp --options runtime --sign "$APP_IDENTITY")
-fi
+case "$SIGNING_MODE" in
+  adhoc)
+    CODESIGN_ARGS=(--force --sign -)
+    ;;
+  development)
+    CODESIGN_ARGS=(--force --sign "$APP_IDENTITY")
+    ;;
+  developer-id)
+    CODESIGN_ARGS=(--force --timestamp --options runtime --sign "$APP_IDENTITY")
+    ;;
+esac
 
 if [[ -d "$APP_BUNDLE/Contents/Frameworks" ]]; then
   while IFS= read -r -d '' executable; do

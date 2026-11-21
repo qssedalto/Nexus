@@ -2,6 +2,15 @@ name: Build Nexus.app (macOS Apple Silicon)
 
 on:
   workflow_dispatch:
+    inputs:
+      signing:
+        description: "Signing mode: development builds Nexus Dev.app; adhoc builds Nexus.app"
+        required: true
+        type: choice
+        default: development
+        options:
+          - development
+          - adhoc
   push:
     branches:
       - main
@@ -11,7 +20,7 @@ permissions:
 
 jobs:
   build:
-    name: Nexus Release / arm64 / ad-hoc
+    name: Nexus / arm64 / ${{ inputs.signing || 'adhoc' }}
     runs-on: macos-latest
     timeout-minutes: 45
     steps:
@@ -29,54 +38,124 @@ jobs:
       - name: Install XcodeGen
         run: brew install xcodegen
 
-      - name: Compile and ad-hoc sign Nexus.app
+      - name: Select signing and product identity
         shell: bash
         env:
-          APP_NAME: Nexus
-          BUNDLE_ID: com.qssedalto.nexus
-          APP_VARIANT: production
-          SIGNING_MODE: adhoc
+          REQUESTED_SIGNING: ${{ inputs.signing || 'adhoc' }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == workflow_dispatch && "$REQUESTED_SIGNING" == development ]]; then
+            echo "NEXUS_SIGNING=development" >> "$GITHUB_ENV"
+            echo "NEXUS_APP_NAME=Nexus Dev" >> "$GITHUB_ENV"
+            echo "NEXUS_BUNDLE_ID=com.qssedalto.nexus.dev" >> "$GITHUB_ENV"
+            echo "NEXUS_VARIANT=dev" >> "$GITHUB_ENV"
+          else
+            echo "NEXUS_SIGNING=adhoc" >> "$GITHUB_ENV"
+            echo "NEXUS_APP_NAME=Nexus" >> "$GITHUB_ENV"
+            echo "NEXUS_BUNDLE_ID=com.qssedalto.nexus" >> "$GITHUB_ENV"
+            echo "NEXUS_VARIANT=production" >> "$GITHUB_ENV"
+          fi
+
+      - name: Import Apple Development signing certificate
+        if: env.NEXUS_SIGNING == 'development'
+        shell: bash
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          umask 077
+          if [[ -z "$BUILD_CERTIFICATE_BASE64" || -z "$P12_PASSWORD" || -z "$KEYCHAIN_PASSWORD" ]]; then
+            echo "::error::Please configure BUILD_CERTIFICATE_BASE64, P12_PASSWORD, and KEYCHAIN_PASSWORD in Actions Secrets."
+            exit 1
+          fi
+
+          CERT_PATH="$RUNNER_TEMP/nexus-signing.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/nexus-build.keychain-db"
+          trap 'rm -f "$CERT_PATH"' EXIT
+
+          printf '%s' "$BUILD_CERTIFICATE_BASE64" | /usr/bin/base64 -D -o "$CERT_PATH"
+          /usr/bin/security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          /usr/bin/security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          /usr/bin/security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          /usr/bin/security list-keychains -d user -s "$KEYCHAIN_PATH"
+          /usr/bin/security default-keychain -s "$KEYCHAIN_PATH"
+          /usr/bin/security import "$CERT_PATH" -k "$KEYCHAIN_PATH" -P "$P12_PASSWORD" -T /usr/bin/codesign
+          /usr/bin/security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Match the user's Apple Development Team, never an unrelated signing identity.
+          SIGNING_IDENTITY="$(/usr/bin/security find-identity -v -p codesigning "$KEYCHAIN_PATH" \
+            | /usr/bin/awk '/Apple Development:/ && /\(4QYM64TMA2\)/ { print $2; exit }')"
+          if [[ -z "$SIGNING_IDENTITY" ]]; then
+            echo "::error::No valid Apple Development identity for team 4QYM64TMA2 exists in the imported P12."
+            exit 1
+          fi
+
+          echo "NEXUS_SIGN_ID=$SIGNING_IDENTITY" >> "$GITHUB_ENV"
+          echo "NEXUS_SIGNING_TEAM=4QYM64TMA2" >> "$GITHUB_ENV"
+
+      - name: Compile and sign Nexus
+        shell: bash
+        env:
+          APP_NAME: ${{ env.NEXUS_APP_NAME }}
+          BUNDLE_ID: ${{ env.NEXUS_BUNDLE_ID }}
+          APP_VARIANT: ${{ env.NEXUS_VARIANT }}
+          SIGNING_MODE: ${{ env.NEXUS_SIGNING }}
+          APP_IDENTITY: ${{ env.NEXUS_SIGN_ID }}
+          TEAM_ID: ${{ env.NEXUS_SIGNING_TEAM }}
           ARCHES: arm64
           ALLOW_MISSING_SPARKLE_FOR_LOCAL_RUN: "1"
           ENABLE_SPARKLE_AUTOMATIC_CHECKS: "false"
         run: |
           set -euo pipefail
-          ./Scripts/package_app.sh release --production
+          if [[ "$SIGNING_MODE" == development ]]; then
+            ./Scripts/package_app.sh release --dev
+          else
+            ./Scripts/package_app.sh release --production
+          fi
 
-      - name: Validate compiled app and Finder extension
+      - name: Verify app identity, architecture, extension and signature
         shell: bash
         run: |
           set -euo pipefail
-          APP="Nexus.app"
+          APP="${NEXUS_APP_NAME}.app"
           EXT="$APP/Contents/PlugIns/NexusFinderSync.appex"
           APP_INFO="$APP/Contents/Info.plist"
           EXT_INFO="$EXT/Contents/Info.plist"
+          test -d "$APP" && test -f "$EXT_INFO"
 
-          test -d "$APP"
-          test -f "$EXT_INFO"
           /usr/bin/plutil -lint "$APP_INFO" "$EXT_INFO"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_INFO")" = "com.qssedalto.nexus"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$EXT_INFO")" = "com.qssedalto.nexus.findersync"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :NexusBuildVariant' "$APP_INFO")" = "production"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_INFO")" = "$NEXUS_BUNDLE_ID"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$EXT_INFO")" = "$NEXUS_BUNDLE_ID.findersync"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :NexusBuildVariant' "$APP_INFO")" = "$NEXUS_VARIANT"
           test "$(/usr/libexec/PlistBuddy -c 'Print :SUEnableAutomaticChecks' "$APP_INFO")" = "false"
           test -z "$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' "$APP_INFO")"
-          test "$(/usr/bin/lipo -archs "$APP/Contents/MacOS/Nexus")" = "arm64"
+          test "$(/usr/bin/lipo -archs "$APP/Contents/MacOS/$NEXUS_APP_NAME")" = "arm64"
+
           /usr/bin/codesign --verify --deep --strict --verbose=2 "$APP"
           /usr/bin/codesign --verify --strict --verbose=2 "$EXT"
 
-      - name: Package downloadable Nexus.app ZIP
+          if [[ "$NEXUS_SIGNING" == development ]]; then
+            /usr/bin/codesign -dv --verbose=4 "$APP" 2>&1 | grep -Fx "TeamIdentifier=4QYM64TMA2"
+            /usr/bin/codesign -dv --verbose=4 "$EXT" 2>&1 | grep -Fx "TeamIdentifier=4QYM64TMA2"
+          fi
+
+      - name: Create downloadable app ZIP
         shell: bash
         run: |
           set -euo pipefail
-          /usr/bin/ditto --norsrc -c -k --keepParent "Nexus.app" "Nexus-macOS-arm64-adhoc.zip"
-          /usr/bin/unzip -tq "Nexus-macOS-arm64-adhoc.zip"
-          test -s "Nexus-macOS-arm64-adhoc.zip"
+          ZIP="Nexus-macOS-arm64-${NEXUS_SIGNING}.zip"
+          /usr/bin/ditto --norsrc -c -k --keepParent "${NEXUS_APP_NAME}.app" "$ZIP"
+          /usr/bin/unzip -tq "$ZIP"
+          test -s "$ZIP"
 
       - name: Upload compiled app
         uses: actions/upload-artifact@v4
         with:
-          name: Nexus-macOS-arm64-adhoc-${{ github.run_number }}
-          path: Nexus-macOS-arm64-adhoc.zip
+          name: Nexus-macOS-arm64-${{ env.NEXUS_SIGNING }}-${{ github.run_number }}
+          path: Nexus-macOS-arm64-${{ env.NEXUS_SIGNING }}.zip
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
@@ -87,9 +166,19 @@ jobs:
           {
             echo "## Nexus macOS build"
             echo ""
-            echo "- Build: **Release**, Apple Silicon **arm64**"
-            echo "- Bundle ID: `com.qssedalto.nexus`"
-            echo "- Download: open this run's **Artifacts** and download **Nexus-macOS-arm64-adhoc-${GITHUB_RUN_NUMBER}**."
-            echo "- Output: `Nexus-macOS-arm64-adhoc.zip` containing `Nexus.app` and its Finder extension."
-            echo "- Signing: **Ad Hoc only**. This app is **not Developer ID signed or notarized**, and macOS may block it. Finder extension/App Group integration is not guaranteed. It is a build artifact, not a public release."
+            echo "- Build: Release configuration, Apple Silicon arm64"
+            echo "- App: ${NEXUS_APP_NAME}.app"
+            echo "- Bundle ID: ${NEXUS_BUNDLE_ID}"
+            echo "- Signing: ${NEXUS_SIGNING}"
+            echo "- Artifact: Nexus-macOS-arm64-${NEXUS_SIGNING}-${GITHUB_RUN_NUMBER}"
+            echo "- Not Developer ID notarized: builds are for testing only. Finder Sync and App Groups require compatible entitlements and may require provisioning profiles."
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Delete temporary signing keychain
+        if: always()
+        shell: bash
+        run: |
+          /bin/rm -f "$RUNNER_TEMP/nexus-signing.p12"
+          if [[ -f "$RUNNER_TEMP/nexus-build.keychain-db" ]]; then
+            /usr/bin/security delete-keychain "$RUNNER_TEMP/nexus-build.keychain-db" || true
+          fi
