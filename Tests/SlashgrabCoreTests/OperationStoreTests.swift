@@ -133,4 +133,62 @@ final class OperationStoreTests: XCTestCase {
         XCTAssertNil(entries[0].completedTimeMS)
     }
 
+
+    func testOperationSyncPrivacyAndAcknowledgements() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let file = directory.appendingPathComponent("secret report.pdf")
+        let store = try OperationStore(url: directory.appendingPathComponent("operations.sqlite"))
+        try store.record(type: "path_copy", urls: [file], sourceApplication: "Nexus",
+                         detectionMethod: "drop", detectedTimeMS: 3001,
+                         completedTimeMS: 3002, clipboardText: "super private")
+        let first = try store.pendingSync()
+        XCTAssertEqual(first.count, 1)
+        XCTAssertEqual(try store.pendingSync().map(\.id), first.map(\.id))
+        let redacted = SyncOperation(record: first[0], includePaths: false, includeText: false)
+        let data = try JSONEncoder().encode(OperationSyncBatch(deviceID: "anonymous-device", operations: [redacted]))
+        let json = String(data: data, encoding: .utf8) ?? ""
+        XCTAssertFalse(json.contains(file.path))
+        XCTAssertFalse(json.contains("super private"))
+        XCTAssertTrue(json.contains("secret report.pdf"))
+        XCTAssertEqual(redacted.items[0].source, nil)
+        XCTAssertNil(redacted.clipboardText)
+        let full = SyncOperation(record: first[0], includePaths: true, includeText: true)
+        XCTAssertEqual(full.items[0].source, file.path)
+        XCTAssertEqual(full.clipboardText, "super private")
+        try store.markSynced(operationIDs: first.map(\.id))
+        XCTAssertTrue(try store.pendingSync().isEmpty)
+        XCTAssertEqual(try store.query(from: 3001, to: 3002).count, 1)
+    }
+
+    func testRemoteRestoreIsIdempotentAndDoesNotResync() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = try OperationStore(url: directory.appendingPathComponent("operations.sqlite"))
+        let json = """
+        {
+          "operations": [{
+            "device_id":"remote-Mac",
+            "operation":{
+              "id":"48a989b2-beaa-4acc-8124-d8968a68421b",
+              "type":"copy", "detected_time_ms":5600,
+              "detection_method":"clipboard", "status":"clipboard_detected",
+              "items":[{"position":0,"name":"資料.heic","kind":"image","extension":"heic","size":32}]
+            }
+          }],
+          "next_offset":null
+        }
+        """
+        let page = try JSONDecoder().decode(RemoteOperationPage.self, from: Data(json.utf8))
+        XCTAssertEqual(try store.importRemote(page.operations), 1)
+        XCTAssertEqual(try store.importRemote(page.operations), 0)
+        let history = try store.query(from: 5600, to: 5601)
+        XCTAssertEqual(history.count, 1)
+        XCTAssertEqual(history[0].items[0].kind, "image")
+        XCTAssertEqual(history[0].items[0].name, "資料.heic")
+        XCTAssertTrue(try store.pendingSync().isEmpty)
+    }
+
 }
