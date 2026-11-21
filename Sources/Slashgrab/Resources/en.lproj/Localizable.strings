@@ -137,3 +137,25 @@
 "Calculating folder size in the background…" = "Calculating folder size in the background…";
 "Folder size" = "Folder size";
 "Folder size scan cancelled" = "Folder size scan cancelled";
+
+"History retention is unlimited" = "History retention is unlimited";
+"old records removed locally" = "old records removed locally";
+"Pause clipboard history collection" = "Pause clipboard history collection";
+"Excluded foreground app bundle IDs (comma separated)" = "Excluded foreground app bundle IDs (comma separated)";
+"Excluding the foreground app is best-effort; pasteboards do not reliably identify the source app. Pause history for sensitive sessions." = "Excluding the foreground app is best-effort; pasteboards do not reliably identify the source app. Pause history for sensitive sessions.";
+"Local history retention" = "Local history retention";
+"Delete unpinned history after" = "Delete unpinned history after";
+"Maximum unpinned history records" = "Maximum unpinned history records";
+"Never" = "Never";
+"Unlimited" = "Unlimited";
+"Apply local cleanup now" = "Apply local cleanup now";
+"Pinned records are preserved. Local deletion does not automatically erase an earlier cloud upload." = "Pinned records are preserved. Local deletion does not automatically erase an earlier cloud upload.";
+"Clear unpinned local history" = "Clear unpinned local history";
+"Delete all unpinned local copy history?" = "Delete all unpinned local copy history?";
+"Delete unpinned local history" = "Delete unpinned local history";
+"Pinned records are preserved. This does not delete anything previously uploaded to a remote server." = "Pinned records are preserved. This does not delete anything previously uploaded to a remote server.";
+"Delete from local history" = "Delete from local history";
+"Local record deleted" = "Local record deleted";
+"Unable to delete local record" = "Unable to delete local record";
+"local records deleted" = "local records deleted";
+"Unable to clear local history" = "Unable to clear local history";
