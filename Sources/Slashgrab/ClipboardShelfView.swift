@@ -690,8 +690,13 @@ struct ClipboardShelfView: View {
         // Prevent an older background tag read from undoing this click.
         colorLoadGeneration += 1
         Task {
-            let saved = await Task.detached(priority: .utility) {
-                (try? store.setCardAccent(accent, operationID: operationID)) != nil
+            let saved = await Task.detached(priority: .utility) { () -> Bool in
+                do {
+                    try store.setCardAccent(accent, operationID: operationID)
+                    return true
+                } catch {
+                    return false
+                }
             }.value
             if saved {
                 if accent == .automatic {
