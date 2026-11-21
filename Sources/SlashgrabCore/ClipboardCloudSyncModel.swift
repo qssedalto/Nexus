@@ -29,19 +29,23 @@ public struct ClipboardCloudRevision: Codable, Sendable, Equatable {
 }
 
 /// Consent is purpose-specific and ALWAYS disabled by default.
-/// Image originals/thumbnails never enter this metadata-only wire model.
+/// Image binary bytes never enter this JSON wire model. A separate,
+/// explicitly authorized CKAsset may be referenced by digest and size.
 public struct ClipboardCloudConsent: Sendable, Equatable {
     public let enabled: Bool
     public let includeText: Bool
     public let includeNames: Bool
     public let includePaths: Bool
+    public let includeImages: Bool
 
     public init(enabled: Bool = false, includeText: Bool = false,
-                includeNames: Bool = false, includePaths: Bool = false) {
+                includeNames: Bool = false, includePaths: Bool = false,
+                includeImages: Bool = false) {
         self.enabled = enabled
         self.includeText = includeText
         self.includeNames = includeNames
         self.includePaths = includePaths
+        self.includeImages = includeImages
     }
 }
 
@@ -58,15 +62,20 @@ public struct ClipboardCloudOperation: Codable, Sendable, Equatable {
     public let sourceApplication: String?
     public let items: [ClipboardCloudItem]
     public let text: String?
+    /// Optional digest-only reference. The actual image lives in an
+    /// independently consented CloudKit CKAsset, never embedded as JSON.
+    public let image: ClipboardCloudImageReference?
 
     /// Build a privacy-minimized snapshot of the user's local record.
     /// File paths, filenames, clipboard bodies and image pixel data are
     /// never included just because the base CloudKit toggle was enabled.
-    public init?(record: RecordedOperation, consent: ClipboardCloudConsent) {
+    public init?(record: RecordedOperation, consent: ClipboardCloudConsent,
+                 image: ClipboardCloudImageReference? = nil) {
         guard consent.enabled else { return nil }
         type = record.type
         detectedTimeMS = record.detectedTimeMS
         sourceApplication = record.sourceApplication
+        self.image = consent.includeImages && record.type == "image_copy" ? image : nil
         items = record.items.prefix(200).map {
             ClipboardCloudItem(kind: $0.kind, size: $0.size,
                                name: consent.includeNames ? $0.name : nil,
@@ -157,6 +166,11 @@ public struct ClipboardCloudRecord: Codable, Sendable, Equatable, Identifiable {
               UUID(uuidString: mutationID) != nil,
               isDeleted ? payload == nil : payload?.kind == kind else {
             throw ClipboardCloudModelError.invalidRecord
+        }
+        if case .operation(let operation)? = payload, let image = operation.image {
+            guard operation.type == "image_copy", image.isStructurallyValid else {
+                throw ClipboardCloudModelError.invalidRecord
+            }
         }
         return self
     }
