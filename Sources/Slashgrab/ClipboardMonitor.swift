@@ -171,8 +171,9 @@ final class ClipboardMonitor: ObservableObject {
         // the pasteboard exposes a trustworthy copy-source app identity.
         let excluded = Set(excludedApps.split(whereSeparator: { $0 == "," || $0 == "\n" })
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) })
-        if let frontmostID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier,
-           excluded.contains(frontmostID) { return }
+        let observedForegroundID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+        if let observedForegroundID,
+           excluded.contains(observedForegroundID) { return }
         // This is the observation timestamp, not the originating app's
         // event timestamp nor proof of a completed file transfer.
         let detected = Int64(Date().timeIntervalSince1970 * 1000)
@@ -182,8 +183,10 @@ final class ClipboardMonitor: ObservableObject {
             guard enabled, let store else { return }
             onDetected?("Clipboard files detected")
             persist {
-                try store.record(type: "copy", urls: urls, sourceApplication: nil,
-                                 detectionMethod: "clipboard", detectedTimeMS: detected)
+                try store.record(type: "copy", urls: urls,
+                                 sourceApplication: observedForegroundID,
+                                 detectionMethod: "clipboard_frontmost_observed",
+                                 detectedTimeMS: detected)
             }
             return
         }
@@ -212,7 +215,8 @@ final class ClipboardMonitor: ObservableObject {
                         do {
                             try store.recordClipboardImage(
                                 data: data, thumbnail: thumbnail,
-                                pasteboardType: type, detectedTimeMS: detected
+                                pasteboardType: type, detectedTimeMS: detected,
+                                observedForegroundBundleID: observedForegroundID
                             )
                             return
                         } catch {
@@ -220,15 +224,15 @@ final class ClipboardMonitor: ObservableObject {
                         }
                     }
                     try store.record(type: "image_copy", urls: [],
-                                     sourceApplication: nil,
-                                     detectionMethod: "clipboard_type",
+                                     sourceApplication: observedForegroundID,
+                                     detectionMethod: "clipboard_frontmost_observed",
                                      detectedTimeMS: detected)
                 }
             } else {
                 persist {
                     try store.record(type: "image_copy", urls: [],
-                                     sourceApplication: nil,
-                                     detectionMethod: "clipboard_type",
+                                     sourceApplication: observedForegroundID,
+                                     detectionMethod: "clipboard_frontmost_observed",
                                      detectedTimeMS: detected)
                 }
             }
@@ -247,12 +251,15 @@ final class ClipboardMonitor: ObservableObject {
         persist {
             if let richRTF,
                let sanitized = ClipboardRTFParser.sanitizedPreview(from: richRTF) {
-                try store.recordRichText(sanitized, detectedTimeMS: detected)
+                try store.recordRichText(
+                    sanitized, detectedTimeMS: detected,
+                    observedForegroundBundleID: observedForegroundID
+                )
             } else {
                 try store.record(type: "text_copy", urls: [],
-                                 sourceApplication: nil,
-                                 detectionMethod: "clipboard", detectedTimeMS: detected,
-                                 clipboardText: text)
+                                 sourceApplication: observedForegroundID,
+                                 detectionMethod: "clipboard_frontmost_observed",
+                                 detectedTimeMS: detected, clipboardText: text)
             }
         }
     }
