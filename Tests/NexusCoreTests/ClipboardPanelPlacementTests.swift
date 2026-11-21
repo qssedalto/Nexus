@@ -1,6 +1,6 @@
 import CoreGraphics
 import XCTest
-@testable import SlashgrabCore
+@testable import NexusCore
 
 final class ClipboardPanelPlacementTests: XCTestCase {
     func testFitsSmallLaptopScreenWithoutGoingOffDisplay() {
