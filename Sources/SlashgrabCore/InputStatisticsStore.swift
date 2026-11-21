@@ -549,8 +549,22 @@ public final class InputStatisticsStore: @unchecked Sendable {
     public func restoreBackup(from source: URL, deviceID: String) throws -> Int {
         guard source.standardizedFileURL != databaseURL.standardizedFileURL,
               !deviceID.isEmpty, deviceID.count <= 80 else { throw InputStoreError.write }
+        // An iCloud file can be backed by File Provider, or by a SQLite
+        // online-backup snapshot whose header retains WAL mode without WAL
+        // sidecars. First copy it into a private writable staging directory,
+        // then open the *static snapshot* as immutable/read-only. This avoids
+        // SQLite trying to open nonexistent WAL/SHM files in the provider's
+        // directory, and prevents a source file changing mid-import.
+        let staging = FileManager.default.temporaryDirectory
+            .appendingPathComponent("NexusBackupRestore-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: staging, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: staging) }
+        let snapshot = staging.appendingPathComponent("snapshot.sqlite")
+        try FileManager.default.copyItem(at: source, to: snapshot)
+        let uri = snapshot.absoluteString + "?immutable=1"
         var sourceDB: OpaquePointer?
-        guard sqlite3_open_v2(source.path, &sourceDB, SQLITE_OPEN_READONLY, nil) == SQLITE_OK,
+        guard sqlite3_open_v2(uri, &sourceDB,
+                              SQLITE_OPEN_READONLY | SQLITE_OPEN_URI, nil) == SQLITE_OK,
               let sourceDB else {
             if let sourceDB { sqlite3_close(sourceDB) }
             throw InputStoreError.open
