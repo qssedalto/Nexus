@@ -339,3 +339,17 @@
 "Source and HID device statistics" = "事件来源与 HID 设备统计";
 "Only HID vendor/product and optional connection location identify a device model. Quartz and AppKit sources cannot identify a physical keyboard or mouse; location-free HID entries may represent several identical devices." = "只有 HID 提供的厂商、产品及可选连接位置可以帮助识别设备型号。Quartz 和 AppKit 无法可靠识别物理键盘或鼠标；缺少位置的 HID 条目也可能代表多个相同设备。";
 "Device unknown" = "设备未知";
+
+"Restore selected statistics" = "恢复选中的统计备份";
+"Select one NexusStatistics.sqlite file inside a Nexus Statistics device folder. Restoring merges old records, preserving current data." = "选择「Nexus Statistics」设备文件夹中的 NexusStatistics.sqlite。恢复会合并历史记录，不覆盖当前数据。";
+"Select a NexusStatistics.sqlite backup file" = "请选择 NexusStatistics.sqlite 备份文件";
+"Restoring historical statistics" = "正在恢复历史统计";
+"Restored statistical rows" = "已恢复的统计记录行数";
+"Restore backup…" = "从备份恢复…";
+"Each Mac receives its own backup subfolder. Restoring merges and deduplicates recorded statistics without erasing current events." = "每台 Mac 都使用独立的备份子文件夹。恢复时合并并去重统计记录，不清除当前事件。";
+"Automatically merge other Macs' iCloud backups" = "自动合并其他 Mac 的 iCloud 备份";
+"Cross-Mac import uses only the selected folder and separately named device snapshots, skips symlinks and backups over 100 MB, and preserves original event IDs across devices." = "跨 Mac 导入只读取你选定文件夹中的设备备份，跳过符号链接和超过 100 MB 的备份，保留原始设备和事件 ID。";
+"Import other Macs now" = "立即导入其他 Mac 的备份";
+"Choose a backup folder before importing other Macs" = "请先选择备份文件夹，再导入其他 Mac 的记录";
+"Scanning other Mac backups" = "正在扫描其他 Mac 的备份";
+"Imported cross-device statistical rows" = "跨设备导入的统计记录行数";
