@@ -811,6 +811,7 @@
 				APP_BUNDLE_ID = com.qssedalto.nexus.dev;
 				APP_DISPLAY_NAME = "Nexus Dev";
 				APP_GROUP_ID = "$(DEVELOPMENT_TEAM).com.qssedalto.nexus.dev.shared";
+				LEGACY_APP_GROUP_ID = "$(DEVELOPMENT_TEAM).com.prof18.slashgrab.dev.shared";
 				APP_ICON_NAME = AppIconDev;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
@@ -950,6 +951,7 @@
 				APP_BUNDLE_ID = com.qssedalto.nexus;
 				APP_DISPLAY_NAME = Nexus;
 				APP_GROUP_ID = "$(DEVELOPMENT_TEAM).com.qssedalto.nexus.shared";
+				LEGACY_APP_GROUP_ID = "$(DEVELOPMENT_TEAM).com.prof18.slashgrab.shared";
 				APP_ICON_NAME = AppIcon;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;

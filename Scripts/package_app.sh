@@ -271,8 +271,8 @@ EXTENSION_ENTITLEMENTS="$ENTITLEMENTS_DIR/NexusFinderSync.entitlements"
 /bin/cp "$ROOT_DIR/Config/NexusFinderSync.entitlements" "$EXTENSION_ENTITLEMENTS"
 /usr/libexec/PlistBuddy -c "Set :com.apple.security.application-groups:0 $APP_GROUP_ID" "$APP_ENTITLEMENTS"
 /usr/libexec/PlistBuddy -c "Set :com.apple.security.application-groups:0 $APP_GROUP_ID" "$EXTENSION_ENTITLEMENTS"
-/usr/libexec/PlistBuddy -c "Add :com.apple.security.application-groups:1 string $LEGACY_APP_GROUP_ID" "$APP_ENTITLEMENTS"
-/usr/libexec/PlistBuddy -c "Add :com.apple.security.application-groups:1 string $LEGACY_APP_GROUP_ID" "$EXTENSION_ENTITLEMENTS"
+/usr/libexec/PlistBuddy -c "Set :com.apple.security.application-groups:1 $LEGACY_APP_GROUP_ID" "$APP_ENTITLEMENTS"
+/usr/libexec/PlistBuddy -c "Set :com.apple.security.application-groups:1 $LEGACY_APP_GROUP_ID" "$EXTENSION_ENTITLEMENTS"
 /usr/bin/plutil -lint "$APP_ENTITLEMENTS" "$EXTENSION_ENTITLEMENTS" >/dev/null
 
 if [[ "$SIGNING_MODE" == "adhoc" || -z "$APP_IDENTITY" ]]; then
