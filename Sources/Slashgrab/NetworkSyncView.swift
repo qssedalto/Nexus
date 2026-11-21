@@ -238,6 +238,9 @@ final class NetworkSyncController: ObservableObject {
             operationSyncStatus = "Enable operation history sync to restore"
             return
         }
+        let consentRevision = operationConsentRevision
+        let includePaths = operationSyncPaths
+        let includeText = operationSyncText
         guard startMS >= 0 && endMS > startMS else {
             operationSyncStatus = "Invalid time range"
             return
@@ -251,9 +254,20 @@ final class NetworkSyncController: ObservableObject {
                     method: "GET"
                 )
                 let page: RemoteOperationPage = try await fetch(request)
+                // Do not persist previously authorized remote text or paths
+                // after the user revokes a permission during network latency.
+                guard operationSyncEnabled, consentRevision == operationConsentRevision,
+                      (!includePaths || operationSyncPaths),
+                      (!includeText || operationSyncText) else {
+                    operationSyncStatus = "Operation restore cancelled because consent changed"
+                    return
+                }
+                let redacted = page.operations.map {
+                    $0.redacted(includePaths: includePaths, includeText: includeText)
+                }
                 // Imported records use stable device-qualified IDs. They can
                 // never enter the outbound local operation sync queue.
-                inserted += try operationStore.importRemote(page.operations)
+                inserted += try operationStore.importRemote(redacted)
                 guard let next = page.nextOffset else { break }
                 guard next > offset else { throw SyncError.invalidResponse }
                 offset = next
