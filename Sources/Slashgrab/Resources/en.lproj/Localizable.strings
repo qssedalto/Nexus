@@ -436,3 +436,8 @@
 "This deletes this device's copy operation records on the server. Automatic sync and operation upload permissions will be turned off; local records remain unchanged." = "This deletes this device's copy operation records on the server. Automatic sync and operation upload permissions will be turned off; local records remain unchanged.";
 "Statistics server requires aggregate retry support before upload" = "Statistics server requires aggregate retry support before upload";
 "Server connected but safe aggregate statistics retry is unavailable" = "Server connected but safe aggregate statistics retry is unavailable";
+"Enable keyboard and mouse statistics" = "Enable keyboard and mouse statistics";
+"Enable clipboard history monitoring" = "Enable clipboard history monitoring";
+"Allow statistics upload to configured server" = "Allow statistics upload to configured server";
+"Statistics upload is disabled; local data is preserved" = "Statistics upload is disabled; local data is preserved";
+"Statistical uploads remain off until you enable their independent switch; disabling it stops scheduled and manual statistics uploads without deleting local records." = "Statistical uploads remain off until you enable their independent switch; disabling it stops scheduled and manual statistics uploads without deleting local records.";
