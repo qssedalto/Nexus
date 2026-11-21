@@ -318,6 +318,8 @@ public final class OperationStore: @unchecked Sendable {
                    source_application, detection_method, status, target, duration_ms, clipboard_text
             FROM operations
             WHERE type IN ('copy','text_copy','path_copy','image_copy','drop_copy')
+              AND id NOT LIKE 'cloudkit:%'
+              AND id NOT LIKE 'remote:%'
             ORDER BY COALESCE(event_time_ms, detected_time_ms) DESC, id DESC
             LIMIT ? OFFSET ?
             """)
@@ -791,6 +793,7 @@ public final class OperationStore: @unchecked Sendable {
             FROM operations
             WHERE id NOT IN (SELECT operation_id FROM operation_sync_state)
               AND id NOT LIKE 'remote:%'
+              AND id NOT LIKE 'cloudkit:%'
             ORDER BY detected_time_ms, id
             LIMIT ?
             """
@@ -938,6 +941,93 @@ public final class OperationStore: @unchecked Sendable {
                     bind(item.kind, to: 6, in: itemStmt)
                     bind(item.size, to: 7, in: itemStmt)
                     guard sqlite3_step(itemStmt) == SQLITE_DONE else { throw StoreError.write }
+                }
+                inserted += 1
+            }
+            try execute("COMMIT")
+            return inserted
+        } catch {
+            try? execute("ROLLBACK")
+            throw error
+        }
+    }
+
+    /// Explicitly mirror consent-approved cloud history without restoring
+    /// remote file paths as local URLs. Entries are excluded from outbound
+    /// queues; tombstones remove only mirrors, never original local copies.
+    @discardableResult
+    public func importCloudHistory(
+        _ records: [ClipboardCloudRecord], consent: ClipboardCloudConsent
+    ) throws -> Int {
+        guard consent.enabled else { return 0 }
+        guard records.count <= 200 else { throw StoreError.write }
+        let approved = try records.filter {
+            _ = try $0.validated()
+            return $0.kind == .operation && consent.permits($0)
+        }
+        lock.lock()
+        defer { lock.unlock() }
+        try execute("BEGIN IMMEDIATE")
+        do {
+            let insert = try prepare("""
+                INSERT OR IGNORE INTO operations
+                (id,type,event_time_ms,detected_time_ms,completed_time_ms,
+                 source_application,detection_method,status,target,duration_ms,clipboard_text)
+                VALUES(?,?,NULL,?,NULL,NULL,'cloudkit_remote_restore',
+                       'cloud_metadata_restored',NULL,NULL,?)
+                """)
+            defer { sqlite3_finalize(insert) }
+            let items = try prepare("""
+                INSERT OR IGNORE INTO operation_items
+                (operation_id,position,name,source,extension,kind,size)
+                VALUES(?,?,?,NULL,NULL,?,?)
+                """)
+            defer { sqlite3_finalize(items) }
+            let remove = try prepare("""
+                DELETE FROM operations
+                WHERE id=? AND detection_method='cloudkit_remote_restore'
+                """)
+            defer { sqlite3_finalize(remove) }
+            let exists = try prepare("SELECT 1 FROM operations WHERE id IN (?,?) LIMIT 1")
+            defer { sqlite3_finalize(exists) }
+            var inserted = 0
+            for change in approved {
+                let sourceID = String(change.id.dropFirst("operation:".count))
+                guard UUID(uuidString: sourceID) != nil else { continue }
+                let localID = "cloudkit:" + sourceID
+                if change.isDeleted {
+                    sqlite3_reset(remove)
+                    sqlite3_clear_bindings(remove)
+                    bind(localID, to: 1, in: remove)
+                    guard sqlite3_step(remove) == SQLITE_DONE else { throw StoreError.write }
+                    continue
+                }
+                guard case .operation(let operation)? = change.payload,
+                      ["copy","text_copy","path_copy","image_copy","drop_copy"].contains(operation.type),
+                      operation.detectedTimeMS >= 0, operation.items.count <= 100 else { continue }
+                sqlite3_reset(exists)
+                sqlite3_clear_bindings(exists)
+                bind(sourceID, to: 1, in: exists)
+                bind(localID, to: 2, in: exists)
+                let found = sqlite3_step(exists)
+                guard found == SQLITE_ROW || found == SQLITE_DONE else { throw StoreError.write }
+                if found == SQLITE_ROW { continue }
+                sqlite3_reset(insert)
+                sqlite3_clear_bindings(insert)
+                bind(localID, to: 1, in: insert)
+                bind(operation.type, to: 2, in: insert)
+                bind(operation.detectedTimeMS, to: 3, in: insert)
+                bind(operation.text, to: 4, in: insert)
+                guard sqlite3_step(insert) == SQLITE_DONE else { throw StoreError.write }
+                for (index, item) in operation.items.enumerated() {
+                    sqlite3_reset(items)
+                    sqlite3_clear_bindings(items)
+                    bind(localID, to: 1, in: items)
+                    bind(Int64(index), to: 2, in: items)
+                    bind(item.name ?? "Remote \(item.kind)", to: 3, in: items)
+                    bind(item.kind, to: 4, in: items)
+                    bind(item.size, to: 5, in: items)
+                    guard sqlite3_step(items) == SQLITE_DONE else { throw StoreError.write }
                 }
                 inserted += 1
             }
