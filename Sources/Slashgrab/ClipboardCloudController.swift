@@ -177,6 +177,29 @@ final class ClipboardCloudController: ObservableObject {
         }
     }
 
+    /// Explicitly restore sanitized metadata/text from the local CloudKit
+    /// journal into the normal history shelf. Never materializes remote file
+    /// paths as working local file URL references.
+    func restoreCachedHistory() async {
+        guard !running, enabled else { return }
+        guard let journal, let store else {
+            status = "Clipboard history or cloud journal database unavailable"
+            return
+        }
+        running = true
+        defer { running = false }
+        let consent = currentConsent
+        do {
+            let restored = try await Task.detached(priority: .utility) {
+                let cached = try journal.cachedRecords(limit: 100)
+                return try store.importCloudHistory(cached, consent: consent)
+            }.value
+            status = "Restored \(restored) cloud history entries into local shelf"
+        } catch {
+            status = "Cloud history restoration failed: \(error.localizedDescription)"
+        }
+    }
+
     func refreshLocalCache() {
         guard let journal else { return }
         do {

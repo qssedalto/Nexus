@@ -368,3 +368,5 @@
 
 "matching records loaded" = "matching records loaded";
 "Load 200 older matching records" = "Load 200 older matching records";
+
+"Restore cached cloud history to local shelf" = "Restore cached cloud history to local shelf";

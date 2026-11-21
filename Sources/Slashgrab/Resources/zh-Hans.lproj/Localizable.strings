@@ -426,3 +426,5 @@
 
 "matching records loaded" = "条匹配记录已加载";
 "Load 200 older matching records" = "继续加载 200 条更早的匹配记录";
+
+"Restore cached cloud history to local shelf" = "将缓存的云端历史恢复到本地剪贴板面板";
