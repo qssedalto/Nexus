@@ -11,6 +11,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var finderCopyObserver: NSObjectProtocol?
     private let finderExtensionMigrationController = FinderExtensionMigrationController.production()
 
+    func applicationWillTerminate(_ notification: Notification) {
+        ClipboardHotkeyController.shared.shutdown()
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         NSApp.servicesProvider = serviceProvider
