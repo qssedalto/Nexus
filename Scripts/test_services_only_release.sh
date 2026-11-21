@@ -23,7 +23,12 @@ INFO="$OUT/Build/Products/ServicesOnly/Nexus.app/Contents/Info.plist"
 test -f "$INFO"
 function plist_read() { /usr/libexec/PlistBuddy -c "Print :$1" "$INFO"; }
 test "$(plist_read CFBundleIdentifier)" = 'com.prof18.slashgrab'
-test "$(plist_read SlashgrabAppGroupIdentifier)" = '$(DEVELOPMENT_TEAM).com.prof18.slashgrab.shared'
+RELEASE_SETTINGS="$(xcodebuild -project Slashgrab.xcodeproj -target Slashgrab -configuration Release -showBuildSettings)"
+ONLY_SETTINGS="$(xcodebuild -project Slashgrab.xcodeproj -target Slashgrab -configuration ServicesOnly -showBuildSettings)"
+release_group="$(sed -n 's/^[[:space:]]*APP_GROUP_ID = //p' <<<"$RELEASE_SETTINGS" | head -n 1)"
+only_group="$(sed -n 's/^[[:space:]]*APP_GROUP_ID = //p' <<<"$ONLY_SETTINGS" | head -n 1)"
+test -n "$release_group"
+test "$only_group" = "$release_group"
 test "$(plist_read NSServices:0:NSMessage)" = 'copySelectedPaths'
 test "$(plist_read NSServices:0:NSSendFileTypes:0)" = 'public.item'
 if plist_read NSServices:1 >/dev/null 2>&1; then
