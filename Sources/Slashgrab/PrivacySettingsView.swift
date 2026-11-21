@@ -1,6 +1,7 @@
 import AppKit
 import ApplicationServices
 import SwiftUI
+import SlashgrabCore
 
 /// One home for all observation, retention and network-consent settings.
 @MainActor
@@ -45,6 +46,15 @@ struct PrivacySettingsView: View {
             Section(localized("Clipboard history privacy")) {
                 Toggle(localized("Monitor file copies from the clipboard"), isOn: $clipboard.enabled)
                 Toggle(localized("Record clipboard text (opt-in)"), isOn: $clipboard.textEnabled)
+                Picker(localized("Identical plain-text copies"),
+                       selection: $clipboard.textDuplicatePolicy) {
+                    ForEach(ClipboardTextDuplicatePolicy.allCases, id: \.rawValue) { policy in
+                        Text(localized(policy.title)).tag(policy)
+                    }
+                }
+                .disabled(!clipboard.textEnabled)
+                Text(localized("Default keeps every copy. Optional consolidation only refreshes the most recent identical plain-text entry within 10 minutes; files, images and formatted text break the sequence."))
+                    .font(.caption).foregroundStyle(.secondary)
                 Toggle(localized("Save safe RTF typography (opt-in)"),
                        isOn: $clipboard.richTextEnabled)
                     .disabled(!clipboard.textEnabled)
