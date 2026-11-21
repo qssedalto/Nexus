@@ -158,7 +158,11 @@ final class ClipboardCloudController: ObservableObject {
             )
             // Current privacy settings are rechecked when the coordinator
             // decides whether old, queued metadata can leave this Mac.
-            let report = try await coordinator.syncOnce(consent: currentConsent)
+            let report = try await coordinator.syncOnce(consentProvider: { [weak self] in
+                await MainActor.run {
+                    self?.currentConsent ?? ClipboardCloudConsent()
+                }
+            })
             if let summary = ClipboardCloudRunSummary(
                 report: report,
                 finishedTimeMS: Int64(Date().timeIntervalSince1970 * 1_000)

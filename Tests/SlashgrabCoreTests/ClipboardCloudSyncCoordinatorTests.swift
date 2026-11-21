@@ -12,8 +12,16 @@ private actor MockClipboardCloudTransport: ClipboardCloudTransport {
     var failUpload = false
     var failFetch = false
 
-    func upload(_ records: [ClipboardCloudRecord]) async throws -> [ClipboardCloudUploadAck] {
+    func upload(
+        _ records: [ClipboardCloudRecord],
+        permissionCheck: @escaping @Sendable (ClipboardCloudRecord) async -> Bool
+    ) async throws -> [ClipboardCloudUploadAck] {
         if failUpload { throw Failure.upload }
+        for record in records {
+            guard await permissionCheck(record) else {
+                throw ClipboardCloudSyncError.consentRequired
+            }
+        }
         uploadedBatches.append(records)
         return acknowledgements ?? records.map {
             ClipboardCloudUploadAck(id: $0.id, mutationID: $0.mutationID)

@@ -66,13 +66,17 @@ public actor ClipboardCloudKitPrivateTransport: ClipboardCloudTransport, Clipboa
     /// that server record's change tag; a concurrent overwrite fails rather
     /// than erasing another Mac's newer edit or deletion tombstone.
     public func upload(
-        _ changes: [ClipboardCloudRecord]
+        _ changes: [ClipboardCloudRecord],
+        permissionCheck: @escaping @Sendable (ClipboardCloudRecord) async -> Bool
     ) async throws -> [ClipboardCloudUploadAck] {
         guard changes.count <= 100 else { throw TransportError.oversizedBatch }
         var acknowledged: [ClipboardCloudUploadAck] = []
         for change in changes {
             try Task.checkCancellation()
             _ = try change.validated()
+            guard await permissionCheck(change) else {
+                throw ClipboardCloudSyncError.consentRequired
+            }
             let id = CKRecord.ID(recordName: change.id, zoneID: zoneID)
             let existing: CKRecord?
             do {
@@ -109,6 +113,12 @@ public actor ClipboardCloudKitPrivateTransport: ClipboardCloudTransport, Clipboa
                             "mutationID", "isDeleted", "document"] {
                     existing[key] = encoded[key]
                 }
+                // The server version lookup is itself an awaited network
+                // request. Preferences may have changed while it completed.
+                guard await permissionCheck(change) else {
+                    throw ClipboardCloudSyncError.consentRequired
+                }
+                try Task.checkCancellation()
                 let saved = try await database.save(existing)
                 let received = try ClipboardCloudKitCodec.decode(
                     saved, expectedZoneID: zoneID
@@ -118,6 +128,10 @@ public actor ClipboardCloudKitPrivateTransport: ClipboardCloudTransport, Clipboa
                 }
             } else {
                 let candidate = try ClipboardCloudKitCodec.encode(change, zoneID: zoneID)
+                guard await permissionCheck(change) else {
+                    throw ClipboardCloudSyncError.consentRequired
+                }
+                try Task.checkCancellation()
                 let saved = try await database.save(candidate)
                 let received = try ClipboardCloudKitCodec.decode(
                     saved, expectedZoneID: zoneID
