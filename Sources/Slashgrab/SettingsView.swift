@@ -66,7 +66,10 @@ struct SettingsView<Updater: UpdaterControlling>: View {
             }
             Section(localized("Copy history")) {
                 Toggle(localized("Monitor file copies from the clipboard"), isOn: $clipboardMonitor.enabled)
-                Text(localized("Records file URLs when the clipboard changes. Source applications and file transfer completion may be unknown."))
+                Toggle(localized("Record clipboard text (opt-in)"), isOn: $clipboardMonitor.textEnabled)
+                Text(localized("Text history can include private information. Enable only when you want Nexus to store copied text locally."))
+                    .font(.caption).foregroundStyle(.secondary)
+                Text(localized("Records detected clipboard changes, not confirmed file transfers or paste completion."))
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section(localized("Copy feedback")) {
