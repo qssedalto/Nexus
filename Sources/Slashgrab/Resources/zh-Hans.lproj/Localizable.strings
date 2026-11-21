@@ -217,3 +217,13 @@
 "Unable to delete local record" = "无法删除这条本地记录";
 "local records deleted" = "条本地记录已删除";
 "Unable to clear local history" = "无法清空本地历史";
+
+"Could not initialize global shortcut handler" = "无法初始化全局快捷键监听";
+"Global clipboard shortcut disabled" = "全局剪贴板快捷键已关闭";
+"Shortcut unavailable or used by another application" = "快捷键不可用，可能已被其他应用占用";
+"Global clipboard shortcut enabled" = "已启用全局剪贴板快捷键";
+"Clipboard shortcut" = "剪贴板快捷键";
+"Show or hide clipboard shelf" = "显示或隐藏剪贴板面板";
+"Shortcuts are off by default. If the shortcut is occupied, the previous setting is kept." = "快捷键默认关闭；若组合键被其他应用占用，将保留原来的设置。";
+"Paste into previous app" = "粘贴到此前使用的应用";
+"Paste as plain text" = "以纯文本粘贴";
