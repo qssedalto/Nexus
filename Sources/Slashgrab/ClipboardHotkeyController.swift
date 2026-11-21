@@ -128,7 +128,7 @@ final class ClipboardHotkeyController: ObservableObject {
         customShortcut = candidate
         if register(.custom) {
             selected = .custom
-            UserDefaults.standard.set(candidate.rawValue, forKey: "nexusClipboardHotkeyPreset")
+            UserDefaults.standard.set(Preset.custom.rawValue, forKey: "nexusClipboardHotkeyPreset")
             if let data = try? JSONEncoder().encode(candidate) {
                 UserDefaults.standard.set(data, forKey: customKey)
             }
