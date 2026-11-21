@@ -44,6 +44,10 @@ struct PrivacySettingsView: View {
             Section(localized("Clipboard history privacy")) {
                 Toggle(localized("Monitor file copies from the clipboard"), isOn: $clipboard.enabled)
                 Toggle(localized("Record clipboard text (opt-in)"), isOn: $clipboard.textEnabled)
+                Toggle(localized("Save copied image pixels (opt-in, 8 MB maximum)"),
+                       isOn: $clipboard.imageEnabled)
+                Text(localized("Image capture is off by default. Stored image bytes stay local, share duplicate storage, and are removed when the last history reference is deleted. Oversized or unreadable images retain metadata only."))
+                    .font(.caption).foregroundStyle(.secondary)
                 Toggle(localized("Pause clipboard history collection"), isOn: $clipboard.paused)
                 Toggle(localized("Observe Command+V paste requests (opt-in)"), isOn: $pasteObservation)
                 Text(localized("Only a shortcut request and event timestamp are saved. This cannot verify a successful paste, does not inspect the destination, and requires input-monitoring permission."))
