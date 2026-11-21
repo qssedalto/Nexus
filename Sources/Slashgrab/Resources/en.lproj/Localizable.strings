@@ -281,3 +281,17 @@
 "Source and HID device statistics" = "Source and HID device statistics";
 "Only HID vendor/product and optional connection location identify a device model. Quartz and AppKit sources cannot identify a physical keyboard or mouse; location-free HID entries may represent several identical devices." = "Only HID vendor/product and optional connection location identify a device model. Quartz and AppKit sources cannot identify a physical keyboard or mouse; location-free HID entries may represent several identical devices.";
 "Device unknown" = "Device unknown";
+
+"Restore selected statistics" = "Restore selected statistics";
+"Select one NexusStatistics.sqlite file inside a Nexus Statistics device folder. Restoring merges old records, preserving current data." = "Select one NexusStatistics.sqlite file inside a Nexus Statistics device folder. Restoring merges old records, preserving current data.";
+"Select a NexusStatistics.sqlite backup file" = "Select a NexusStatistics.sqlite backup file";
+"Restoring historical statistics" = "Restoring historical statistics";
+"Restored statistical rows" = "Restored statistical rows";
+"Restore backup…" = "Restore backup…";
+"Each Mac receives its own backup subfolder. Restoring merges and deduplicates recorded statistics without erasing current events." = "Each Mac receives its own backup subfolder. Restoring merges and deduplicates recorded statistics without erasing current events.";
+"Automatically merge other Macs' iCloud backups" = "Automatically merge other Macs' iCloud backups";
+"Cross-Mac import uses only the selected folder and separately named device snapshots, skips symlinks and backups over 100 MB, and preserves original event IDs across devices." = "Cross-Mac import uses only the selected folder and separately named device snapshots, skips symlinks and backups over 100 MB, and preserves original event IDs across devices.";
+"Import other Macs now" = "Import other Macs now";
+"Choose a backup folder before importing other Macs" = "Choose a backup folder before importing other Macs";
+"Scanning other Mac backups" = "Scanning other Mac backups";
+"Imported cross-device statistical rows" = "Imported cross-device statistical rows";
