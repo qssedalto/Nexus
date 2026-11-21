@@ -220,6 +220,105 @@ public final class OperationStore: @unchecked Sendable {
         }
     }
 
+    /// Exact-text deduplication with durable history identity. Default keeps
+    /// every event. The opt-in strategy refreshes only the most recent local
+    /// *plain* clipboard text copy within ten minutes; any intervening file,
+    /// image or rich-text copy breaks the sequence. Existing pins and
+    /// collection links remain attached to the stable operation UUID.
+    @discardableResult
+    public func recordTextCopy(
+        _ text: String, detectedTimeMS: Int64,
+        observedForegroundBundleID: String? = nil,
+        policy: ClipboardTextDuplicatePolicy = .keepAll
+    ) throws -> String {
+        guard !text.isEmpty, text.utf8.count <= 1_048_576,
+              detectedTimeMS >= 0 else { throw StoreError.write }
+        lock.lock()
+        defer { lock.unlock() }
+        try execute("BEGIN IMMEDIATE")
+        do {
+            if policy == .refreshLatest {
+                let latest = try prepare("""
+                    SELECT id,type,detected_time_ms,clipboard_text,detection_method
+                    FROM operations
+                    WHERE type IN ('copy','path_copy','text_copy','image_copy','drop_copy')
+                      AND id NOT LIKE 'cloudkit:%' AND id NOT LIKE 'remote:%'
+                    ORDER BY COALESCE(event_time_ms,detected_time_ms) DESC,id DESC
+                    LIMIT 1
+                    """)
+                let step = sqlite3_step(latest)
+                var existingID: String?
+                if step == SQLITE_ROW,
+                   string(latest, 1) == "text_copy",
+                   string(latest, 3) == text,
+                   string(latest, 4) == "clipboard_frontmost_observed",
+                   let previous = integer(latest, 2),
+                   previous >= 0, previous <= detectedTimeMS,
+                   previous >= max(0, detectedTimeMS - 600_000) {
+                    existingID = string(latest, 0)
+                } else if step != SQLITE_DONE && step != SQLITE_ROW {
+                    sqlite3_finalize(latest)
+                    throw StoreError.write
+                }
+                sqlite3_finalize(latest)
+                if let existingID {
+                    let update = try prepare("""
+                        UPDATE operations SET detected_time_ms=?,
+                            source_application=?,
+                            detection_method='clipboard_frontmost_observed',
+                            status='clipboard_detected'
+                        WHERE id=? AND type='text_copy'
+                        """)
+                    bind(detectedTimeMS, to: 1, in: update)
+                    bind(observedForegroundBundleID, to: 2, in: update)
+                    bind(existingID, to: 3, in: update)
+                    let updated = sqlite3_step(update) == SQLITE_DONE
+                    sqlite3_finalize(update)
+                    guard updated else { throw StoreError.write }
+                    let receipt = try prepare("""
+                        DELETE FROM operation_sync_state WHERE operation_id=?
+                        """)
+                    bind(existingID, to: 1, in: receipt)
+                    let cleared = sqlite3_step(receipt) == SQLITE_DONE
+                    sqlite3_finalize(receipt)
+                    guard cleared else { throw StoreError.write }
+                    try execute("COMMIT")
+                    return existingID
+                }
+            }
+            let id = UUID().uuidString
+            let operation = try prepare("""
+                INSERT INTO operations
+                (id,type,event_time_ms,detected_time_ms,completed_time_ms,
+                 source_application,detection_method,status,target,duration_ms,clipboard_text)
+                VALUES(?,'text_copy',NULL,?,NULL,?,'clipboard_frontmost_observed',
+                       'clipboard_detected',NULL,NULL,?)
+                """)
+            bind(id, to: 1, in: operation)
+            bind(detectedTimeMS, to: 2, in: operation)
+            bind(observedForegroundBundleID, to: 3, in: operation)
+            bind(text, to: 4, in: operation)
+            let inserted = sqlite3_step(operation) == SQLITE_DONE
+            sqlite3_finalize(operation)
+            guard inserted else { throw StoreError.write }
+            let item = try prepare("""
+                INSERT INTO operation_items
+                (operation_id,position,name,source,extension,kind,size)
+                VALUES(?,0,'Text',NULL,NULL,'text',?)
+                """)
+            bind(id, to: 1, in: item)
+            bind(Int64(text.utf8.count), to: 2, in: item)
+            let itemOK = sqlite3_step(item) == SQLITE_DONE
+            sqlite3_finalize(item)
+            guard itemOK else { throw StoreError.write }
+            try execute("COMMIT")
+            return id
+        } catch {
+            try? execute("ROLLBACK")
+            throw error
+        }
+    }
+
     /// One opt-in formatted-text event, committed with its safe formatting
     /// cache in the same SQLite transaction. The content is never sent in the
     /// operation metadata network API without the user's text permission.
