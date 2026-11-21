@@ -545,6 +545,191 @@ public final class OperationStore: @unchecked Sendable {
 
     /// Search the complete retained SQLite history, not just the recent
     /// 200-card shelf. Queries and output are bounded; no file contents or
+    /// The optional FTS5 trigram index is user-initiated, never created
+    /// merely because a database is opened. Disabling it drops its searchable
+    /// plaintext copy and all triggers without removing original history.
+    public func fullTextIndexEnabled() throws -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return try fullTextIndexEnabledLocked()
+    }
+
+    private func fullTextIndexEnabledLocked() throws -> Bool {
+        let stmt = try prepare("""
+            SELECT 1 FROM sqlite_master
+            WHERE type='table' AND name='clipboard_search_fts' LIMIT 1
+            """)
+        defer { sqlite3_finalize(stmt) }
+        let result = sqlite3_step(stmt)
+        guard result == SQLITE_ROW || result == SQLITE_DONE else {
+            throw StoreError.read
+        }
+        return result == SQLITE_ROW
+    }
+
+    public func configureFullTextIndex(enabled: Bool) throws {
+        lock.lock()
+        defer { lock.unlock() }
+        try execute("BEGIN IMMEDIATE")
+        do {
+            if enabled {
+                try execute("""
+                    CREATE TABLE IF NOT EXISTS clipboard_search_docs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        operation_id TEXT NOT NULL UNIQUE,
+                        searchable TEXT NOT NULL
+                    )
+                    """)
+                try execute("""
+                    CREATE VIRTUAL TABLE IF NOT EXISTS clipboard_search_fts USING fts5(
+                        searchable, content='clipboard_search_docs',
+                        content_rowid='id', tokenize='trigram'
+                    )
+                    """)
+                try execute("""
+                    CREATE TRIGGER IF NOT EXISTS clipboard_search_docs_ai
+                    AFTER INSERT ON clipboard_search_docs BEGIN
+                        INSERT INTO clipboard_search_fts(rowid,searchable)
+                        VALUES(new.id,new.searchable);
+                    END
+                    """)
+                try execute("""
+                    CREATE TRIGGER IF NOT EXISTS clipboard_search_docs_ad
+                    AFTER DELETE ON clipboard_search_docs BEGIN
+                        INSERT INTO clipboard_search_fts(
+                            clipboard_search_fts,rowid,searchable
+                        ) VALUES('delete',old.id,old.searchable);
+                    END
+                    """)
+                try execute("""
+                    CREATE TRIGGER IF NOT EXISTS clipboard_search_docs_au
+                    AFTER UPDATE ON clipboard_search_docs BEGIN
+                        INSERT INTO clipboard_search_fts(
+                            clipboard_search_fts,rowid,searchable
+                        ) VALUES('delete',old.id,old.searchable);
+                        INSERT INTO clipboard_search_fts(rowid,searchable)
+                        VALUES(new.id,new.searchable);
+                    END
+                    """)
+                try execute("""
+                    CREATE TRIGGER IF NOT EXISTS clipboard_search_op_ai
+                    AFTER INSERT ON operations
+                    WHEN new.type IN ('copy','path_copy','text_copy','image_copy','drop_copy')
+                    BEGIN
+                        INSERT INTO clipboard_search_docs(operation_id,searchable)
+                        VALUES(new.id,COALESCE(new.clipboard_text,''));
+                    END
+                    """)
+                try execute("""
+                    CREATE TRIGGER IF NOT EXISTS clipboard_search_op_au
+                    AFTER UPDATE OF clipboard_text,type ON operations BEGIN
+                        DELETE FROM clipboard_search_docs WHERE operation_id=old.id;
+                        INSERT INTO clipboard_search_docs(operation_id,searchable)
+                        SELECT new.id,
+                            COALESCE(new.clipboard_text,'') || ' ' ||
+                            COALESCE((SELECT group_concat(
+                                i.name || ' ' || COALESCE(i.source,''),' '
+                            ) FROM operation_items i
+                            WHERE i.operation_id=new.id),'')
+                        WHERE new.type IN ('copy','path_copy','text_copy','image_copy','drop_copy');
+                    END
+                    """)
+                try execute("""
+                    CREATE TRIGGER IF NOT EXISTS clipboard_search_op_ad
+                    AFTER DELETE ON operations BEGIN
+                        DELETE FROM clipboard_search_docs WHERE operation_id=old.id;
+                    END
+                    """)
+                try execute("""
+                    CREATE TRIGGER IF NOT EXISTS clipboard_search_item_ai
+                    AFTER INSERT ON operation_items BEGIN
+                        UPDATE clipboard_search_docs SET searchable =
+                            COALESCE((SELECT clipboard_text FROM operations
+                                     WHERE id=new.operation_id),'') || ' ' ||
+                            COALESCE((SELECT group_concat(
+                                name || ' ' || COALESCE(source,''),' '
+                            ) FROM operation_items
+                            WHERE operation_id=new.operation_id),'')
+                        WHERE operation_id=new.operation_id;
+                    END
+                    """)
+                try execute("""
+                    CREATE TRIGGER IF NOT EXISTS clipboard_search_item_au
+                    AFTER UPDATE ON operation_items BEGIN
+                        UPDATE clipboard_search_docs SET searchable =
+                            COALESCE((SELECT clipboard_text FROM operations
+                                     WHERE id=old.operation_id),'') || ' ' ||
+                            COALESCE((SELECT group_concat(
+                                name || ' ' || COALESCE(source,''),' '
+                            ) FROM operation_items
+                            WHERE operation_id=old.operation_id),'')
+                        WHERE operation_id=old.operation_id;
+                        UPDATE clipboard_search_docs SET searchable =
+                            COALESCE((SELECT clipboard_text FROM operations
+                                     WHERE id=new.operation_id),'') || ' ' ||
+                            COALESCE((SELECT group_concat(
+                                name || ' ' || COALESCE(source,''),' '
+                            ) FROM operation_items
+                            WHERE operation_id=new.operation_id),'')
+                        WHERE operation_id=new.operation_id;
+                    END
+                    """)
+                try execute("""
+                    CREATE TRIGGER IF NOT EXISTS clipboard_search_item_ad
+                    AFTER DELETE ON operation_items BEGIN
+                        UPDATE clipboard_search_docs SET searchable =
+                            COALESCE((SELECT clipboard_text FROM operations
+                                     WHERE id=old.operation_id),'') || ' ' ||
+                            COALESCE((SELECT group_concat(
+                                name || ' ' || COALESCE(source,''),' '
+                            ) FROM operation_items
+                            WHERE operation_id=old.operation_id),'')
+                        WHERE operation_id=old.operation_id;
+                    END
+                    """)
+                // Intentional one-time backfill, performed on a utility queue
+                // by the Settings UI. New events are maintained by triggers.
+                try execute("""
+                    DELETE FROM clipboard_search_docs WHERE operation_id NOT IN (
+                        SELECT id FROM operations
+                        WHERE type IN ('copy','path_copy','text_copy','image_copy','drop_copy')
+                    )
+                    """)
+                try execute("""
+                    INSERT INTO clipboard_search_docs(operation_id,searchable)
+                    SELECT o.id, COALESCE(o.clipboard_text,'') || ' ' ||
+                        COALESCE((SELECT group_concat(
+                            i.name || ' ' || COALESCE(i.source,''),' '
+                        ) FROM operation_items i WHERE i.operation_id=o.id),'')
+                    FROM operations o
+                    WHERE o.type IN ('copy','path_copy','text_copy','image_copy','drop_copy')
+                    ON CONFLICT(operation_id)
+                    DO UPDATE SET searchable=excluded.searchable
+                    """)
+                try execute("""
+                    INSERT INTO clipboard_search_fts(clipboard_search_fts)
+                    VALUES('rebuild')
+                    """)
+            } else {
+                for trigger in [
+                    "clipboard_search_item_ai", "clipboard_search_item_au",
+                    "clipboard_search_item_ad", "clipboard_search_op_ai",
+                    "clipboard_search_op_au", "clipboard_search_op_ad",
+                    "clipboard_search_docs_ai", "clipboard_search_docs_au",
+                    "clipboard_search_docs_ad"
+                ] {
+                    try execute("DROP TRIGGER IF EXISTS " + trigger)
+                }
+                try execute("DROP TABLE IF EXISTS clipboard_search_fts")
+                try execute("DROP TABLE IF EXISTS clipboard_search_docs")
+            }
+            try execute("COMMIT")
+        } catch {
+            try? execute("ROLLBACK")
+            throw error
+        }
+    }
+
     /// image pixels are loaded. Unknown originating apps stay NULL.
     public func searchClipboard(
         query: String,
@@ -588,6 +773,24 @@ public final class OperationStore: @unchecked Sendable {
 
         lock.lock()
         defer { lock.unlock() }
+        // FTS is a candidate generator only, never the final truth. Keep the
+        // existing literal instr() predicates to preserve all prior matching.
+        // One- and two-character terms, punctuation and emoji use the old
+        // path so the trigram tokenizer never hides true matches.
+        let eligibleForFTS = needle.unicodeScalars.count >= 3
+            && needle.unicodeScalars.allSatisfy {
+                CharacterSet.letters.contains($0)
+                    || CharacterSet.decimalDigits.contains($0)
+            }
+        var useFTS = false
+        if eligibleForFTS {
+            useFTS = try fullTextIndexEnabledLocked()
+        }
+        let ftsJoin = useFTS ? """
+            JOIN clipboard_search_docs d ON d.operation_id=o.id
+            JOIN clipboard_search_fts ON clipboard_search_fts.rowid=d.id
+            """ : ""
+        let ftsPredicate = useFTS ? "AND clipboard_search_fts MATCH ?" : ""
         // instr() searches literal text, including '%' and '_', unlike LIKE.
         // SQLite's lower() is ASCII-oriented; CJK terms match literally.
         let statement = try prepare("""
@@ -596,6 +799,7 @@ public final class OperationStore: @unchecked Sendable {
                    o.status, o.target, o.duration_ms, o.clipboard_text
             FROM operations o
             \(collectionJoin)
+            \(ftsJoin)
             WHERE o.type IN ('copy', 'path_copy', 'text_copy', 'image_copy', 'drop_copy')
               AND COALESCE(o.event_time_ms, o.detected_time_ms) >= ?
               AND COALESCE(o.event_time_ms, o.detected_time_ms) < ?
@@ -606,6 +810,7 @@ public final class OperationStore: @unchecked Sendable {
                           AND (instr(lower(i.name), lower(?)) > 0
                                OR instr(lower(COALESCE(i.source, '')), lower(?)) > 0)
                     ))
+              \(ftsPredicate)
               AND (? = '' OR instr(lower(COALESCE(o.source_application, '')), lower(?)) > 0)
             \(kindClause)
             \(ordering)
@@ -623,6 +828,10 @@ public final class OperationStore: @unchecked Sendable {
         bind(needle, to: index, in: statement); index += 1
         bind(needle, to: index, in: statement); index += 1
         bind(needle, to: index, in: statement); index += 1
+        if useFTS {
+            bind("\"" + needle + "\"", to: index, in: statement)
+            index += 1
+        }
         bind(app, to: index, in: statement); index += 1
         bind(app, to: index, in: statement); index += 1
         bind(Int64(max(1, min(200, limit))), to: index, in: statement); index += 1
@@ -1615,7 +1824,7 @@ public final class OperationStore: @unchecked Sendable {
     private func integer(_ statement: OpaquePointer, _ column: Int32) -> Int64? {
         sqlite3_column_type(statement, column) == SQLITE_NULL ? nil : sqlite3_column_int64(statement, column)
     }
-    public enum StoreError: Error { case open, write }
+    public enum StoreError: Error { case open, read, write }
 }
 
 private extension RecordedItem {

@@ -523,3 +523,10 @@
 "Image preview unavailable" = "图片预览不可用";
 "Cloud image unavailable" = "云端图片不可用";
 "Cloud image copied to clipboard" = "云端图片已复制到剪贴板";
+"Local full-text indexing" = "本地全文索引";
+"Maintain on-device clipboard search index (opt-in)" = "维护设备上的剪贴板全文索引（可选）";
+"Optional FTS5 indexing speeds up searches of three or more characters, including CJK text. Short terms and punctuation use the original exact search. Disabling the index removes its extra local plaintext copy without deleting clipboard history." = "可选 FTS5 索引可加快包含三个或更多字符的中英文搜索。短关键词和标点仍使用原有精确检索。关闭索引会删除额外的本地文本索引，不会删除剪贴板历史。";
+"Search index ready" = "搜索索引已建立";
+"Search index removed" = "搜索索引已移除";
+"Local history database unavailable" = "本地历史数据库不可用";
+"Search index unavailable: " = "搜索索引不可用：";
