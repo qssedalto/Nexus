@@ -41,6 +41,11 @@ struct MenuPopoverView: View {
 
             HStack {
                 settingsButton
+                Button {
+                    NotificationCenter.default.post(name: .nexusShowWelcomeGuide, object: nil)
+                } label: {
+                    Label(localized("Help"), systemImage: "questionmark.circle")
+                }
 
                 Spacer()
 
