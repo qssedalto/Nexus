@@ -93,17 +93,31 @@ public actor ClipboardCloudSyncCoordinator {
         self.zoneID = zoneID
     }
 
-    /// A single bounded pass: download and merge one remote page FIRST,
-    /// then upload only after the server change backlog is exhausted. This
-    /// prevents a stale local mutation from blocking its own reconciliation.
-    /// Pending data is never lost on transport or account failures.
-    public func syncOnce(consent: ClipboardCloudConsent) async throws -> ClipboardCloudSyncReport {
-        guard consent.enabled else { return .disabled }
+    /// Compatibility entrypoint for offline tests and fixed-consent callers.
+    /// Native user-facing clients should use the provider form below so
+    /// changes made while awaiting the network are respected.
+    public func syncOnce(
+        consent: ClipboardCloudConsent
+    ) async throws -> ClipboardCloudSyncReport {
+        try await syncOnce(consentProvider: { consent })
+    }
+
+    /// A single bounded pass: fetch, validate and merge the remote page
+    /// BEFORE uploading only after the backlog is drained. Re-read current
+    /// authorization after every network suspension and directly before
+    /// starting the outbound batch. An in-flight CloudKit request already
+    /// submitted to Apple cannot be unsent, but a newly revoked permission
+    /// blocks all subsequent batches and local remote-data import.
+    public func syncOnce(
+        consentProvider: @escaping @Sendable () async -> ClipboardCloudConsent
+    ) async throws -> ClipboardCloudSyncReport {
+        let initial = await consentProvider()
+        guard initial.enabled else { return .disabled }
 
         // Verify queued outbound consent before making any network call.
         // A permission revocation must not accidentally upload stale bodies.
         let queued = try journal.pending(limit: 100)
-        guard queued.allSatisfy({ consent.permits($0) }) else {
+        guard queued.allSatisfy({ initial.permits($0) }) else {
             throw ClipboardCloudSyncError.unauthorizedContents
         }
 
@@ -111,10 +125,18 @@ public actor ClipboardCloudSyncCoordinator {
         // upload until all incremental pages have reached this Mac.
         let token = try journal.token(forZone: zoneID)
         let page = try await transport.fetch(after: token)
+        try Task.checkCancellation()
+        // The user may have toggled off sync or individual content categories
+        // while waiting for CloudKit. Never import private content after a
+        // revocation; leave the prior change token so replay is safe.
+        let afterFetch = await consentProvider()
+        guard afterFetch.enabled else {
+            throw ClipboardCloudSyncError.consentRequired
+        }
         guard page.changes.count <= 200 else {
             throw ClipboardCloudSyncError.oversizedPage
         }
-        guard page.changes.allSatisfy({ consent.permits($0) }) else {
+        guard page.changes.allSatisfy({ afterFetch.permits($0) }) else {
             throw ClipboardCloudSyncError.unauthorizedContents
         }
         let downloaded = try journal.applyRemote(
@@ -128,7 +150,11 @@ public actor ClipboardCloudSyncCoordinator {
         }
 
         let pending = try journal.pending(limit: 100)
-        guard pending.allSatisfy({ consent.permits($0) }) else {
+        let beforeUpload = await consentProvider()
+        guard beforeUpload.enabled else {
+            throw ClipboardCloudSyncError.consentRequired
+        }
+        guard pending.allSatisfy({ beforeUpload.permits($0) }) else {
             throw ClipboardCloudSyncError.unauthorizedContents
         }
         let acknowledgements: [ClipboardCloudUploadAck]
