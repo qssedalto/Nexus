@@ -31,6 +31,25 @@ final class ClipboardImageStoreTests: XCTestCase {
         XCTAssertNil(try store.imageContent(operationID: second))
     }
 
+    func testIdenticalBytesWithDifferentUTIsRemainDistinctForCopyAgain() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try OperationStore(url: root.appendingPathComponent("history.sqlite"))
+        let data = Data([1, 2, 3, 4])
+        let first = try store.recordClipboardImage(
+            data: data, thumbnail: Data([7]),
+            pasteboardType: "public.png", detectedTimeMS: 100
+        )
+        let second = try store.recordClipboardImage(
+            data: data, thumbnail: Data([8]),
+            pasteboardType: "public.jpeg", detectedTimeMS: 101
+        )
+        XCTAssertEqual(try store.imageBlobCount(), 2)
+        XCTAssertEqual(try store.imageContent(operationID: first)?.pasteboardType, "public.png")
+        XCTAssertEqual(try store.imageContent(operationID: second)?.pasteboardType, "public.jpeg")
+    }
+
     func testMigratedStoreRetainsImageAndRejectsUnboundedPayload() throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
