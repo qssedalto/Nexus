@@ -57,3 +57,17 @@
 "Text copied to system clipboard" = "Text copied to system clipboard";
 "iCloud private zone ready" = "iCloud private zone ready";
 "Sync cursor reset; next sync replays remote changes" = "Sync cursor reset; next sync replays remote changes";
+
+"Cloud clipboard data removal" = "Cloud clipboard data removal";
+"Local cache removal preserves offline clipboard history. Deleting the Nexus iCloud zone removes its cloud records, but another device can re-upload old copies unless sync is disabled there." = "Local cache removal preserves offline clipboard history. Deleting the Nexus iCloud zone removes its cloud records, but another device can re-upload old copies unless sync is disabled there.";
+"Clear local iCloud cache" = "Clear local iCloud cache";
+"Erase Nexus clipboard data from iCloud…" = "Erase Nexus clipboard data from iCloud…";
+"Clear only this device's iCloud clipboard cache?" = "Clear only this device's iCloud clipboard cache?";
+"Your offline clipboard history stays on this device. Cloud cache, queued changes and server cursor are cleared without network access." = "Your offline clipboard history stays on this device. Cloud cache, queued changes and server cursor are cleared without network access.";
+"Erase private Nexus iCloud clipboard zone" = "Erase private Nexus iCloud clipboard zone";
+"This permanently deletes the NexusClipboard zone for the signed-in Apple account. Disable sync on other devices before erasing, or they may upload old content again. Offline clipboard history is preserved." = "This permanently deletes the NexusClipboard zone for the signed-in Apple account. Disable sync on other devices before erasing, or they may upload old content again. Offline clipboard history is preserved.";
+"Type DELETE to confirm" = "Type DELETE to confirm";
+"Erase Nexus iCloud records" = "Erase Nexus iCloud records";
+"Erase iCloud Data" = "Erase iCloud Data";
+"Local cloud cache cleared; offline clipboard history preserved" = "Local cloud cache cleared; offline clipboard history preserved";
+"Nexus iCloud zone deleted. Disable syncing on other devices." = "Nexus iCloud zone deleted. Disable syncing on other devices.";
