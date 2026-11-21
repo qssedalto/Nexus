@@ -139,6 +139,9 @@ targets:
         NSHumanReadableCopyright: Copyright © 2026 Marco Gomiero.
         NSPrincipalClass: NSApplication
         SlashgrabAppGroupIdentifier: $(APP_GROUP_ID)
+        # Deliberately unset in all unsigned/default configurations.
+        # Signed opt-in builds may inject NEXUS_CLOUDKIT_CONTAINER_ID.
+        NexusCloudKitContainerIdentifier: $(NEXUS_CLOUDKIT_CONTAINER_ID)
     entitlements:
       path: Config/Slashgrab.entitlements
       properties:

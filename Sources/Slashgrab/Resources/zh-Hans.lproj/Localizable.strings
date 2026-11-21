@@ -389,3 +389,29 @@
 "Configure a custom shortcut first" = "请先设置自定义快捷键";
 
 "Drop a card into a collection:" = "将卡片拖入收藏集：";
+
+"iCloud Clipboard" = "iCloud 剪贴板";
+"iCloud clipboard (manual opt-in)" = "iCloud 剪贴板（手动授权）";
+"Enable iCloud clipboard history sync" = "允许 iCloud 同步剪贴板历史";
+"Off by default. Your current Nexus installation does not upload clipboard history until you explicitly configure a signed CloudKit container, authorize the categories below and press Sync Now." = "默认关闭。只有配置经签名的 CloudKit 容器、授权下面的内容类别，并主动点击“立即同步”后才会上传剪贴板历史。";
+"CloudKit container configured" = "已配置 CloudKit 容器";
+"CloudKit container not configured for this build" = "此构建未配置 CloudKit 容器";
+"Independent cloud data permissions" = "独立的云端数据权限";
+"Include copied text in iCloud" = "允许上传复制的文本";
+"Include file names and collection names" = "允许上传文件名及收藏集名称";
+"Include full source file paths" = "允许上传完整源文件路径";
+"Image pixels are never uploaded. Cloud copies of deleted or previously shared data require separate deletion; disabling consent prevents new uploads but cannot recall existing Apple iCloud copies." = "不会上传图片像素。已经上传的数据需要单独在云端删除；关闭授权只能阻止后续上传，不能收回此前的 iCloud 副本。";
+"Prepare and sync clipboard" = "准备与同步剪贴板";
+"Prepare next local history page" = "准备下一页本地历史";
+"Create private iCloud zone" = "创建 iCloud 私有存储区";
+"Sync now" = "立即同步";
+"Preparation only queues local data. Each click handles up to 200 history records; collections are included when their names are authorized. Sync now uploads pending changes and downloads one cloud change page." = "准备操作只在本地排队，每次最多处理 200 条历史；授权名称后可一并准备收藏集。同步操作上传待处理变更并下载一页云端变更。";
+"Next history page offset:" = "下一页历史偏移量：";
+"Pending local changes:" = "本地待处理变更：";
+"Locally cached cloud history" = "本地缓存的云端历史";
+"Remote records are a local preview, not a verified paste. Only plain text entries with authorized content may be copied again." = "远端记录这里只是本地预览，不代表已经粘贴成功；只有授权的纯文本才支持再次复制。";
+"Refresh local cache" = "刷新本地缓存";
+"No cached cloud clipboard entries" = "没有缓存的云端剪贴板记录";
+"Metadata only" = "仅元数据";
+"Copy text" = "复制文本";
+"Enable iCloud clipboard consent to inspect its local cache" = "请先授权 iCloud 剪贴板以查看本地缓存";

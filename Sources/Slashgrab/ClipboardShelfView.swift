@@ -715,6 +715,10 @@ struct ClipboardShelfView: View {
                 (try? store?.deleteOperation(id: id)) ?? false
             }.value
             if deleted {
+                // Stage a payload-free tombstone only when iCloud clipboard
+                // sync was independently authorized and this entry was
+                // previously included in its local journal.
+                ClipboardCloudController.shared.recordLocalDeletion(id)
                 var remainingPins = pinned
                 remainingPins.remove(id)
                 pinnedRaw = remainingPins.sorted().joined(separator: "\n")

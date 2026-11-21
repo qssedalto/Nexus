@@ -215,6 +215,35 @@ public final class OperationStore: @unchecked Sendable {
         return results
     }
 
+    /// Bounded stable history page for opt-in cloud staging. Does not read
+    /// local image pixels. The explicit caller can resume with the offset.
+    public func cloudEligibleHistoryPage(
+        offset: Int, limit: Int = 100
+    ) throws -> [RecordedOperation] {
+        guard offset >= 0 else { return [] }
+        lock.lock()
+        defer { lock.unlock() }
+        let stmt = try prepare("""
+            SELECT id, type, event_time_ms, detected_time_ms, completed_time_ms,
+                   source_application, detection_method, status, target, duration_ms, clipboard_text
+            FROM operations
+            WHERE type IN ('copy','text_copy','path_copy','image_copy','drop_copy')
+            ORDER BY COALESCE(event_time_ms, detected_time_ms) DESC, id DESC
+            LIMIT ? OFFSET ?
+            """)
+        defer { sqlite3_finalize(stmt) }
+        bind(Int64(max(1, min(200, limit))), to: 1, in: stmt)
+        bind(Int64(offset), to: 2, in: stmt)
+        var rows: [RecordedOperation] = []
+        while true {
+            let step = sqlite3_step(stmt)
+            if step == SQLITE_DONE { break }
+            guard step == SQLITE_ROW else { throw StoreError.write }
+            rows.append(try readOperation(from: stmt))
+        }
+        return rows
+    }
+
     /// Bounded direct lookup for older pinned/permanent-collection history.
     /// Avoids loading every operation just to show one old favorite card.
     public func query(ids: [String]) throws -> [RecordedOperation] {
