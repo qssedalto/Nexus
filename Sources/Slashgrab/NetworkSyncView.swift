@@ -536,14 +536,14 @@ struct NetworkSyncView: View {
         .alert(localized("Delete remote device data"), isPresented: $confirmRemoteDelete) {
             Button(localized("Cancel"), role: .cancel) {}
             Button(localized("Confirm"), role: .destructive) { Task { await controller.deleteRemoteDevice() } }
-        } message: { Text(localized("This deletes this device's server statistics.")) }
+        } message: { Text(localized("This deletes this device's server statistics. Automatic sync will be turned off before deletion.")) }
         .alert(localized("Delete remote operation history"), isPresented: $confirmOperationDelete) {
             Button(localized("Cancel"), role: .cancel) {}
             Button(localized("Confirm"), role: .destructive) {
                 Task { await controller.deleteRemoteOperations() }
             }
         } message: {
-            Text(localized("This deletes this device's copy operation records on the server. Local records remain unchanged."))
+            Text(localized("This deletes this device's copy operation records on the server. Automatic sync and operation upload permissions will be turned off; local records remain unchanged."))
         }
     }
 
