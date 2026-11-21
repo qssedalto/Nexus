@@ -358,7 +358,12 @@ struct InputStatisticsView: View {
                 HStack {
                     Button(localized("Choose backup folder")) { cloudBackup.selectDestination() }
                     Button(localized("Back up now")) { cloudBackup.backupNow() }
+                    Button(localized("Restore backup…")) { cloudBackup.restoreSelectedBackup() }
+                        .disabled(cloudBackup.restoring)
+                    if cloudBackup.restoring { ProgressView().controlSize(.small) }
                 }
+                Text(localized("Each Mac receives its own backup subfolder. Restoring merges and deduplicates recorded statistics without erasing current events."))
+                    .font(.caption).foregroundStyle(.secondary)
                 Text(cloudBackup.destinationSummary).font(.caption).textSelection(.enabled)
                 Text(cloudBackup.status).font(.caption).foregroundStyle(.secondary)
                 if let last = cloudBackup.lastBackup {
