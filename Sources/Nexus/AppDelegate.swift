@@ -24,6 +24,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         NSApp.servicesProvider = serviceProvider
+        if appState.shouldEnableDefaultLoginOnFirstLaunch {
+            // Newly installed users only; respect a persisted disabled preference.
+            appState.setLaunchAtLoginEnabled(true)
+        }
         let state = appState
         InputStatisticsController.shared.setPasteRequestHandler { _ in
             Task { @MainActor in
