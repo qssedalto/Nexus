@@ -92,6 +92,7 @@ public final class OperationStore: @unchecked Sendable {
             try execute("CREATE INDEX IF NOT EXISTS operations_time ON operations(COALESCE(event_time_ms, detected_time_ms))")
             try execute("CREATE TABLE IF NOT EXISTS operation_items (operation_id TEXT NOT NULL REFERENCES operations(id) ON DELETE CASCADE, position INTEGER NOT NULL, name TEXT NOT NULL, source TEXT, extension TEXT, kind TEXT NOT NULL, size INTEGER, PRIMARY KEY(operation_id, position))")
             try execute("PRAGMA foreign_keys=ON")
+            try execute("CREATE TABLE IF NOT EXISTS operation_sync_state (operation_id TEXT PRIMARY KEY REFERENCES operations(id) ON DELETE CASCADE, synced_at_ms INTEGER NOT NULL)")
         } catch {
             sqlite3_close(database)
             throw error
@@ -169,17 +170,161 @@ public final class OperationStore: @unchecked Sendable {
         bind(endMS, to: 2, in: statement)
         var results: [RecordedOperation] = []
         while sqlite3_step(statement) == SQLITE_ROW {
-            let id = string(statement, 0) ?? ""
-            let itemStatement = try prepare("SELECT name, source, extension, kind, size FROM operation_items WHERE operation_id = ? ORDER BY position")
-            bind(id, to: 1, in: itemStatement)
-            var items: [RecordedItem] = []
-            while sqlite3_step(itemStatement) == SQLITE_ROW {
-                items.append(RecordedItem(name: string(itemStatement, 0) ?? "", source: string(itemStatement, 1), fileExtension: string(itemStatement, 2), kind: string(itemStatement, 3) ?? "file", size: integer(itemStatement, 4)))
-            }
-            sqlite3_finalize(itemStatement)
-            results.append(RecordedOperation(id: id, type: string(statement, 1) ?? "", eventTimeMS: integer(statement, 2), detectedTimeMS: sqlite3_column_int64(statement, 3), completedTimeMS: integer(statement, 4), sourceApplication: string(statement, 5), detectionMethod: string(statement, 6) ?? "", status: string(statement, 7) ?? "", target: string(statement, 8), durationMS: integer(statement, 9), clipboardText: string(statement, 10), items: items))
+            results.append(try readOperation(from: statement))
         }
         return results
+    }
+
+    // Local-only, bounded queue: the same operation UUID is retried until a
+    // server response explicitly acknowledges it. Nothing is deleted on error.
+    public func pendingSync(limit: Int = 25) throws -> [RecordedOperation] {
+        lock.lock()
+        defer { lock.unlock() }
+        let sql = """
+            SELECT id, type, event_time_ms, detected_time_ms, completed_time_ms,
+                   source_application, detection_method, status, target, duration_ms, clipboard_text
+            FROM operations
+            WHERE id NOT IN (SELECT operation_id FROM operation_sync_state)
+              AND id NOT LIKE 'remote:%'
+            ORDER BY detected_time_ms, id
+            LIMIT ?
+            """
+        let stmt = try prepare(sql)
+        defer { sqlite3_finalize(stmt) }
+        bind(Int64(max(1, min(50, limit))), to: 1, in: stmt)
+        var records: [RecordedOperation] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            records.append(try readOperation(from: stmt))
+        }
+        return records
+    }
+
+    public func markSynced(operationIDs ids: [String]) throws {
+        guard !ids.isEmpty else { return }
+        lock.lock()
+        defer { lock.unlock() }
+        try execute("BEGIN IMMEDIATE")
+        do {
+            let stmt = try prepare("""
+                INSERT INTO operation_sync_state(operation_id, synced_at_ms)
+                VALUES(?, ?)
+                ON CONFLICT(operation_id) DO UPDATE SET synced_at_ms=excluded.synced_at_ms
+                """)
+            defer { sqlite3_finalize(stmt) }
+            let now = Int64(Date().timeIntervalSince1970 * 1000)
+            for id in Set(ids) {
+                sqlite3_reset(stmt)
+                sqlite3_clear_bindings(stmt)
+                bind(id, to: 1, in: stmt)
+                bind(now, to: 2, in: stmt)
+                guard sqlite3_step(stmt) == SQLITE_DONE else { throw StoreError.write }
+            }
+            try execute("COMMIT")
+        } catch {
+            try? execute("ROLLBACK")
+            throw error
+        }
+    }
+
+    /// Remote device records are materialized under stable namespaced IDs and
+    /// excluded from the local outbound queue. Replaying the same page does
+    /// not insert duplicates or add event counts.
+    public func importRemote(_ remote: [RemoteOperationRecord]) throws -> Int {
+        guard !remote.isEmpty else { return 0 }
+        lock.lock()
+        defer { lock.unlock() }
+        try execute("BEGIN IMMEDIATE")
+        do {
+            let opStmt = try prepare("""
+                INSERT OR IGNORE INTO operations
+                (id,type,event_time_ms,detected_time_ms,completed_time_ms,source_application,
+                detection_method,status,target,duration_ms,clipboard_text)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?)
+                """)
+            defer { sqlite3_finalize(opStmt) }
+            let itemStmt = try prepare("""
+                INSERT OR IGNORE INTO operation_items
+                (operation_id,position,name,source,extension,kind,size)
+                VALUES(?,?,?,?,?,?,?)
+                """)
+            defer { sqlite3_finalize(itemStmt) }
+            var inserted = 0
+            for entry in remote {
+                let op = entry.operation
+                guard !entry.deviceID.isEmpty, entry.deviceID.count <= 80,
+                      UUID(uuidString: op.id) != nil,
+                      op.detectedTimeMS >= 0, op.items.count <= 100 else { continue }
+                let localID = "remote:\(entry.deviceID):\(op.id)"
+                // Skip imports of an unchanged local source operation.
+                let exists = try prepare("SELECT 1 FROM operations WHERE id IN (?, ?) LIMIT 1")
+                bind(op.id, to: 1, in: exists)
+                bind(localID, to: 2, in: exists)
+                let alreadyExists = sqlite3_step(exists) == SQLITE_ROW
+                sqlite3_finalize(exists)
+                if alreadyExists { continue }
+
+                sqlite3_reset(opStmt)
+                sqlite3_clear_bindings(opStmt)
+                bind(localID, to: 1, in: opStmt)
+                bind(op.type, to: 2, in: opStmt)
+                bind(op.eventTimeMS, to: 3, in: opStmt)
+                bind(op.detectedTimeMS, to: 4, in: opStmt)
+                bind(op.completedTimeMS, to: 5, in: opStmt)
+                bind(op.sourceApplication, to: 6, in: opStmt)
+                bind("remote_restore", to: 7, in: opStmt)
+                bind(op.status, to: 8, in: opStmt)
+                bind(op.target, to: 9, in: opStmt)
+                bind(op.durationMS, to: 10, in: opStmt)
+                bind(op.clipboardText, to: 11, in: opStmt)
+                guard sqlite3_step(opStmt) == SQLITE_DONE else { throw StoreError.write }
+                for item in op.items {
+                    guard item.position >= 0, item.position < 100 else { throw StoreError.write }
+                    sqlite3_reset(itemStmt)
+                    sqlite3_clear_bindings(itemStmt)
+                    bind(localID, to: 1, in: itemStmt)
+                    bind(Int64(item.position), to: 2, in: itemStmt)
+                    bind(item.name, to: 3, in: itemStmt)
+                    bind(item.source, to: 4, in: itemStmt)
+                    bind(item.fileExtension, to: 5, in: itemStmt)
+                    bind(item.kind, to: 6, in: itemStmt)
+                    bind(item.size, to: 7, in: itemStmt)
+                    guard sqlite3_step(itemStmt) == SQLITE_DONE else { throw StoreError.write }
+                }
+                inserted += 1
+            }
+            try execute("COMMIT")
+            return inserted
+        } catch {
+            try? execute("ROLLBACK")
+            throw error
+        }
+    }
+
+    private func readOperation(from statement: OpaquePointer) throws -> RecordedOperation {
+        let id = string(statement, 0) ?? ""
+        let itemStmt = try prepare("SELECT name, source, extension, kind, size FROM operation_items WHERE operation_id = ? ORDER BY position")
+        defer { sqlite3_finalize(itemStmt) }
+        bind(id, to: 1, in: itemStmt)
+        var items: [RecordedItem] = []
+        while sqlite3_step(itemStmt) == SQLITE_ROW {
+            items.append(RecordedItem(name: string(itemStmt, 0) ?? "",
+                                      source: string(itemStmt, 1),
+                                      fileExtension: string(itemStmt, 2),
+                                      kind: string(itemStmt, 3) ?? "file",
+                                      size: integer(itemStmt, 4)))
+        }
+        return RecordedOperation(
+            id: id, type: string(statement, 1) ?? "",
+            eventTimeMS: integer(statement, 2),
+            detectedTimeMS: sqlite3_column_int64(statement, 3),
+            completedTimeMS: integer(statement, 4),
+            sourceApplication: string(statement, 5),
+            detectionMethod: string(statement, 6) ?? "",
+            status: string(statement, 7) ?? "",
+            target: string(statement, 8),
+            durationMS: integer(statement, 9),
+            clipboardText: string(statement, 10),
+            items: items)
     }
 
     private func operationColumnNames() throws -> Set<String> {
