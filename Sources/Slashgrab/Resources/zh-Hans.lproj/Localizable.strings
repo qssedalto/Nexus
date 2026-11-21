@@ -452,3 +452,9 @@
 "Keep every copy" = "保留每次复制";
 "Refresh newest identical plain-text copy" = "更新最新的一条相同纯文本记录";
 "Default keeps every copy. Optional consolidation only refreshes the most recent identical plain-text entry within 10 minutes; files, images and formatted text break the sequence." = "默认保留每一次复制。开启合并后，仅在十分钟内连续复制完全相同的纯文本时更新最近一条记录；文件、图片或富文本会中断此合并。";
+
+"Quick clipboard history" = "快速剪贴板历史";
+"Recent clipboard" = "最近剪贴板";
+"Pinned clipboard" = "固定的剪贴板";
+"No recorded clipboard entries" = "暂无剪贴板历史";
+"Open clipboard shelf" = "打开剪贴板面板";
