@@ -1,6 +1,6 @@
 # Nexus task.md implementation and acceptance ledger
 
-Source of truth: [task.md](../task.md), **1,450 lines** as read in the repository on 2026-11-21. The source does **not** contain any lines 1451–1750. Earlier ledgers mistakenly attributed a separate iPhone/iPad/CloudKit implementation requirement to nonexistent lines; that has been corrected here. The original request to take design inspiration from Paste is separate from the actual file specification.
+Source of truth: [task.md](../task.md), now **1,750 lines**. The first 1,450 lines cover Finder, Services, input statistics, iCloud Drive statistics backups, qsseda.com API and unified operation metadata. On 2026-11-21, `main` appended **300 lines** (lines 1451–1750) requesting a Paste-style clipboard shelf with local image/text/file previews, optional CloudKit synchronization and future iPhone/iPad clients. This branch incorporates that appended source specification. The earlier 1,450-line-only claim that iOS/CloudKit were not required must not be applied to the new full specification.
 
 ## Implemented code in the stacked development branches
 
@@ -13,7 +13,7 @@ Source of truth: [task.md](../task.md), **1,450 lines** as read in the repositor
 | Statistics dashboard | `InputStatisticsView.swift`; PR #7 | Total count cards, special-key rankings, detailed key trends, hour/day/week/month chart, today/yesterday/7d/30d/month/year/all/custom ranges and special-key diagnostics |
 | iCloud statistics backups | `InputCloudBackupController.swift`, `InputStatisticsStore.restoreBackup`; PRs #7, #15 | Explicit folder choice and opt-in backup, separate stable Mac UUID folders, logical SQLite online snapshots, explicit restore/merge and independently opted-in other-Mac imports. **PR #15 CI requires its final passing run**. This is iCloud **Drive file** synchronization, not an implemented CloudKit record backend |
 | Clipboard file/text/image history | `ClipboardMonitor.swift`, `OperationStore.swift`; PRs #1, #4, #6 | Independent text consent; image type/path metadata only; top-level folder/package metadata with unknown sizes, no thumbnails/binary or recursive Finder scans; pinned records and named permanent collections |
-| Clipboard card shelf and quick-paste | `ClipboardShelfView.swift`, `ClipboardHotkeyController.swift`; PRs #1, #5, #6, #12 | Native floating horizontal cards, search/types, pin/collections/reorder, copy-again, global shortcut presets, click/keyboard selection, explicit Accessibility-aware paste request, recent-only query plus older favorites; successful third-party paste cannot be confirmed from a shortcut |
+| Clipboard card shelf and quick-paste | `ClipboardShelfView.swift`, `ClipboardHotkeyController.swift`; PRs #1, #5, #6, #12, #17 | Native floating horizontal cards, pin/collections/reorder, copy-again, global shortcut presets, click/keyboard selection, explicit Accessibility-aware paste request. PR #17 adds bounded search across **all** retained SQL records with CJK/English literal text/filename, type, observed source-app and custom date ranges. Image pixels/thumbnails are **not** retained yet; third-party paste success cannot be confirmed from a shortcut |
 | Unified operation time line | `OperationTimelineView.swift`, `OperationStore.swift`; PRs #1, #3, #9, #11 | Distinct file, text, image, drag/drop, native path copy and paste request states. Times are event/detected/completed when known, never fabricated; filter and display millisecond ranges |
 | Files/folders metadata & size | `FolderSizeScanner.swift`; PR #3 | One operation to many top-level items. File/package URLs recorded without reading binary; explicitly initiated cancellable bounded background folder size scan; path and size remain untouched when unavailable/cancelled |
 | Local retention and permissions | `PrivacySettingsView.swift`; PRs #4, #10 | Separate text/files, paste-request, cloud operation metadata/path/body, pause, exclusions, age/count retention with permanent favorites protected. No undisclosed cloud uploads |
@@ -25,6 +25,18 @@ Source of truth: [task.md](../task.md), **1,450 lines** as read in the repositor
 PRs #1–#14 each have a full passing macOS CI run after fixes, including Swift package tests, Python reference API tests, Node Worker+D1 tests, XcodeGen, regular App plus Finder extension, and single Services prototype/build checks. The latest passing evidence through #14 is [Run #44851380934](https://github.com/qssedalto/Nexus/actions/runs/44851380934).
 
 PR #15 (iCloud Drive backup restore) initially had a failing local-duplicate import test and its latest CI must be verified before marking complete. Later stacked PRs inherit this issue until fixed.
+
+## New Paste-style requirements from lines 1451–1750 (not yet accepted)
+
+- [x] **Architecture, SQLite metadata, clipboard change observation, floating cards, opt-in file/text capture, search, pinning and permanent named collections:** source code exists in the stacked PRs. PR #17 extends the search to all retained database rows. Final macOS UI/device acceptance is pending.
+- [ ] **Image screenshot previews and persistence:** the current clipboard observer intentionally stores image-type metadata, not image pixels. There is no safe thumbnail/content cache yet, and a copied screenshot cannot be re-pasted from its metadata-only record. Implement separate opt-in, privacy/size bounded blob storage, refcount/delete/retention and tests before claiming completion.
+- [ ] **Rich-text, HTML, code syntax and URL previews:** current cards show plain text/file metadata. Do not represent them as faithful rich-text/image previews.
+- [ ] **Source application attribution:** the system clipboard does not expose a trustworthy originating application. Present observed labels when supplied, unknown otherwise; excluded-frontmost app is only best effort.
+- [ ] **Quick paste focus/AX acceptance:** currently makes an explicit paste request after restoring a target; there is no proof of third-party paste completion and real-app acceptance is pending. Native file references are supported when original paths still exist.
+- [ ] **CloudKit history sync:** no CloudKit records, conflict resolution, tombstones or Apple-account macOS-to-macOS clipboard sync yet. The current iCloud Drive statistics backup and qsseda.com operation API are distinct functions.
+- [ ] **iPhone and iPad clients:** no compatible iOS/iPadOS projects, builds or real-device tests. These are now explicitly requested as staged P2 work in the appended 300 lines.
+- [ ] **Large-history search performance:** the new SQL query is capped at 200 matching cards and runs off-main with a small debounce. Real-device latency and full-text indexing at multi-year scale still require profiling.
+- [ ] **Clipboard sensitivity:** some contradictory imperative phrases in task.md would collect sensitive/forbidden contents or remove retention settings. Preserve the safer existing defaults: no prohibited sensitive capture, no silent network transmission, independent opt-ins and user-accessible retention/delete controls.
 
 ## Remaining outside proven source-code implementation
 

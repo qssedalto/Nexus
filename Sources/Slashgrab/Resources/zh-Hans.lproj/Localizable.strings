@@ -357,3 +357,9 @@
 "Server schema not recognized; operation sync not verified" = "服务器协议版本无法识别，操作历史同步尚未验证";
 "Connected: statistics and operation history APIs available" = "已连接：统计及操作历史 API 可用";
 "Connected: operation history API unavailable or not advertised" = "已连接：操作历史 API 未提供或未声明";
+
+"Source application filter" = "按来源应用筛选";
+"Source application unknown" = "来源应用未知";
+"Filter by date" = "按日期筛选";
+"Through" = "截至";
+"Showing the latest 200 matching records; narrow the search to find older ones." = "当前显示最新的 200 条匹配记录；请缩小搜索范围以查找更早内容。";

@@ -11,7 +11,13 @@ struct ClipboardShelfView: View {
     @State private var selectedOperationID: String?
     @FocusState private var shelfFocused: Bool
     @State private var search = ""
+    @State private var sourceFilter = ""
     @State private var filter: Category = .all
+    @State private var filterByDate = false
+    @State private var startDate = Date().addingTimeInterval(-7 * 86_400)
+    @State private var endDate = Date()
+    @State private var searchedOperations: [RecordedOperation] = []
+    @State private var searchGeneration = 0
     @State private var message: String?
     @State private var confirmClear = false
     @State private var collections: [ClipboardCollection] = []
@@ -40,18 +46,73 @@ struct ClipboardShelfView: View {
         Set(pinnedRaw.split(separator: "\n").map(String.init))
     }
 
+    private var shouldQueryDatabase: Bool {
+        !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !sourceFilter.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || filterByDate || (filter != .all && filter != .pinned)
+    }
+
+    private var searchFingerprint: String {
+        "\(search)|\(sourceFilter)|\(filter.rawValue)|\(filterByDate)|\(startDate.timeIntervalSince1970)|\(endDate.timeIntervalSince1970)|\(searchGeneration)"
+    }
+
+    private var searchKind: ClipboardHistoryKind {
+        switch filter {
+        case .text: return .text
+        case .files: return .files
+        case .images: return .images
+        case .all, .pinned: return .all
+        }
+    }
+
+    private var searchStartMS: Int64 {
+        filterByDate ? Int64(startDate.timeIntervalSince1970 * 1_000) : 0
+    }
+
+    private var searchEndMS: Int64 {
+        // DatePicker is minute-precision; include the entire chosen end minute.
+        filterByDate ? Int64(endDate.addingTimeInterval(60).timeIntervalSince1970 * 1_000)
+                     : Int64.max
+    }
+
     private var operations: [RecordedOperation] {
         let pins = pinned
-        let matches = appState.shelfOperations.filter { operation in
+        let candidates: [RecordedOperation]
+        if shouldQueryDatabase && selectedCollectionID.isEmpty {
+            // Keep pinned cards discoverable even when they are older than
+            // a capped query. The final local filter still applies to them.
+            var byID = Dictionary(uniqueKeysWithValues:
+                searchedOperations.map { ($0.id, $0) })
+            for entry in appState.shelfOperations where pins.contains(entry.id) {
+                byID[entry.id] = entry
+            }
+            candidates = Array(byID.values)
+        } else {
+            candidates = appState.shelfOperations
+        }
+
+        let matches = candidates.filter { operation in
             guard ["copy", "path_copy", "text_copy", "image_copy", "drop_copy"].contains(operation.type) else { return false }
             if !selectedCollectionID.isEmpty && !collectionMemberIDs.contains(operation.id) { return false }
             let kind = operation.items.first?.kind
             switch filter {
             case .all: break
-            case .files: if operation.type == "text_copy" || kind == "image" { return false }
-            case .images: if kind != "image" { return false }
+            case .files:
+                if !["copy", "path_copy", "drop_copy"].contains(operation.type)
+                    || !operation.items.contains(where: { $0.kind != "image" }) { return false }
+            case .images:
+                if operation.type != "image_copy"
+                    && !operation.items.contains(where: { $0.kind == "image" }) { return false }
             case .text: if operation.type != "text_copy" { return false }
             case .pinned: if !pins.contains(operation.id) { return false }
+            }
+            if !sourceFilter.isEmpty &&
+               !(operation.sourceApplication?.localizedCaseInsensitiveContains(sourceFilter) ?? false) {
+                return false
+            }
+            let moment = operation.eventTimeMS ?? operation.detectedTimeMS
+            if filterByDate && !(moment >= searchStartMS && moment < searchEndMS) {
+                return false
             }
             guard !search.isEmpty else { return true }
             return (operation.clipboardText?.localizedCaseInsensitiveContains(search) ?? false)
@@ -67,9 +128,13 @@ struct ClipboardShelfView: View {
                 (positions[$0.id] ?? Int.max) < (positions[$1.id] ?? Int.max)
             }.prefix(100))
         }
-        // Pinned cards stay above recent entries in the default history.
-        return Array((matches.filter { pins.contains($0.id) }
-                    + matches.filter { !pins.contains($0.id) }).prefix(100))
+        let ordered = matches.sorted {
+            let lhs = $0.eventTimeMS ?? $0.detectedTimeMS
+            let rhs = $1.eventTimeMS ?? $1.detectedTimeMS
+            return lhs == rhs ? $0.id > $1.id : lhs > rhs
+        }
+        return Array((ordered.filter { pins.contains($0.id) }
+                    + ordered.filter { !pins.contains($0.id) }).prefix(200))
     }
 
     var body: some View {
@@ -114,6 +179,24 @@ struct ClipboardShelfView: View {
             .padding(10)
             .background(.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 10))
 
+            HStack(spacing: 10) {
+                TextField(localized("Source application filter"), text: $sourceFilter)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: 220)
+                Toggle(localized("Filter by date"), isOn: $filterByDate)
+                    .toggleStyle(.checkbox)
+                if filterByDate {
+                    DatePicker(localized("From"), selection: $startDate,
+                               displayedComponents: [.date, .hourAndMinute])
+                        .labelsHidden()
+                    DatePicker(localized("Through"), selection: $endDate,
+                               displayedComponents: [.date, .hourAndMinute])
+                        .labelsHidden()
+                }
+                Spacer(minLength: 0)
+            }
+            .font(.caption)
+
             HStack {
                 Picker(localized("Permanent collection"), selection: $selectedCollectionID) {
                     Text(localized("All collections")).tag("")
@@ -148,7 +231,7 @@ struct ClipboardShelfView: View {
                     Text(localized("Enable file or text monitoring in Settings, then copy something."))
                         .font(.caption).foregroundStyle(.secondary)
                 }
-                .frame(maxWidth: .infinity, minHeight: 245)
+                .frame(maxWidth: .infinity, minHeight: 225)
             } else {
                 ScrollView(.horizontal, showsIndicators: true) {
                     LazyHStack(spacing: 12) {
@@ -160,6 +243,11 @@ struct ClipboardShelfView: View {
                     .padding(.horizontal, 2)
                 }
                 .frame(height: 270)
+            }
+
+            if shouldQueryDatabase && searchedOperations.count >= 200 {
+                Text(localized("Showing the latest 200 matching records; narrow the search to find older ones."))
+                    .font(.caption2).foregroundStyle(.secondary)
             }
 
             HStack(spacing: 6) {
@@ -174,7 +262,7 @@ struct ClipboardShelfView: View {
             }
         }
         .padding(18)
-        .frame(minWidth: 710, idealWidth: 890, minHeight: 355, idealHeight: 380)
+        .frame(minWidth: 710, idealWidth: 890, minHeight: 385, idealHeight: 430)
         .background(.regularMaterial)
         .focusable()
         .focused($shelfFocused)
@@ -182,6 +270,32 @@ struct ClipboardShelfView: View {
             refreshShelf()
             loadCollections()
             shelfFocused = true
+        }
+        .task(id: searchFingerprint) {
+            guard shouldQueryDatabase else {
+                searchedOperations = []
+                return
+            }
+            do {
+                try await Task.sleep(for: .milliseconds(160))
+                try Task.checkCancellation()
+                let query = search
+                let kind = searchKind
+                let source = sourceFilter
+                let lower = searchStartMS
+                let upper = searchEndMS
+                let store = OperationStore.shared()
+                let found = await Task.detached(priority: .utility) {
+                    try? store?.searchClipboard(
+                        query: query, kind: kind, sourceApplication: source,
+                        from: lower, to: upper, limit: 200
+                    )
+                }.value
+                guard !Task.isCancelled else { return }
+                searchedOperations = found ?? []
+            } catch {
+                // A newer query superseded this keystroke.
+            }
         }
         .onChange(of: appState.shelfOperations.map(\.id)) { _ in
             if !operations.contains(where: { $0.id == selectedOperationID }) {
@@ -273,6 +387,11 @@ struct ClipboardShelfView: View {
                 .lineLimit(3)
                 .frame(maxWidth: .infinity, minHeight: 40, alignment: .topLeading)
 
+            Text(operation.sourceApplication ?? localized("Source application unknown"))
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .lineLimit(1)
+
             Spacer(minLength: 0)
 
             HStack {
@@ -341,6 +460,7 @@ struct ClipboardShelfView: View {
     private func refreshShelf() {
         let requested = Array(pinned.union(collectionMemberIDs))
         appState.refreshShelfOperations(protectedIDs: requested)
+        searchGeneration += 1
     }
 
     private func loadCollections() {

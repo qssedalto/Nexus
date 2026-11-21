@@ -1,0 +1,68 @@
+import Foundation
+import XCTest
+@testable import SlashgrabCore
+
+final class ClipboardHistorySearchTests: XCTestCase {
+    func testFindsOldChineseTextBeyondRecentShelfWithoutLoadingAllRows() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try OperationStore(url: root.appendingPathComponent("operations.sqlite"))
+
+        for index in 0..<251 {
+            try store.record(
+                type: "text_copy", urls: [],
+                sourceApplication: index == 0 ? "com.example.Editor" : nil,
+                detectionMethod: "clipboard",
+                detectedTimeMS: Int64(1_000 + index),
+                clipboardText: index == 0 ? "古老的剪贴板 history_%" : "recent text \(index)"
+            )
+        }
+        XCTAssertEqual(
+            try store.searchClipboard(query: "古老").map(\.clipboardText),
+            ["古老的剪贴板 history_%"]
+        )
+        XCTAssertEqual(try store.searchClipboard(query: "_%").count, 1,
+                       "Literal wildcard characters must not match unrelated text")
+        XCTAssertEqual(
+            try store.searchClipboard(query: "history", sourceApplication: "editor").count,
+            1
+        )
+        XCTAssertTrue(try store.searchClipboard(query: "history",
+                                                 sourceApplication: "Browser").isEmpty)
+        XCTAssertTrue(try store.searchClipboard(query: "古老",
+                                                 from: 1_001, to: 2_000).isEmpty)
+        XCTAssertEqual(try store.searchClipboard(query: "", kind: .text, limit: 5).count, 5)
+        XCTAssertEqual(try store.searchClipboard(query: "recent", kind: .text, limit: 1)
+            .first?.clipboardText, "recent text 250")
+    }
+
+    func testFileNameImageAndDateFiltersStayExact() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try OperationStore(url: root.appendingPathComponent("operations.sqlite"))
+        try store.record(type: "copy",
+                         urls: [URL(fileURLWithPath: "/tmp/项目计划.docx")],
+                         sourceApplication: "com.apple.finder",
+                         detectionMethod: "clipboard",
+                         detectedTimeMS: 2_000)
+        try store.record(type: "image_copy", urls: [],
+                         sourceApplication: nil,
+                         detectionMethod: "clipboard_type",
+                         detectedTimeMS: 2_001)
+        try store.record(type: "copy",
+                         urls: [URL(fileURLWithPath: "/tmp/photo.JPG")],
+                         sourceApplication: "com.apple.finder",
+                         detectionMethod: "clipboard",
+                         detectedTimeMS: 2_002)
+
+        XCTAssertEqual(try store.searchClipboard(query: "项目", kind: .files).count, 1)
+        XCTAssertEqual(try store.searchClipboard(query: "photo", kind: .images).count, 1)
+        XCTAssertEqual(try store.searchClipboard(query: "", kind: .images).count, 2)
+        XCTAssertEqual(try store.searchClipboard(query: "", kind: .files).count, 1)
+        XCTAssertEqual(try store.searchClipboard(query: "", from: 2_001, to: 2_002).count, 1)
+        XCTAssertEqual(try store.searchClipboard(query: "", from: 2_002, to: 2_002).count, 0)
+        XCTAssertEqual(try store.searchClipboard(query: "", sourceApplication: "finder").count, 2)
+    }
+}

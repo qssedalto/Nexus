@@ -44,6 +44,11 @@ public struct RecordedOperation: Sendable, Equatable, Identifiable {
     public let items: [RecordedItem]
 }
 
+/// Safe, allowlisted filters for SQLite-backed clipboard history search.
+public enum ClipboardHistoryKind: String, Sendable {
+    case all, files, images, text
+}
+
 public final class OperationStore: @unchecked Sendable {
     private let database: OpaquePointer
     private let lock = NSLock()
@@ -211,6 +216,82 @@ public final class OperationStore: @unchecked Sendable {
         }
         var results: [RecordedOperation] = []
         while sqlite3_step(statement) == SQLITE_ROW {
+            results.append(try readOperation(from: statement))
+        }
+        return results
+    }
+
+
+    /// Search the complete retained SQLite history, not just the recent
+    /// 200-card shelf. Queries and output are bounded; no file contents or
+    /// image pixels are loaded. Unknown originating apps stay NULL.
+    public func searchClipboard(
+        query: String,
+        kind: ClipboardHistoryKind = .all,
+        sourceApplication: String = "",
+        from startMS: Int64 = 0,
+        to endMS: Int64 = Int64.max,
+        limit: Int = 100
+    ) throws -> [RecordedOperation] {
+        guard startMS < endMS else { return [] }
+        let needle = String(query.trimmingCharacters(in: .whitespacesAndNewlines).prefix(256))
+        let app = String(sourceApplication.trimmingCharacters(in: .whitespacesAndNewlines).prefix(128))
+        let kindClause: String
+        switch kind {
+        case .all: kindClause = ""
+        case .text: kindClause = " AND o.type = 'text_copy'"
+        case .images:
+            kindClause = """
+                 AND (o.type = 'image_copy' OR EXISTS
+                   (SELECT 1 FROM operation_items image WHERE image.operation_id = o.id AND image.kind = 'image'))
+                """
+        case .files:
+            kindClause = """
+                 AND o.type IN ('copy', 'path_copy', 'drop_copy')
+                 AND EXISTS (SELECT 1 FROM operation_items file
+                             WHERE file.operation_id = o.id AND file.kind != 'image')
+                """
+        }
+
+        lock.lock()
+        defer { lock.unlock() }
+        // instr() searches literal text, including '%' and '_', unlike LIKE.
+        // SQLite's lower() is ASCII-oriented; CJK terms match literally.
+        let statement = try prepare("""
+            SELECT o.id, o.type, o.event_time_ms, o.detected_time_ms,
+                   o.completed_time_ms, o.source_application, o.detection_method,
+                   o.status, o.target, o.duration_ms, o.clipboard_text
+            FROM operations o
+            WHERE o.type IN ('copy', 'path_copy', 'text_copy', 'image_copy', 'drop_copy')
+              AND COALESCE(o.event_time_ms, o.detected_time_ms) >= ?
+              AND COALESCE(o.event_time_ms, o.detected_time_ms) < ?
+              AND (? = '' OR instr(lower(COALESCE(o.clipboard_text, '')), lower(?)) > 0
+                    OR EXISTS (
+                        SELECT 1 FROM operation_items i
+                        WHERE i.operation_id = o.id
+                          AND (instr(lower(i.name), lower(?)) > 0
+                               OR instr(lower(COALESCE(i.source, '')), lower(?)) > 0)
+                    ))
+              AND (? = '' OR instr(lower(COALESCE(o.source_application, '')), lower(?)) > 0)
+            \(kindClause)
+            ORDER BY COALESCE(o.event_time_ms, o.detected_time_ms) DESC, o.id DESC
+            LIMIT ?
+            """)
+        defer { sqlite3_finalize(statement) }
+        bind(startMS, to: 1, in: statement)
+        bind(endMS, to: 2, in: statement)
+        bind(needle, to: 3, in: statement)
+        bind(needle, to: 4, in: statement)
+        bind(needle, to: 5, in: statement)
+        bind(needle, to: 6, in: statement)
+        bind(app, to: 7, in: statement)
+        bind(app, to: 8, in: statement)
+        bind(Int64(max(1, min(200, limit))), to: 9, in: statement)
+        var results: [RecordedOperation] = []
+        while true {
+            let step = sqlite3_step(statement)
+            if step == SQLITE_DONE { break }
+            guard step == SQLITE_ROW else { throw StoreError.write }
             results.append(try readOperation(from: statement))
         }
         return results

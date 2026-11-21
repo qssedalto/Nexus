@@ -165,7 +165,7 @@ final class StatusItemController {
             panel = existing
         } else {
             let created = NSPanel(
-                contentRect: NSRect(x: 0, y: 0, width: 900, height: 390),
+                contentRect: NSRect(x: 0, y: 0, width: 900, height: 445),
                 styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
                 backing: .buffered,
                 defer: false
