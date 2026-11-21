@@ -360,3 +360,6 @@
 
 "Save safe RTF typography (opt-in)" = "Save safe RTF typography (opt-in)";
 "RTF formatting keeps only bold, italic and underline flags. Attachments, remote resources, fonts and original RTF data are never saved." = "RTF formatting keeps only bold, italic and underline flags. Attachments, remote resources, fonts and original RTF data are never saved.";
+
+"Foreground app at copy detection (unverified): " = "Foreground app at copy detection (unverified): ";
+"Reported source app: " = "Reported source app: ";

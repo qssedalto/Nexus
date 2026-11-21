@@ -478,10 +478,7 @@ struct ClipboardShelfView: View {
                 }()
             )
 
-            Text(operation.sourceApplication ?? localized("Source application unknown"))
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-                .lineLimit(1)
+            ClipboardSourceAppBadge(operation: operation)
 
             Spacer(minLength: 0)
 
