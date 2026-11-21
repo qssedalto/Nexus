@@ -55,7 +55,9 @@ public enum ClipboardCloudLocalSnapshot {
         guard consent.enabled, !deviceID.isEmpty,
               deviceID.utf8.count <= 80 else { return 0 }
         var count = 0
-        for collection in try store.listCollections() {
+        for collection in try store.listCollections()
+            where !collection.id.hasPrefix("cloudkit:") {
+            // Imported remote mirrors must never be staged back to CloudKit.
             // Custom collection names require independent content consent.
             if consent.includeNames {
                 count += try stage(
