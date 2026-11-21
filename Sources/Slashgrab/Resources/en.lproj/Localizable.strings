@@ -365,3 +365,6 @@
 "Reported source app: " = "Reported source app: ";
 
 "Reset cloud change cursor" = "Reset cloud change cursor";
+
+"matching records loaded" = "matching records loaded";
+"Load 200 older matching records" = "Load 200 older matching records";
