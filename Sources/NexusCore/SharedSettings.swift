@@ -5,53 +5,126 @@ public enum SharedSettings {
     public static let appGroupIdentifierInfoKey = "NexusAppGroupIdentifier"
     public static let finderCopyNotification = Notification.Name("com.qssedalto.nexus.finderCopyCompleted")
 
-    /// Preserves settings and SQLite history when moving to the Nexus bundle and App Group.
-    /// Existing stores are never overwritten, changed, or removed.
+    // The old group is read-only during the move. We never delete old data or overwrite new data.
+    private static let legacySettingsKeys = [
+        "historyEntries", "historyLimit", "selectedPathFormat",
+        "launchAtLoginEnabled", "useFinderSubmenu", "nexusFeedbackDuration",
+    ]
+    private static let legacyApplicationKeys = legacySettingsKeys + [
+        "nexusInputPaused", "nexusCountKeyRepeats", "nexusMonitorFileCopies",
+        "nexusSyncServer", "nexusSyncAutomatic", "nexusSyncPreciseEvents",
+        "nexusSyncLastSuccess", "nexusSyncDeviceID",
+    ]
+
     public static func migrateLegacyStorage(bundle: Bundle = .main) {
-        guard let group = bundle.object(forInfoDictionaryKey: appGroupIdentifierInfoKey) as? String,
-              group.contains(".com.qssedalto.nexus") else { return }
+        guard let bundleIdentifier = bundle.bundleIdentifier,
+              bundleIdentifier.hasPrefix("com.qssedalto.nexus"),
+              let newGroup = appGroupIdentifier(in: bundle),
+              newGroup.contains(".com.qssedalto.nexus") else { return }
 
-        let legacyGroup = group.replacingOccurrences(of: ".com.qssedalto.nexus", with: ".com.prof18.slashgrab")
-        if let oldDefaults = UserDefaults(suiteName: legacyGroup),
-           let newDefaults = UserDefaults(suiteName: group) {
-            for (key, value) in oldDefaults.dictionaryRepresentation() where newDefaults.object(forKey: key) == nil {
-                newDefaults.set(value, forKey: key)
-            }
+        let oldGroup = newGroup.replacingOccurrences(
+            of: ".com.qssedalto.nexus", with: ".com.prof18.slashgrab"
+        )
+        let oldBundleIdentifier = bundleIdentifier.replacingOccurrences(
+            of: "com.qssedalto.nexus", with: "com.prof18.slashgrab",
+            options: .anchored
+        )
+
+        if let source = UserDefaults(suiteName: oldGroup),
+           let destination = UserDefaults(suiteName: newGroup) {
+            copyMissingDefaults(from: source, to: destination, keys: legacySettingsKeys)
         }
-
-        if let legacyBundleID = bundle.bundleIdentifier?.replacingOccurrences(
-            of: "com.qssedalto.nexus", with: "com.prof18.slashgrab"
-        ), let legacyDefaults = UserDefaults(suiteName: legacyBundleID) {
-            for (key, value) in legacyDefaults.dictionaryRepresentation() where UserDefaults.standard.object(forKey: key) == nil {
-                UserDefaults.standard.set(value, forKey: key)
-            }
+        if let source = UserDefaults(suiteName: oldBundleIdentifier) {
+            copyMissingDefaults(from: source, to: .standard, keys: legacyApplicationKeys)
         }
 
         let manager = FileManager.default
-        guard let oldDirectory = manager.containerURL(forSecurityApplicationGroupIdentifier: legacyGroup),
-              let newDirectory = manager.containerURL(forSecurityApplicationGroupIdentifier: group) else { return }
+        guard let oldDirectory = manager.containerURL(forSecurityApplicationGroupIdentifier: oldGroup),
+              let newDirectory = manager.containerURL(forSecurityApplicationGroupIdentifier: newGroup) else {
+            return
+        }
+
         for filename in ["NexusOperations.sqlite", "NexusStatistics.sqlite"] {
-            let oldURL = oldDirectory.appendingPathComponent(filename)
-            let newURL = newDirectory.appendingPathComponent(filename)
-            guard manager.fileExists(atPath: oldURL.path), !manager.fileExists(atPath: newURL.path) else { continue }
-            // SQLite's backup API copies a consistent snapshot, including uncheckpointed WAL data.
-            var source: OpaquePointer?
-            var destination: OpaquePointer?
-            guard sqlite3_open_v2(oldURL.path, &source, SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX, nil) == SQLITE_OK,
-                  let source else { if source != nil { sqlite3_close(source) }; continue }
-            defer { sqlite3_close(source) }
-            guard sqlite3_open_v2(newURL.path, &destination, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX, nil) == SQLITE_OK,
-                  let destination else { if destination != nil { sqlite3_close(destination) }; continue }
-            if let backup = sqlite3_backup_init(destination, "main", source, "main") {
-                let result = sqlite3_backup_step(backup, -1)
-                let finish = sqlite3_backup_finish(backup)
-                sqlite3_close(destination)
-                if result != SQLITE_DONE || finish != SQLITE_OK { try? manager.removeItem(at: newURL) }
-            } else {
-                sqlite3_close(destination)
-                try? manager.removeItem(at: newURL)
+            _ = backupSQLiteIfAbsent(
+                from: oldDirectory.appendingPathComponent(filename),
+                to: newDirectory.appendingPathComponent(filename)
+            )
+        }
+    }
+
+    private static func copyMissingDefaults(from source: UserDefaults, to destination: UserDefaults, keys: [String]) {
+        for key in keys where destination.object(forKey: key) == nil {
+            if let value = source.object(forKey: key) {
+                destination.set(value, forKey: key)
             }
         }
+    }
+
+    // Internal for unit testing without relying on machine-specific application-group entitlements.
+    // A temporary, verified SQLite snapshot is moved into place only after the copy succeeds.
+    @discardableResult
+    static func backupSQLiteIfAbsent(from sourceURL: URL, to destinationURL: URL) -> Bool {
+        let manager = FileManager.default
+        guard manager.fileExists(atPath: sourceURL.path),
+              !manager.fileExists(atPath: destinationURL.path) else { return false }
+
+        let temporaryURL = destinationURL.deletingLastPathComponent()
+            .appendingPathComponent(".nexus-migration-\(UUID().uuidString).sqlite")
+        defer {
+            for suffix in ["", "-wal", "-shm", "-journal"] {
+                try? manager.removeItem(at: URL(fileURLWithPath: temporaryURL.path + suffix))
+            }
+        }
+
+        guard copySQLiteSnapshot(from: sourceURL, to: temporaryURL) else { return false }
+        guard !manager.fileExists(atPath: destinationURL.path) else { return false }
+
+        do {
+            try manager.moveItem(at: temporaryURL, to: destinationURL)
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    private static func copySQLiteSnapshot(from sourceURL: URL, to destinationURL: URL) -> Bool {
+        var sourceHandle: OpaquePointer?
+        guard sqlite3_open_v2(
+            sourceURL.path, &sourceHandle, SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX, nil
+        ) == SQLITE_OK, let source = sourceHandle else {
+            if let sourceHandle { sqlite3_close(sourceHandle) }
+            return false
+        }
+        defer { sqlite3_close(source) }
+
+        var destinationHandle: OpaquePointer?
+        guard sqlite3_open_v2(
+            destinationURL.path, &destinationHandle,
+            SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX, nil
+        ) == SQLITE_OK, let destination = destinationHandle else {
+            if let destinationHandle { sqlite3_close(destinationHandle) }
+            return false
+        }
+        defer { sqlite3_close(destination) }
+
+        guard let backup = sqlite3_backup_init(destination, "main", source, "main") else {
+            return false
+        }
+        let result = sqlite3_backup_step(backup, -1)
+        let finishResult = sqlite3_backup_finish(backup)
+        guard result == SQLITE_DONE, finishResult == SQLITE_OK else { return false }
+
+        var checkStatement: OpaquePointer?
+        guard sqlite3_prepare_v2(destination, "PRAGMA quick_check", -1, &checkStatement, nil) == SQLITE_OK,
+              let check = checkStatement else {
+            if let checkStatement { sqlite3_finalize(checkStatement) }
+            return false
+        }
+        defer { sqlite3_finalize(check) }
+        guard sqlite3_step(check) == SQLITE_ROW, let resultText = sqlite3_column_text(check, 0) else {
+            return false
+        }
+        return String(cString: resultText) == "ok"
     }
 
     public static func makeStore(bundle: Bundle = .main) -> AppSettingsStore? {

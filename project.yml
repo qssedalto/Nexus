@@ -115,7 +115,7 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
         LSUIElement: true
-        NSHumanReadableCopyright: Copyright © 2026 Marco Gomiero.
+        NSHumanReadableCopyright: Copyright © 2026 qssedalto. Portions © 2026 Marco Gomiero.
         NSPrincipalClass: NSApplication
         NexusAppGroupIdentifier: $(APP_GROUP_ID)
     entitlements:

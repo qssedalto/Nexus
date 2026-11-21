@@ -12,6 +12,11 @@ fi
 
 ZIP=${1:?"Usage: Scripts/make_appcast.sh Nexus-<version>.zip"}
 FEED_URL=${2:-${SPARKLE_FEED_URL:-"https://raw.githubusercontent.com/qssedalto/Nexus/main/appcast.xml"}}
+if [[ "$FEED_URL" == *"prof18/slashgrab"* || "$FEED_URL" == *"slashgrab.app"* ||
+      "${SPARKLE_DOWNLOAD_URL_PREFIX:-}" == *"prof18/slashgrab"* ]]; then
+  echo "ERROR: Refusing legacy upstream Sparkle feed/download URL; update .env for Nexus." >&2
+  exit 1
+fi
 PRIVATE_KEY_FILE=${SPARKLE_PRIVATE_KEY_FILE:-}
 GENERATE_APPCAST=${GENERATE_APPCAST:-}
 

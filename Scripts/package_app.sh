@@ -82,6 +82,12 @@ SIGNING_MODE=${EXPLICIT_SIGNING_MODE:-${SIGNING_MODE:-adhoc}}
 APP_IDENTITY=${EXPLICIT_APP_IDENTITY:-${APP_IDENTITY:-}}
 ARCHES_VALUE=${EXPLICIT_ARCHES:-${ARCHES:-}}
 SPARKLE_FEED_URL=${EXPLICIT_SPARKLE_FEED_URL:-${SPARKLE_FEED_URL:-"https://raw.githubusercontent.com/qssedalto/Nexus/main/appcast.xml"}}
+# Do not install an updater that silently fetches releases from the upstream app.
+if [[ "$APP_VARIANT" == "production" ]] &&
+   [[ "$SPARKLE_FEED_URL" == *"prof18/slashgrab"* || "$SPARKLE_FEED_URL" == *"slashgrab.app"* ]]; then
+  echo "ERROR: Legacy SPARKLE_FEED_URL detected in .env; configure a Nexus-owned update feed." >&2
+  exit 1
+fi
 SPARKLE_PRIVATE_KEY_FILE=${EXPLICIT_SPARKLE_PRIVATE_KEY_FILE:-${SPARKLE_PRIVATE_KEY_FILE:-}}
 SPARKLE_PUBLIC_ED_KEY=${EXPLICIT_SPARKLE_PUBLIC_ED_KEY:-${SPARKLE_PUBLIC_ED_KEY:-}}
 ENABLE_SPARKLE_AUTOMATIC_CHECKS=${EXPLICIT_ENABLE_SPARKLE_AUTOMATIC_CHECKS:-${ENABLE_SPARKLE_AUTOMATIC_CHECKS:-$DEFAULT_ENABLE_SPARKLE_AUTOMATIC_CHECKS}}
