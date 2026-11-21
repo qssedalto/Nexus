@@ -31,11 +31,21 @@ private actor ConsentRevokingTransport: ClipboardCloudTransport {
         return incoming
     }
 
-    func upload(_ records: [ClipboardCloudRecord]) async throws -> [ClipboardCloudUploadAck] {
-        uploads += 1
-        return records.map {
-            ClipboardCloudUploadAck(id: $0.id, mutationID: $0.mutationID)
+    func upload(
+        _ records: [ClipboardCloudRecord],
+        permissionCheck: @escaping @Sendable (ClipboardCloudRecord) async -> Bool
+    ) async throws -> [ClipboardCloudUploadAck] {
+        var acknowledgements: [ClipboardCloudUploadAck] = []
+        for record in records {
+            guard await permissionCheck(record) else {
+                throw ClipboardCloudSyncError.consentRequired
+            }
+            uploads += 1
+            acknowledgements.append(ClipboardCloudUploadAck(
+                id: record.id, mutationID: record.mutationID
+            ))
         }
+        return acknowledgements
     }
 
     func counts() -> (Int, Int) { (downloads, uploads) }
