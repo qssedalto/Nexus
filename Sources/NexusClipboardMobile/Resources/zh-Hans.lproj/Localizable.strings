@@ -75,3 +75,12 @@
 "Foreground sync is optional and checks at most once every 5 minutes. It uses your selected iCloud permissions and never reads another app's clipboard. Create the private iCloud zone manually before enabling." = "前台自动同步是可选功能，两次检查至少间隔 5 分钟。它仅使用你授权的 iCloud 数据类别，不会自动读取其他 App 的剪贴板。启用前需手动创建 iCloud 私有存储区。";
 "Last successful sync" = "上次成功同步";
 "iCloud clipboard sync is idle" = "iCloud 剪贴板同步空闲";
+"Include original clipboard images in iCloud (up to 8 MB)" = "在 iCloud 中同步剪贴板图片原件（最多 8 MB）";
+"Image transfer is off by default. Enabling it uploads original image copies as private CloudKit assets. File originals are not included; disabling permission stops future transfers but does not erase cloud copies already uploaded." = "图片原件同步默认关闭。开启后，复制的图片原件将作为私有 CloudKit 资源同步；不包含文件原件。关闭授权会停止后续传输，但不会自动删除已上传的云端副本。";
+"Include original clipboard images (up to 8 MB)" = "包括剪贴板图片原件（最多 8 MB）";
+"Image originals are downloaded from your private CloudKit zone only after this separate permission is enabled. File originals are not synchronized. Your clipboard is never inspected in the background." = "只有单独开启本项后才会从私人 CloudKit 区域下载图片原件。文件原件尚不同步，也不会在后台检查剪贴板。";
+"Copy image" = "复制图片";
+"Cloud clipboard image" = "云端剪贴板图片";
+"Image preview unavailable" = "图片预览不可用";
+"Cloud image unavailable" = "云端图片不可用";
+"Cloud image copied to clipboard" = "云端图片已复制到剪贴板";
