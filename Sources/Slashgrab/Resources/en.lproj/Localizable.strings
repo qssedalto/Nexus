@@ -423,3 +423,6 @@
 "Local cloud cache removal failed" = "Local cloud cache removal failed";
 "Nexus private iCloud clipboard zone deleted. Disable sync on other devices to prevent recreation." = "Nexus private iCloud clipboard zone deleted. Disable sync on other devices to prevent recreation.";
 "Cloud deletion failed; sync remains disabled and local recovery data may remain" = "Cloud deletion failed; sync remains disabled and local recovery data may remain";
+
+"Save clipboard-provided link titles (opt-in)" = "Save clipboard-provided link titles (opt-in)";
+"Only a title already present in the copied link's pasteboard is retained locally. Nexus never fetches the webpage, and titles are removed when their history entry is deleted." = "Only a title already present in the copied link's pasteboard is retained locally. Nexus never fetches the webpage, and titles are removed when their history entry is deleted.";
