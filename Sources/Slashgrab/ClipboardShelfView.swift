@@ -639,13 +639,20 @@ struct ClipboardShelfView: View {
                let copiedText = operation.clipboardText {
                 Button(localized("Fetch website title once")) {
                     Task {
+                        guard remoteTitlesEnabled else { return }
                         do {
                             guard let title = try await ClipboardRemoteWebTitleFetcher.fetch(
                                 from: copiedText
-                            ), let store = OperationStore.shared() else {
-                                message = localized("Website title unavailable")
+                            ) else {
+                                if remoteTitlesEnabled {
+                                    message = localized("Website title unavailable")
+                                }
                                 return
                             }
+                            // Revocation during HTTP transfer must not create
+                            // new retained website metadata.
+                            guard remoteTitlesEnabled,
+                                  let store = OperationStore.shared() else { return }
                             try store.recordLinkTitle(
                                 operationID: operation.id, title: title,
                                 expectedCopiedText: copiedText
