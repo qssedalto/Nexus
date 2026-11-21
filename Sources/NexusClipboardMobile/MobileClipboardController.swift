@@ -11,6 +11,12 @@ final class MobileClipboardController: ObservableObject {
     @Published var cloudEnabled: Bool {
         didSet { defaults.set(cloudEnabled, forKey: "nexusMobileCloudEnabled") }
     }
+    /// Foreground-only network sync; never implies a pasteboard read.
+    @Published var foregroundSyncEnabled: Bool {
+        didSet {
+            defaults.set(foregroundSyncEnabled, forKey: "nexusMobileForegroundSync")
+        }
+    }
     @Published var includeText: Bool {
         didSet { defaults.set(includeText, forKey: "nexusMobileCloudText") }
     }
@@ -23,7 +29,7 @@ final class MobileClipboardController: ObservableObject {
     @Published private(set) var records: [ClipboardCloudRecord] = []
     @Published private(set) var localEntries: [MobileLocalClipboardEntry] = []
     @Published private(set) var pendingCount = 0
-    @Published private(set) var status = NSLocalizedString("No cloud network activity until you press Sync", comment: "")
+    @Published private(set) var status = NSLocalizedString("iCloud clipboard sync is idle", comment: "")
     @Published private(set) var running = false
     @Published private(set) var lastSuccessfulSync: ClipboardCloudRunSummary?
 
@@ -34,12 +40,14 @@ final class MobileClipboardController: ObservableObject {
     private let zoneID = CKRecordZone.ID(
         zoneName: "NexusClipboard", ownerName: CKCurrentUserDefaultName
     )
+    private var lastForegroundSyncAttempt: Date?
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         lastSuccessfulSync = defaults.data(forKey: "nexusMobileCloudLastSuccess")
             .flatMap { try? JSONDecoder().decode(ClipboardCloudRunSummary.self, from: $0) }
         cloudEnabled = defaults.bool(forKey: "nexusMobileCloudEnabled")
+        foregroundSyncEnabled = defaults.bool(forKey: "nexusMobileForegroundSync")
         includeText = defaults.bool(forKey: "nexusMobileCloudText")
         includeNames = defaults.bool(forKey: "nexusMobileCloudNames")
         includePaths = defaults.bool(forKey: "nexusMobileCloudPaths")
@@ -257,8 +265,25 @@ final class MobileClipboardController: ObservableObject {
         }
     }
 
-    func syncNow() async {
+    /// Invoked only when the scene becomes active or the user explicitly
+    /// enables this feature in the foreground. No background task is created.
+    func syncWhenForegroundEligible() async {
+        let now = Date()
+        guard ClipboardCloudForegroundSyncPolicy.mayAttempt(
+            cloudEnabled: cloudEnabled,
+            foregroundEnabled: foregroundSyncEnabled,
+            containerConfigured: containerConfigured,
+            busy: running,
+            lastAttempt: lastForegroundSyncAttempt,
+            now: now
+        ) else { return }
+        lastForegroundSyncAttempt = now
+        await syncNow(automaticForegroundRun: true)
+    }
+
+    func syncNow(automaticForegroundRun: Bool = false) async {
         guard !running, cloudEnabled, let journal else { return }
+        if automaticForegroundRun && !foregroundSyncEnabled { return }
         running = true
         defer { running = false }
         do {
@@ -268,7 +293,10 @@ final class MobileClipboardController: ObservableObject {
             )
             let report = try await coordinator.syncOnce(consentProvider: { [weak self] in
                 await MainActor.run {
-                    self?.consent ?? ClipboardCloudConsent()
+                    guard let self, self.cloudEnabled,
+                          (!automaticForegroundRun || self.foregroundSyncEnabled)
+                    else { return ClipboardCloudConsent() }
+                    return self.consent
                 }
             })
             if let summary = ClipboardCloudRunSummary(
@@ -321,6 +349,7 @@ final class MobileClipboardController: ObservableObject {
     func clearLocalCloudData() async {
         guard !running, let journal else { return }
         cloudEnabled = false
+        foregroundSyncEnabled = false
         running = true
         defer { running = false }
         do {
@@ -343,6 +372,7 @@ final class MobileClipboardController: ObservableObject {
     func erasePrivateNexusCloudZone(confirmation: String) async {
         guard confirmation == "DELETE", !running, let journal else { return }
         cloudEnabled = false
+        foregroundSyncEnabled = false
         running = true
         defer { running = false }
         do {
