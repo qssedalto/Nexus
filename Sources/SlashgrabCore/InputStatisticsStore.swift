@@ -245,7 +245,8 @@ public final class InputStatisticsStore: @unchecked Sendable {
 
     /// Queries are half-open UTC [from,to), preserving millisecond bounds.
     /// No inferred events or interpolation is used in summaries/trends.
-    public func categoryCounts(from startMS: Int64, to endMS: Int64) throws -> [InputCategoryCount] {
+    public func categoryCounts(from startMS: Int64, to endMS: Int64,
+                               source: String? = nil) throws -> [InputCategoryCount] {
         try queue.sync {
             try flushOnQueue()
             var statement: OpaquePointer?
@@ -253,6 +254,7 @@ public final class InputStatisticsStore: @unchecked Sendable {
                 SELECT category, name, SUM(count), MAX(time_ms)
                 FROM input_events
                 WHERE time_ms >= ? AND time_ms < ?
+                  AND (? IS NULL OR source = ?)
                 GROUP BY category, name
                 ORDER BY SUM(count) DESC, category, name
                 """
@@ -261,6 +263,13 @@ public final class InputStatisticsStore: @unchecked Sendable {
             defer { sqlite3_finalize(statement) }
             sqlite3_bind_int64(statement, 1, startMS)
             sqlite3_bind_int64(statement, 2, endMS)
+            if let source {
+                bind(source, to: 3, in: statement)
+                bind(source, to: 4, in: statement)
+            } else {
+                sqlite3_bind_null(statement, 3)
+                sqlite3_bind_null(statement, 4)
+            }
             var records: [InputCategoryCount] = []
             while sqlite3_step(statement) == SQLITE_ROW {
                 guard let category = sqlite3_column_text(statement, 0),
