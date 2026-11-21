@@ -349,6 +349,9 @@ struct ClipboardShelfView: View {
         .onAppear {
             refreshShelf()
             loadCollections()
+            selectedOperationID = ClipboardShelfSelection.visibleSelection(
+                currentID: selectedOperationID, visibleIDs: operations.map(\.id)
+            )
             shelfFocused = true
         }
         // Refresh only when an operation was actually committed to SQLite.
@@ -400,9 +403,11 @@ struct ClipboardShelfView: View {
             loadCardAccents(for: Array(Set(
                 appState.shelfOperations.map(\.id) + searchedOperations.map(\.id)
             )))
-            if !operations.contains(where: { $0.id == selectedOperationID }) {
-                selectedOperationID = operations.first?.id
-            }
+        }
+        .onChange(of: operations.map(\.id)) { visibleIDs in
+            selectedOperationID = ClipboardShelfSelection.visibleSelection(
+                currentID: selectedOperationID, visibleIDs: visibleIDs
+            )
         }
         .onMoveCommand { direction in
             let entries = operations
