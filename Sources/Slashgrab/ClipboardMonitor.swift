@@ -52,6 +52,9 @@ final class ClipboardMonitor: ObservableObject {
         didSet { UserDefaults.standard.set(excludedApps, forKey: "nexusClipboardExcludedApps") }
     }
     @Published private(set) var cleanupStatus = ""
+    // Increment only after a SQLite write succeeds; the shelf observes this
+    // while visible rather than polling or racing the detached writer.
+    @Published private(set) var savedRevision: UInt64 = 0
 
     var onDetected: ((String) -> Void)?
 
@@ -125,6 +128,24 @@ final class ClipboardMonitor: ObservableObject {
         }
     }
 
+    private func persist(_ write: @escaping @Sendable () throws -> Void) {
+        Task { [weak self] in
+            let committed = await Task.detached(priority: .utility) { () -> Bool in
+                do {
+                    try write()
+                    return true
+                } catch {
+                    return false
+                }
+            }.value
+            // This actor-bound revision is only a freshness signal. Clipboard
+            // text and image bytes never travel through notifications.
+            if committed {
+                self?.savedRevision &+= 1
+            }
+        }
+    }
+
     private func checkPasteboard() {
         let pasteboard = NSPasteboard.general
         let count = pasteboard.changeCount
@@ -152,9 +173,9 @@ final class ClipboardMonitor: ObservableObject {
         if !urls.isEmpty {
             guard enabled, let store else { return }
             onDetected?("Clipboard files detected")
-            Task.detached(priority: .utility) {
-                try? store.record(type: "copy", urls: urls, sourceApplication: nil,
-                                  detectionMethod: "clipboard", detectedTimeMS: detected)
+            persist {
+                try store.record(type: "copy", urls: urls, sourceApplication: nil,
+                                 detectionMethod: "clipboard", detectedTimeMS: detected)
             }
             return
         }
@@ -178,7 +199,7 @@ final class ClipboardMonitor: ObservableObject {
                let data = pasteboard.data(forType: encodedImageType),
                data.count > 0 && data.count <= maximumImageBytes {
                 let type = encodedImageType.rawValue
-                Task.detached(priority: .utility) {
+                persist {
                     if let thumbnail = ClipboardThumbnailMaker.jpegPreview(from: data) {
                         do {
                             try store.recordClipboardImage(
@@ -187,20 +208,20 @@ final class ClipboardMonitor: ObservableObject {
                             )
                             return
                         } catch {
-                            // Fall through to metadata-only history on failure.
+                            // Preserve a metadata-only observation on failure.
                         }
                     }
-                    try? store.record(type: "image_copy", urls: [],
-                                      sourceApplication: nil,
-                                      detectionMethod: "clipboard_type",
-                                      detectedTimeMS: detected)
+                    try store.record(type: "image_copy", urls: [],
+                                     sourceApplication: nil,
+                                     detectionMethod: "clipboard_type",
+                                     detectedTimeMS: detected)
                 }
             } else {
-                Task.detached(priority: .utility) {
-                    try? store.record(type: "image_copy", urls: [],
-                                      sourceApplication: nil,
-                                      detectionMethod: "clipboard_type",
-                                      detectedTimeMS: detected)
+                persist {
+                    try store.record(type: "image_copy", urls: [],
+                                     sourceApplication: nil,
+                                     detectionMethod: "clipboard_type",
+                                     detectedTimeMS: detected)
                 }
             }
             return
@@ -211,10 +232,10 @@ final class ClipboardMonitor: ObservableObject {
               !text.isEmpty,
               text.utf8.count <= maximumTextBytes else { return }
         onDetected?("Clipboard text detected")
-        Task.detached(priority: .utility) {
-            try? store.record(type: "text_copy", urls: [], sourceApplication: nil,
-                              detectionMethod: "clipboard", detectedTimeMS: detected,
-                              clipboardText: text)
+        persist {
+            try store.record(type: "text_copy", urls: [], sourceApplication: nil,
+                             detectionMethod: "clipboard", detectedTimeMS: detected,
+                             clipboardText: text)
         }
     }
 }
