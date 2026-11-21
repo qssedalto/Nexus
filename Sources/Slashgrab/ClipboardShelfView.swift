@@ -36,6 +36,7 @@ struct ClipboardShelfView: View {
     @State private var showingDeleteCollection = false
     @AppStorage("nexusPinnedClipboardOperationIDs") private var pinnedRaw = ""
     @AppStorage("nexusClipboardFileThumbnailPreviews") private var filePreviewEnabled = false
+    @AppStorage("nexusClipboardRemoteTitlesEnabled") private var remoteTitlesEnabled = false
     @AppStorage("nexusClipboardCollectionSwitchModifier") private var collectionShortcutModifier = "command"
 
     private enum Category: String, CaseIterable, Identifiable {
@@ -633,6 +634,33 @@ struct ClipboardShelfView: View {
         }
         .contextMenu {
             Button(localized("Copy again")) { _ = copyAgain(operation) }
+            if remoteTitlesEnabled,
+               case .webLink = textPreview,
+               let copiedText = operation.clipboardText {
+                Button(localized("Fetch website title once")) {
+                    Task {
+                        do {
+                            guard let title = try await ClipboardRemoteWebTitleFetcher.fetch(
+                                from: copiedText
+                            ), let store = OperationStore.shared() else {
+                                message = localized("Website title unavailable")
+                                return
+                            }
+                            try store.recordLinkTitle(
+                                operationID: operation.id, title: title,
+                                expectedCopiedText: copiedText
+                            )
+                            NotificationCenter.default.post(
+                                name: Notification.Name("NexusRemoteLinkTitleUpdated"),
+                                object: operation.id
+                            )
+                            message = localized("Website title saved locally")
+                        } catch {
+                            message = error.localizedDescription
+                        }
+                    }
+                }
+            }
             Button(localized("Paste into previous app")) { requestPaste(operation, plainText: false) }
             Button(localized("Paste as plain text")) { requestPaste(operation, plainText: true) }
             Button(localized(isPinned ? "Unpin" : "Pin")) { togglePin(operation.id) }
