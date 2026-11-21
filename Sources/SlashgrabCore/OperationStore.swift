@@ -859,6 +859,25 @@ public final class OperationStore: @unchecked Sendable {
         return collection
     }
 
+    /// Rename a local user collection without changing its stable identity,
+    /// membership or ordering. A duplicate name is rejected by SQLite's
+    /// existing NOCASE uniqueness constraint.
+    @discardableResult
+    public func renameCollection(id: String, to name: String) throws -> Bool {
+        let normalized = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !id.isEmpty, !normalized.isEmpty, normalized.count <= 50 else {
+            throw StoreError.write
+        }
+        lock.lock()
+        defer { lock.unlock() }
+        let stmt = try prepare("UPDATE clipboard_collections SET name = ? WHERE id = ?")
+        defer { sqlite3_finalize(stmt) }
+        bind(normalized, to: 1, in: stmt)
+        bind(id, to: 2, in: stmt)
+        guard sqlite3_step(stmt) == SQLITE_DONE else { throw StoreError.write }
+        return sqlite3_changes(database) > 0
+    }
+
     @discardableResult
     public func deleteCollection(id: String) throws -> Bool {
         lock.lock()
