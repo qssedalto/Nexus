@@ -46,6 +46,7 @@ struct OperationTimelineView: View {
                 Text(localized("All")).tag("All")
                 Text(localized("File copy")).tag("copy")
                 Text(localized("Path copy")).tag("path_copy")
+                Text(localized("Drag/drop copy")).tag("drop_copy")
                 Text(localized("Text copy")).tag("text_copy")
                 Text(localized("Image copy")).tag("image_copy")
                 Text(localized("Paste request")).tag("paste_request")
@@ -119,7 +120,7 @@ struct OperationTimelineView: View {
                     HStack {
                         Text(Self.timestamp(operation.eventTimeMS ?? operation.detectedTimeMS))
                             .monospacedDigit()
-                        Text(localized(operation.type == "paste_request" ? "Paste request" : operation.type == "text_copy" ? "Text copy" : operation.type == "image_copy" ? "Image copy" : operation.type == "copy" ? "File copy" : "Path copy"))
+                        Text(localized(operation.type == "drop_copy" ? "Drag/drop copy" : operation.type == "paste_request" ? "Paste request" : operation.type == "text_copy" ? "Text copy" : operation.type == "image_copy" ? "Image copy" : operation.type == "copy" ? "File copy" : "Path copy"))
                         Text(operation.type == "paste_request"
                              ? localized("Paste requested, completion unknown")
                              : operation.type == "text_copy" ? (operation.clipboardText ?? localized("Text"))
