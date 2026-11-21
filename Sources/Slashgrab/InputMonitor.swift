@@ -155,7 +155,7 @@ final class InputMonitor: @unchecked Sendable {
         }
         store.enqueue(ClassifiedInputEvent(
             timeMS: timestampMS,
-            category: source == "iohid_function" ? "keyboard" : "system",
+            category: source.hasPrefix("iohid_function") ? "keyboard" : "system",
             name: name, source: source))
         onDiagnostic?(InputDiagnosticEvent(
             timeMS: timestampMS, name: name, source: source, supported: true))
