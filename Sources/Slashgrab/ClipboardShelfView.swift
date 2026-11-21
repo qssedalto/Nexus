@@ -93,6 +93,12 @@ struct ClipboardShelfView: View {
     private var operations: [RecordedOperation] {
         let pins = pinned
         let collectionMembers = Set(collectionMemberIDs)
+        // Mirror the SQLite query normalization so spaces or overlong
+        // search fields do not hide valid results after the database finds them.
+        let queryText = String(search.trimmingCharacters(
+            in: .whitespacesAndNewlines).prefix(256))
+        let sourceText = String(sourceFilter.trimmingCharacters(
+            in: .whitespacesAndNewlines).prefix(128))
         let candidates: [RecordedOperation]
         if shouldQueryDatabase {
             // Keep pinned cards discoverable even when they are older than
@@ -122,19 +128,19 @@ struct ClipboardShelfView: View {
             case .text: if operation.type != "text_copy" { return false }
             case .pinned: if !pins.contains(operation.id) { return false }
             }
-            if !sourceFilter.isEmpty &&
-               !(operation.sourceApplication?.localizedCaseInsensitiveContains(sourceFilter) ?? false) {
+            if !sourceText.isEmpty &&
+               !(operation.sourceApplication?.localizedCaseInsensitiveContains(sourceText) ?? false) {
                 return false
             }
             let moment = operation.eventTimeMS ?? operation.detectedTimeMS
             if filterByDate && !(moment >= searchStartMS && moment < searchEndMS) {
                 return false
             }
-            guard !search.isEmpty else { return true }
-            return (operation.clipboardText?.localizedCaseInsensitiveContains(search) ?? false)
+            guard !queryText.isEmpty else { return true }
+            return (operation.clipboardText?.localizedCaseInsensitiveContains(queryText) ?? false)
                 || operation.items.contains {
-                    $0.name.localizedCaseInsensitiveContains(search)
-                    || ($0.source?.localizedCaseInsensitiveContains(search) ?? false)
+                    $0.name.localizedCaseInsensitiveContains(queryText)
+                    || ($0.source?.localizedCaseInsensitiveContains(queryText) ?? false)
                 }
         }
         if !selectedCollectionID.isEmpty {
