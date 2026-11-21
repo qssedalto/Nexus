@@ -1,5 +1,5 @@
 import SwiftUI
-import SlashgrabCore
+import NexusCore
 
 struct OperationTimelineView: View {
     @ObservedObject var appState: AppState

@@ -1,5 +1,5 @@
 import AppKit
-import SlashgrabCore
+import NexusCore
 
 @MainActor
 final class NexusServiceProvider: NSObject {

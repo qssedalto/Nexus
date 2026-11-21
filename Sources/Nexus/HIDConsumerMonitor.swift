@@ -1,7 +1,7 @@
 import Foundation
 import Darwin
 import IOKit.hid
-import SlashgrabCore
+import NexusCore
 
 /// Passive USB HID consumer-control observer. It neither opens exclusive
 /// devices nor sets report values, remaps keys, diverts controls or reads text.

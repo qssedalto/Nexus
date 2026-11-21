@@ -1,7 +1,7 @@
 import AppKit
 import Carbon
 import CoreGraphics
-import SlashgrabCore
+import NexusCore
 
 final class InputMonitor: @unchecked Sendable {
     private let store: InputStatisticsStore

@@ -1,7 +1,7 @@
 import AppKit
 import ApplicationServices
 import SwiftUI
-import SlashgrabCore
+import NexusCore
 
 /// One home for all observation, retention and network-consent settings.
 @MainActor

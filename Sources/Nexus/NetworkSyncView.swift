@@ -1,7 +1,7 @@
 import Foundation
 import Security
 import SwiftUI
-import SlashgrabCore
+import NexusCore
 
 /// Never follow a redirect carrying the user's bearer token or private
 /// statistics/clipboard payload to an unexpected host or downgraded URL.

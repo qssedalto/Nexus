@@ -1,7 +1,7 @@
 import AppKit
 import CryptoKit
 import Foundation
-import SlashgrabCore
+import NexusCore
 import SwiftUI
 
 /// User-selected-folder automatic database backup. Choosing iCloud Drive as

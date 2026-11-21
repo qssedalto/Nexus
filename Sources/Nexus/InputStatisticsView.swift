@@ -2,7 +2,7 @@ import AppKit
 import Charts
 import CoreGraphics
 import SwiftUI
-import SlashgrabCore
+import NexusCore
 
 @MainActor
 final class InputStatisticsController: ObservableObject {
