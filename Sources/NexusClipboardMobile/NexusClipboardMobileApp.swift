@@ -4,6 +4,7 @@ import SwiftUI
 /// Adaptive iPhone/iPad UI with one explicit clipboard read button. It never
 /// attempts unsupported iOS background clipboard observation or auto-paste.
 struct MobileHomeView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var cloud = MobileClipboardController()
     @State private var collectionName = ""
     @State private var showCreateCollection = false
@@ -118,6 +119,11 @@ struct MobileHomeView: View {
                 Form {
                     Section("iCloud clipboard privacy") {
                         Toggle("Enable iCloud clipboard sync", isOn: $cloud.cloudEnabled)
+                        Toggle("Sync iCloud clipboard when Nexus becomes active",
+                               isOn: $cloud.foregroundSyncEnabled)
+                            .disabled(!cloud.cloudEnabled || !cloud.containerConfigured)
+                        Text("Foreground sync is optional and checks at most once every 5 minutes. It uses your selected iCloud permissions and never reads another app's clipboard. Create the private iCloud zone manually before enabling.")
+                            .font(.caption).foregroundStyle(.secondary)
                         Toggle("Include clipboard text", isOn: $cloud.includeText)
                             .disabled(!cloud.cloudEnabled)
                         Toggle("Include file and collection names", isOn: $cloud.includeNames)
@@ -142,7 +148,7 @@ struct MobileHomeView: View {
                         .disabled(!cloud.cloudEnabled || !cloud.containerConfigured || cloud.running)
                         LabeledContent("Local pending updates", value: String(cloud.pendingCount))
                         if let previous = cloud.lastSuccessfulSync {
-                            LabeledContent("Last successful manual sync") {
+                            LabeledContent("Last successful sync") {
                                 Text(
                                     Date(timeIntervalSince1970:
                                         TimeInterval(previous.finishedTimeMS) / 1_000),
@@ -224,7 +230,20 @@ struct MobileHomeView: View {
             }
             .tabItem { Label("Settings", systemImage: "gearshape") }
         }
-        .onAppear { cloud.refresh() }
+        .onAppear {
+            cloud.refresh()
+            Task { await cloud.syncWhenForegroundEligible() }
+        }
+        .onChange(of: scenePhase) { phase in
+            if phase == .active {
+                Task { await cloud.syncWhenForegroundEligible() }
+            }
+        }
+        .onChange(of: cloud.foregroundSyncEnabled) { enabled in
+            if enabled && scenePhase == .active {
+                Task { await cloud.syncWhenForegroundEligible() }
+            }
+        }
     }
 
     @ViewBuilder
