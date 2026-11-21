@@ -567,3 +567,4 @@
 "Deletion confirmation progress" = "删除确认进度";
 "You may cancel at any point. No statistics are deleted until the final confirmation." = "你可以随时取消。在完成最后一次确认之前，不会删除任何统计数据。";
 "You can cancel now without deleting any statistics." = "现在取消将不会删除任何统计数据。";
+"Clearing local history…" = "正在清理本地历史记录…";
