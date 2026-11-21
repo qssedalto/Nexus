@@ -415,3 +415,6 @@
 "Metadata only" = "仅元数据";
 "Copy text" = "复制文本";
 "Enable iCloud clipboard consent to inspect its local cache" = "请先授权 iCloud 剪贴板以查看本地缓存";
+
+"Save safe RTF typography (opt-in)" = "保存安全的 RTF 文字格式（需主动开启）";
+"RTF formatting keeps only bold, italic and underline flags. Attachments, remote resources, fonts and original RTF data are never saved." = "仅保存粗体、斜体、下划线等文字样式。不保存附件、远程资源、字体文件或原始 RTF 数据。";
