@@ -80,9 +80,12 @@ class NexusAPITests(unittest.TestCase):
         endpoint = "/api/nexus/v1/operations/events"
         self.assertEqual(self.request(endpoint, "POST", batch)["accepted_ids"], [record["id"]])
         self.assertEqual(self.request(endpoint, "POST", batch)["accepted_ids"], [record["id"]])
+        record["items"][0]["size"] = 501
+        self.assertEqual(self.request(endpoint, "POST", batch)["accepted_ids"], [record["id"]])
         page = self.request(endpoint + "?start_ms=7001&end_ms=7002")
         self.assertEqual(len(page["operations"]), 1)
         self.assertEqual(page["operations"][0]["operation"]["items"][0]["source"], None)
+        self.assertEqual(page["operations"][0]["operation"]["items"][0]["size"], 501)
         self.assertEqual(self.request(endpoint + "?start_ms=7002&end_ms=7003")["operations"], [])
         self.assertEqual(self.request(endpoint + "?device_id=device-1", method="DELETE")["deleted"], 1)
         self.assertEqual(self.request(endpoint + "?start_ms=0&end_ms=9000")["operations"], [])
