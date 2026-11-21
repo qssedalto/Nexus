@@ -111,3 +111,16 @@
 "Restore original" = "Restore original";
 "Restore the exact integer value (or unset state) saved before Nexus first changed this preference." = "Restore the exact integer value (or unset state) saved before Nexus first changed this preference.";
 "Global Services menu layout" = "Global Services menu layout";
+
+"Copy history cloud sync (separate consent)" = "Copy history cloud sync (separate consent)";
+"Allow operation metadata sync" = "Allow operation metadata sync";
+"Include full source and target paths" = "Include full source and target paths";
+"Include copied text contents" = "Include copied text contents";
+"Copied text and absolute file paths can contain passwords, personal names and private data. Both are redacted unless you opt in." = "Copied text and absolute file paths can contain passwords, personal names and private data. Both are redacted unless you opt in.";
+"Preview pending operations" = "Preview pending operations";
+"Upload operation history now" = "Upload operation history now";
+"Restore operation history" = "Restore operation history";
+"Delete this device's remote operation history" = "Delete this device's remote operation history";
+"Operation sync status" = "Operation sync status";
+"Delete remote operation history" = "Delete remote operation history";
+"This deletes this device's copy operation records on the server. Local records remain unchanged." = "This deletes this device's copy operation records on the server. Local records remain unchanged.";
