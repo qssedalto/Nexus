@@ -407,3 +407,19 @@
 "Last successful manual sync:" = "Last successful manual sync:";
 "More changes pending" = "More changes pending";
 "Synchronized at last run" = "Synchronized at last run";
+
+"iCloud clipboard data removal" = "iCloud clipboard data removal";
+"Removing local cache preserves your original clipboard history. Erasing the private iCloud zone deletes Nexus clipboard cloud records for this Apple account, but another device can upload its own older copies if sync remains enabled there." = "Removing local cache preserves your original clipboard history. Erasing the private iCloud zone deletes Nexus clipboard cloud records for this Apple account, but another device can upload its own older copies if sync remains enabled there.";
+"Clear local iCloud clipboard cache…" = "Clear local iCloud clipboard cache…";
+"Erase Nexus clipboard data from iCloud…" = "Erase Nexus clipboard data from iCloud…";
+"Clear only the local iCloud clipboard cache?" = "Clear only the local iCloud clipboard cache?";
+"Clear local iCloud clipboard cache" = "Clear local iCloud clipboard cache";
+"The local cloud outbox, cached records, cloud cursors and imported mirrors will be removed. Original locally copied entries are preserved; no network request is made." = "The local cloud outbox, cached records, cloud cursors and imported mirrors will be removed. Original locally copied entries are preserved; no network request is made.";
+"Erase private Nexus iCloud clipboard zone" = "Erase private Nexus iCloud clipboard zone";
+"This permanently deletes the entire dedicated NexusClipboard zone from the signed-in Apple account. Disable sync on other devices before proceeding to prevent re-upload. Your original local clipboard history is preserved." = "This permanently deletes the entire dedicated NexusClipboard zone from the signed-in Apple account. Disable sync on other devices before proceeding to prevent re-upload. Your original local clipboard history is preserved.";
+"Type DELETE to confirm" = "Type DELETE to confirm";
+"Erase Nexus iCloud records" = "Erase Nexus iCloud records";
+"Local iCloud clipboard cache cleared; original local history preserved" = "Local iCloud clipboard cache cleared; original local history preserved";
+"Local cloud cache removal failed" = "Local cloud cache removal failed";
+"Nexus private iCloud clipboard zone deleted. Disable sync on other devices to prevent recreation." = "Nexus private iCloud clipboard zone deleted. Disable sync on other devices to prevent recreation.";
+"Cloud deletion failed; sync remains disabled and local recovery data may remain" = "Cloud deletion failed; sync remains disabled and local recovery data may remain";
