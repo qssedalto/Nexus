@@ -83,7 +83,8 @@ final class ClipboardCloudPurgeTests: XCTestCase {
             transport: remote, journal: journal
         )
         try await purge.purgeCloudZoneAndLocalCache(explicitlyConfirmed: true)
-        XCTAssertEqual(await remote.callCount(), 1)
+        let calls = await remote.callCount()
+        XCTAssertEqual(calls, 1)
         XCTAssertEqual(try journal.pendingCount(), 0)
         XCTAssertTrue(try journal.cachedRecords().isEmpty)
         XCTAssertNil(try journal.token(forZone: "NexusClipboard"))
