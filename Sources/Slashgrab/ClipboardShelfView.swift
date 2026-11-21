@@ -226,6 +226,50 @@ struct ClipboardShelfView: View {
                     .font(.caption2).foregroundStyle(.secondary)
             }
 
+            if !collections.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        Text(localized("Drop a card into a collection:"))
+                            .font(.caption2).foregroundStyle(.secondary)
+                        ForEach(collections) { collection in
+                            Text(collection.name)
+                                .font(.caption.weight(.medium))
+                                .lineLimit(1)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(
+                                    selectedCollectionID == collection.id
+                                        ? Color.accentColor.opacity(0.18)
+                                        : Color.primary.opacity(0.06),
+                                    in: Capsule()
+                                )
+                                .onDrop(of: [UTType.plainText], isTargeted: nil) { providers in
+                                    guard let provider = providers.first(where: {
+                                        $0.canLoadObject(ofClass: NSString.self)
+                                    }) else { return false }
+                                    let targetID = collection.id
+                                    _ = provider.loadObject(ofClass: NSString.self) { value, _ in
+                                        guard let draggedID = value as? String else { return }
+                                        Task { @MainActor in
+                                            let loaded = Set(appState.shelfOperations.map(\.id))
+                                            let available = Set(collections.map(\.id))
+                                            guard ClipboardCollectionDropPolicy.accepts(
+                                                draggedID: draggedID,
+                                                loadedOperationIDs: loaded,
+                                                targetCollectionID: targetID,
+                                                availableCollectionIDs: available
+                                            ) else { return }
+                                            addToCollection(draggedID, collectionID: targetID)
+                                        }
+                                    }
+                                    return true
+                                }
+                        }
+                    }
+                }
+                .frame(height: 34)
+            }
+
             if operations.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "tray")
@@ -267,7 +311,7 @@ struct ClipboardShelfView: View {
             }
         }
         .padding(18)
-        .frame(minWidth: 710, idealWidth: 890, minHeight: 385, idealHeight: 430)
+        .frame(minWidth: 710, idealWidth: 890, minHeight: 405, idealHeight: 455)
         .background(.regularMaterial)
         .focusable()
         .focused($shelfFocused)
