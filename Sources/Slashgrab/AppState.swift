@@ -125,12 +125,12 @@ final class AppState: ObservableObject {
         let queryID = UUID()
         operationQueryID = queryID
         let store = operationStore
-        Task.detached(priority: .utility) { [weak self] in
-            let results = (try? store?.query(from: startMS, to: endMS)) ?? []
-            await MainActor.run {
-                guard self?.operationQueryID == queryID else { return }
-                self?.operations = results
-            }
+        Task { [weak self] in
+            let results = await Task.detached(priority: .utility) {
+                (try? store?.query(from: startMS, to: endMS)) ?? []
+            }.value
+            guard self?.operationQueryID == queryID else { return }
+            self?.operations = results
         }
     }
 
@@ -191,14 +191,16 @@ final class AppState: ObservableObject {
             let operationStore = self.operationStore
             let operationType = urls.isEmpty ? "text_copy" : "path_copy"
             let method = urls.isEmpty ? "app_recopy" : "drop"
-            Task.detached(priority: .utility) { [weak self] in
-                try? operationStore?.record(type: operationType, urls: urls,
-                                            sourceApplication: "Nexus", detectionMethod: method,
-                                            eventTimeMS: startedTimeMS,
-                                            detectedTimeMS: completedTimeMS,
-                                            completedTimeMS: completedTimeMS,
-                                            clipboardText: output)
-                await MainActor.run { self?.refreshOperations() }
+            Task { [weak self] in
+                await Task.detached(priority: .utility) {
+                    try? operationStore?.record(type: operationType, urls: urls,
+                                                sourceApplication: "Nexus", detectionMethod: method,
+                                                eventTimeMS: startedTimeMS,
+                                                detectedTimeMS: completedTimeMS,
+                                                completedTimeMS: completedTimeMS,
+                                                clipboardText: output)
+                }.value
+                self?.refreshOperations()
             }
             let detail = urls.count == 1 ? urls[0].lastPathComponent : (urls.isEmpty ? nil : "\(urls.count) \(localized("items"))")
             showFeedback(.success(successMessage, detail: detail))
