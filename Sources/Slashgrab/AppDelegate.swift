@@ -16,7 +16,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.servicesProvider = serviceProvider
         InputStatisticsController.shared.startIfPermitted()
         _ = NetworkSyncController.shared
-        _ = ClipboardMonitor.shared
+        ClipboardMonitor.shared.onDetected = { [weak self] key in
+            self?.appState.clipboardDidChange(key)
+        }
         finderCopyObserver = DistributedNotificationCenter.default().addObserver(
             forName: SharedSettings.finderCopyNotification,
             object: nil,
