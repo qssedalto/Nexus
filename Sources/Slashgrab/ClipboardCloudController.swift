@@ -341,6 +341,7 @@ final class ClipboardCloudController: ObservableObject {
     func clearLocalCloudData() async {
         guard !running, let journal, let store else { return }
         enabled = false
+        automaticSyncEnabled = false
         running = true
         defer { running = false }
         do {
@@ -362,6 +363,7 @@ final class ClipboardCloudController: ObservableObject {
         guard confirmation == "DELETE", !running,
               let journal, let store else { return }
         enabled = false
+        automaticSyncEnabled = false
         running = true
         defer { running = false }
         do {
