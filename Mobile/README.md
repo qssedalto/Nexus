@@ -30,6 +30,10 @@ Deliberate platform limitations:
   It does NOT auto-monitor, collect keystrokes or auto-paste into other apps.
 - Original images and files are not transferred. The CloudKit metadata model
   is shared with macOS but binary asset synchronization is not implemented.
+- The app stores an independent SQLite history of up to 500 explicitly
+  imported text entries (64 KiB each) even when iCloud is disabled. Local
+  delete and copy-again do not require an Apple Account. If iCloud is enabled,
+  separately authorized imports may also be queued in the private journal.
 - The app stores its own bounded local CloudKit cache; remote entries become
   visible when the user explicitly syncs. A physically deleted CKRecord or a
   newer concurrent mutation may require explicit conflict handling.
