@@ -1,6 +1,6 @@
 import AppKit
 import SwiftUI
-import SlashgrabCore
+import NexusCore
 
 @MainActor
 private final class SystemServicesModel: ObservableObject {
