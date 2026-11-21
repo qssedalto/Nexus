@@ -387,3 +387,5 @@
 "Blue" = "Blue";
 "Purple" = "Purple";
 "Gray" = "Gray";
+
+"Restored %d cloud entries and %d collection changes to local history" = "Restored %d cloud entries and %d collection changes to local history";

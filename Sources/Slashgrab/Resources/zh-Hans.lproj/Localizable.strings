@@ -445,3 +445,5 @@
 "Blue" = "蓝色";
 "Purple" = "紫色";
 "Gray" = "灰色";
+
+"Restored %d cloud entries and %d collection changes to local history" = "已将 %d 条云端记录及 %d 项收藏集变更恢复到本地历史";

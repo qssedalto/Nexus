@@ -1031,6 +1031,144 @@ public final class OperationStore: @unchecked Sendable {
         }
     }
 
+    /// Restore cloud-only permanent collections and membership ordering into
+    /// separate, visibly named local mirrors. Never overwrite an original
+    /// user-created collection with the same UUID or display name.
+    /// Tombstones are limited to cloudkit-prefixed collection IDs.
+    @discardableResult
+    public func importCloudCollections(
+        _ records: [ClipboardCloudRecord], consent: ClipboardCloudConsent
+    ) throws -> Int {
+        guard consent.enabled && consent.includeNames else { return 0 }
+        guard records.count <= 200 else { throw StoreError.write }
+        let ordered = try ClipboardCloudMerge.merged(existing: [], incoming: records)
+        let collections = ordered.filter { $0.kind == .collection }
+        let memberships = ordered.filter { $0.kind == .membership }
+        guard (collections + memberships).allSatisfy({ consent.permits($0) }) else {
+            throw ClipboardCloudModelError.invalidRecord
+        }
+        lock.lock()
+        defer { lock.unlock() }
+        try execute("BEGIN IMMEDIATE")
+        do {
+            var changed = 0
+            for change in collections {
+                let sourceID = String(change.id.dropFirst("collection:".count))
+                guard UUID(uuidString: sourceID) != nil else { continue }
+                let mirror = "cloudkit:" + sourceID
+                if change.isDeleted {
+                    let stmt = try prepare(
+                        "DELETE FROM clipboard_collections WHERE id=?"
+                    )
+                    bind(mirror, to: 1, in: stmt)
+                    let done = sqlite3_step(stmt) == SQLITE_DONE
+                    changed += Int(sqlite3_changes(database))
+                    sqlite3_finalize(stmt)
+                    guard done else { throw StoreError.write }
+                    continue
+                }
+                guard case .collection(let data)? = change.payload else {
+                    throw ClipboardCloudModelError.invalidRecord
+                }
+                let trimmed = data.name.trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
+                guard !trimmed.isEmpty,
+                      !trimmed.unicodeScalars.contains(where: {
+                          CharacterSet.controlCharacters.contains($0)
+                      }) else { continue }
+                // Full UUID suffix prevents coincidental collisions between
+                // distinct remote collections sharing a title on this Mac.
+                let title = "iCloud · " + String(trimmed.prefix(28))
+                    + " · " + sourceID
+                let stmt = try prepare("""
+                    INSERT INTO clipboard_collections(id,name,created_time_ms)
+                    VALUES(?,?,?)
+                    ON CONFLICT(id) DO UPDATE SET name=excluded.name
+                    WHERE clipboard_collections.name <> excluded.name
+                    """)
+                bind(mirror, to: 1, in: stmt)
+                bind(title, to: 2, in: stmt)
+                bind(Int64(Date().timeIntervalSince1970 * 1_000), to: 3, in: stmt)
+                let done = sqlite3_step(stmt) == SQLITE_DONE
+                changed += Int(sqlite3_changes(database))
+                sqlite3_finalize(stmt)
+                guard done else { throw StoreError.write }
+            }
+
+            for change in memberships {
+                let id = String(change.id.dropFirst("membership:".count))
+                let fields = id.split(separator: ":", omittingEmptySubsequences: false)
+                guard fields.count == 2,
+                      UUID(uuidString: String(fields[0])) != nil,
+                      UUID(uuidString: String(fields[1])) != nil else { continue }
+                let collectionID = "cloudkit:" + String(fields[0])
+                let originalID = String(fields[1])
+                let mirroredID = "cloudkit:" + originalID
+                if change.isDeleted {
+                    let stmt = try prepare("""
+                        DELETE FROM clipboard_collection_entries
+                        WHERE collection_id=? AND operation_id IN (?,?)
+                        """)
+                    bind(collectionID, to: 1, in: stmt)
+                    bind(originalID, to: 2, in: stmt)
+                    bind(mirroredID, to: 3, in: stmt)
+                    let done = sqlite3_step(stmt) == SQLITE_DONE
+                    changed += Int(sqlite3_changes(database))
+                    sqlite3_finalize(stmt)
+                    guard done else { throw StoreError.write }
+                    continue
+                }
+                guard case .membership(let data)? = change.payload,
+                      data.collectionID == String(fields[0]),
+                      data.operationID == originalID,
+                      data.sortPosition >= 0,
+                      data.sortPosition < 10_000_000 else {
+                    throw ClipboardCloudModelError.invalidRecord
+                }
+                // A cloud member may precede its operation page or collection
+                // page. Skip until the user imports those pages; never create
+                // placeholder file URLs or untrusted local records.
+                let resolve = try prepare("""
+                    SELECT id FROM operations
+                    WHERE id IN (?,?)
+                    ORDER BY CASE WHEN id=? THEN 0 ELSE 1 END LIMIT 1
+                    """)
+                bind(originalID, to: 1, in: resolve)
+                bind(mirroredID, to: 2, in: resolve)
+                bind(originalID, to: 3, in: resolve)
+                let state = sqlite3_step(resolve)
+                let resolved = state == SQLITE_ROW ? string(resolve, 0) : nil
+                sqlite3_finalize(resolve)
+                guard state == SQLITE_ROW || state == SQLITE_DONE else {
+                    throw StoreError.write
+                }
+                guard let resolved else { continue }
+                let stmt = try prepare("""
+                    INSERT INTO clipboard_collection_entries
+                    (collection_id,operation_id,position) VALUES(?,?,?)
+                    ON CONFLICT(collection_id,operation_id)
+                    DO UPDATE SET position=excluded.position
+                    WHERE clipboard_collection_entries.position <> excluded.position
+                    """)
+                bind(collectionID, to: 1, in: stmt)
+                bind(resolved, to: 2, in: stmt)
+                bind(data.sortPosition, to: 3, in: stmt)
+                let done = sqlite3_step(stmt) == SQLITE_DONE
+                changed += Int(sqlite3_changes(database))
+                sqlite3_finalize(stmt)
+                // Missing collection pages should not delete or mutate local
+                // collections. An FK failure rolls back the entire page.
+                guard done else { throw StoreError.write }
+            }
+            try execute("COMMIT")
+            return changed
+        } catch {
+            try? execute("ROLLBACK")
+            throw error
+        }
+    }
+
     /// Explicitly mirror consent-approved cloud history without restoring
     /// remote file paths as local URLs. Entries are excluded from outbound
     /// queues; tombstones remove only mirrors, never original local copies.

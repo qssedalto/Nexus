@@ -190,11 +190,19 @@ final class ClipboardCloudController: ObservableObject {
         defer { running = false }
         let consent = currentConsent
         do {
-            let restored = try await Task.detached(priority: .utility) {
+            let result = try await Task.detached(priority: .utility) {
                 let cached = try journal.cachedRecords(limit: 100)
-                return try store.importCloudHistory(cached, consent: consent)
+                let operations = try store.importCloudHistory(
+                    cached, consent: consent
+                )
+                let collections = try store.importCloudCollections(
+                    cached, consent: consent
+                )
+                return (operations, collections)
             }.value
-            status = "Restored \(restored) cloud history entries into local shelf"
+            status = String(format: localized(
+                "Restored %d cloud entries and %d collection changes to local history"
+            ), result.0, result.1)
         } catch {
             status = "Cloud history restoration failed: \(error.localizedDescription)"
         }
