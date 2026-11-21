@@ -53,7 +53,8 @@ final class InputDashboardTests: XCTestCase {
             let rows = try store.trend(from: start, to: end, resolution: resolution,
                                         category: "system", name: "volume_up")
             XCTAssertEqual(rows.reduce(0) { $0 + $1.count }, 2)
-            XCTAssertEqual(rows.count, 2)
+            // ISO-8601 weeks span the year boundary in this example.
+            XCTAssertEqual(rows.count, resolution == .week ? 1 : 2)
         }
         XCTAssertEqual(try store.trend(from: millis[1], to: end, resolution: .day)
             .reduce(0) { $0 + $1.count }, 1)
