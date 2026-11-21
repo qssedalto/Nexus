@@ -150,7 +150,8 @@ final class AppState: ObservableObject {
     }
 
     /// Separate shelf data from the unbounded, user-specified timeline query.
-    /// Loading 200 latest records plus explicit pinned/collection UUIDs keeps
+    /// Loading 200 latest clipboard records (not unrelated operation events)
+    /// plus explicit pinned/collection UUIDs keeps
     /// old favorites visible without materializing years of copy operations.
     func refreshShelfOperations(protectedIDs: [String] = []) {
         let queryID = UUID()
@@ -159,7 +160,7 @@ final class AppState: ObservableObject {
         let ids = Array(Set(protectedIDs)).sorted()
         Task { [weak self] in
             let results = await Task.detached(priority: .utility) {
-                let recent = (try? store?.query(from: 0, to: Int64.max, limit: 200)) ?? []
+                let recent = (try? store?.searchClipboard(query: "", limit: 200)) ?? []
                 let protected = (try? store?.query(ids: ids)) ?? []
                 var byID: [String: RecordedOperation] = [:]
                 for operation in recent + protected { byID[operation.id] = operation }
