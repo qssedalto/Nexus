@@ -42,7 +42,7 @@ struct ClipboardShelfView: View {
 
     private var operations: [RecordedOperation] {
         let pins = pinned
-        let matches = appState.operations.filter { operation in
+        let matches = appState.shelfOperations.filter { operation in
             guard ["copy", "path_copy", "text_copy", "image_copy", "drop_copy"].contains(operation.type) else { return false }
             if !selectedCollectionID.isEmpty && !collectionMemberIDs.contains(operation.id) { return false }
             let kind = operation.items.first?.kind
@@ -92,7 +92,7 @@ struct ClipboardShelfView: View {
                     Label(localized("Clear unpinned local history"), systemImage: "trash")
                 }
                 Button {
-                    appState.refreshOperations()
+                    refreshShelf()
                 } label: {
                     Label(localized("Refresh"), systemImage: "arrow.clockwise")
                 }
@@ -179,12 +179,14 @@ struct ClipboardShelfView: View {
         .focusable()
         .focused($shelfFocused)
         .onAppear {
-            appState.refreshOperations()
+            refreshShelf()
             loadCollections()
             shelfFocused = true
         }
-        .onChange(of: appState.operations.map(\.id)) { _ in
-            if selectedOperationID == nil { selectedOperationID = operations.first?.id }
+        .onChange(of: appState.shelfOperations.map(\.id)) { _ in
+            if !operations.contains(where: { $0.id == selectedOperationID }) {
+                selectedOperationID = operations.first?.id
+            }
         }
         .onMoveCommand { direction in
             let entries = operations
@@ -336,6 +338,11 @@ struct ClipboardShelfView: View {
         }
     }
 
+    private func refreshShelf() {
+        let requested = Array(pinned.union(collectionMemberIDs))
+        appState.refreshShelfOperations(protectedIDs: requested)
+    }
+
     private func loadCollections() {
         let store = OperationStore.shared()
         Task {
@@ -355,6 +362,7 @@ struct ClipboardShelfView: View {
         let current = selectedCollectionID
         guard !current.isEmpty else {
             collectionMemberIDs = []
+            refreshShelf()
             return
         }
         let store = OperationStore.shared()
@@ -364,6 +372,7 @@ struct ClipboardShelfView: View {
             }.value
             guard selectedCollectionID == current else { return }
             collectionMemberIDs = ids
+            refreshShelf()
         }
     }
 
@@ -457,7 +466,7 @@ struct ClipboardShelfView: View {
                 var remainingPins = pinned
                 remainingPins.remove(id)
                 pinnedRaw = remainingPins.sorted().joined(separator: "\n")
-                appState.refreshOperations()
+                refreshShelf()
                 message = localized("Local record deleted")
             } else {
                 message = localized("Unable to delete local record")
@@ -488,7 +497,7 @@ struct ClipboardShelfView: View {
                     return -1
                 }
             }.value
-            appState.refreshOperations()
+            refreshShelf()
             message = removed >= 0
                 ? "\(removed) \(localized("local records deleted"))"
                 : localized("Unable to clear local history")
@@ -547,6 +556,7 @@ struct ClipboardShelfView: View {
         if current.contains(id) { current.remove(id) }
         else { current.insert(id) }
         pinnedRaw = current.sorted().joined(separator: "\n")
+        refreshShelf()
     }
 
     private func categoryTitle(for operation: RecordedOperation) -> String {

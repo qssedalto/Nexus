@@ -166,13 +166,49 @@ public final class OperationStore: @unchecked Sendable {
         }
     }
 
-    public func query(from startMS: Int64, to endMS: Int64) throws -> [RecordedOperation] {
+    public func query(from startMS: Int64, to endMS: Int64,
+                      limit: Int? = nil) throws -> [RecordedOperation] {
         lock.lock()
         defer { lock.unlock() }
-        let statement = try prepare("SELECT id, type, event_time_ms, detected_time_ms, completed_time_ms, source_application, detection_method, status, target, duration_ms, clipboard_text FROM operations WHERE COALESCE(event_time_ms, detected_time_ms) >= ? AND COALESCE(event_time_ms, detected_time_ms) < ? ORDER BY COALESCE(event_time_ms, detected_time_ms) DESC, id DESC")
+        let sql = """
+            SELECT id, type, event_time_ms, detected_time_ms, completed_time_ms,
+                   source_application, detection_method, status, target, duration_ms, clipboard_text
+            FROM operations
+            WHERE COALESCE(event_time_ms, detected_time_ms) >= ?
+              AND COALESCE(event_time_ms, detected_time_ms) < ?
+            ORDER BY COALESCE(event_time_ms, detected_time_ms) DESC, id DESC
+            """ + (limit == nil ? "" : " LIMIT ?")
+        let statement = try prepare(sql)
         defer { sqlite3_finalize(statement) }
         bind(startMS, to: 1, in: statement)
         bind(endMS, to: 2, in: statement)
+        if let limit { bind(Int64(max(1, min(5000, limit))), to: 3, in: statement) }
+        var results: [RecordedOperation] = []
+        while sqlite3_step(statement) == SQLITE_ROW {
+            results.append(try readOperation(from: statement))
+        }
+        return results
+    }
+
+    /// Bounded direct lookup for older pinned/permanent-collection history.
+    /// Avoids loading every operation just to show one old favorite card.
+    public func query(ids: [String]) throws -> [RecordedOperation] {
+        let unique = Array(Set(ids.filter { !$0.isEmpty })).sorted().prefix(500)
+        guard !unique.isEmpty else { return [] }
+        lock.lock()
+        defer { lock.unlock() }
+        let placeholders = Array(repeating: "?", count: unique.count).joined(separator: ",")
+        let statement = try prepare("""
+            SELECT id, type, event_time_ms, detected_time_ms, completed_time_ms,
+                   source_application, detection_method, status, target, duration_ms, clipboard_text
+            FROM operations
+            WHERE id IN (\(placeholders))
+            ORDER BY COALESCE(event_time_ms, detected_time_ms) DESC, id DESC
+            """)
+        defer { sqlite3_finalize(statement) }
+        for (index, id) in unique.enumerated() {
+            bind(id, to: Int32(index + 1), in: statement)
+        }
         var results: [RecordedOperation] = []
         while sqlite3_step(statement) == SQLITE_ROW {
             results.append(try readOperation(from: statement))
