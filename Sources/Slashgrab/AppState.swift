@@ -11,6 +11,7 @@ final class AppState: ObservableObject {
     @Published private(set) var useFinderSubmenu: Bool
     @Published private(set) var feedbackDuration: Double
     @Published private(set) var operations: [RecordedOperation] = []
+    @Published private(set) var shelfOperations: [RecordedOperation] = []
 
     private let settings: AppSettingsStore
     private let sharedSettings: AppSettingsStore?
@@ -21,6 +22,7 @@ final class AppState: ObservableObject {
     private let finderExtensionController: FinderExtensionManaging
     private var feedbackTask: Task<Void, Never>?
     private var operationQueryID = UUID()
+    private var shelfQueryID = UUID()
 
     init(
         settings: AppSettingsStore,
@@ -122,16 +124,45 @@ final class AppState: ObservableObject {
         showFeedback(.success(localized("Path copied")))
     }
 
-    func refreshOperations(from startMS: Int64 = 0, to endMS: Int64 = Int64.max) {
+    /// The initial menu/settings refresh uses only recent records. Explicit
+    /// timeline range queries keep their full, user-selected range.
+    func refreshOperations(from startMS: Int64? = nil, to endMS: Int64 = Int64.max) {
         let queryID = UUID()
         operationQueryID = queryID
         let store = operationStore
+        let lower = startMS ?? Int64(Date().addingTimeInterval(-30 * 86400).timeIntervalSince1970 * 1000)
+        let implicitLimit: Int? = startMS == nil ? 500 : nil
         Task { [weak self] in
             let results = await Task.detached(priority: .utility) {
-                (try? store?.query(from: startMS, to: endMS)) ?? []
+                (try? store?.query(from: lower, to: endMS, limit: implicitLimit)) ?? []
             }.value
             guard self?.operationQueryID == queryID else { return }
             self?.operations = results
+        }
+    }
+
+    /// Separate shelf data from the unbounded, user-specified timeline query.
+    /// Loading 200 latest records plus explicit pinned/collection UUIDs keeps
+    /// old favorites visible without materializing years of copy operations.
+    func refreshShelfOperations(protectedIDs: [String] = []) {
+        let queryID = UUID()
+        shelfQueryID = queryID
+        let store = operationStore
+        let ids = Array(Set(protectedIDs)).sorted()
+        Task { [weak self] in
+            let results = await Task.detached(priority: .utility) {
+                let recent = (try? store?.query(from: 0, to: Int64.max, limit: 200)) ?? []
+                let protected = (try? store?.query(ids: ids)) ?? []
+                var byID: [String: RecordedOperation] = [:]
+                for operation in recent + protected { byID[operation.id] = operation }
+                return byID.values.sorted {
+                    let lhs = $0.eventTimeMS ?? $0.detectedTimeMS
+                    let rhs = $1.eventTimeMS ?? $1.detectedTimeMS
+                    return lhs == rhs ? $0.id > $1.id : lhs > rhs
+                }
+            }.value
+            guard self?.shelfQueryID == queryID else { return }
+            self?.shelfOperations = results
         }
     }
 
