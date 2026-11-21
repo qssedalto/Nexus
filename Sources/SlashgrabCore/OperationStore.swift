@@ -140,6 +140,16 @@ public final class OperationStore: @unchecked Sendable {
                 )
                 """)
             if version < 4 { try execute("PRAGMA user_version=4") }
+            try execute("""
+                CREATE TABLE IF NOT EXISTS clipboard_card_accents (
+                    operation_id TEXT PRIMARY KEY
+                    REFERENCES operations(id) ON DELETE CASCADE,
+                    accent TEXT NOT NULL CHECK (accent IN (
+                        'red','orange','yellow','green','blue','purple','gray'
+                    ))
+                )
+                """)
+            if version < 5 { try execute("PRAGMA user_version=5") }
         } catch {
             sqlite3_close(database)
             throw error
@@ -584,6 +594,62 @@ public final class OperationStore: @unchecked Sendable {
         defer { sqlite3_finalize(stmt) }
         guard sqlite3_step(stmt) == SQLITE_ROW else { throw StoreError.write }
         return Int(sqlite3_column_int64(stmt, 0))
+    }
+
+    /// A small, batched lookup for the currently visible lazy cards.
+    /// Missing rows mean automatic color and never store extra PII.
+    public func cardAccents(operationIDs: [String]) throws -> [String: ClipboardCardAccent] {
+        let ids = Array(Set(operationIDs.filter { !$0.isEmpty })).sorted().prefix(500)
+        guard !ids.isEmpty else { return [:] }
+        lock.lock()
+        defer { lock.unlock() }
+        let placeholders = Array(repeating: "?", count: ids.count).joined(separator: ",")
+        let stmt = try prepare("""
+            SELECT operation_id, accent FROM clipboard_card_accents
+            WHERE operation_id IN (\(placeholders))
+            """)
+        defer { sqlite3_finalize(stmt) }
+        for (position, id) in ids.enumerated() {
+            bind(id, to: Int32(position + 1), in: stmt)
+        }
+        var result: [String: ClipboardCardAccent] = [:]
+        while true {
+            let code = sqlite3_step(stmt)
+            if code == SQLITE_DONE { break }
+            guard code == SQLITE_ROW else { throw StoreError.write }
+            if let id = string(stmt, 0), let value = string(stmt, 1),
+               let accent = ClipboardCardAccent(rawValue: value) {
+                result[id] = accent
+            }
+        }
+        return result
+    }
+
+    /// User-selected color only; reset removes the tag completely.
+    /// Foreign-key cascade removes tags with their operation history.
+    public func setCardAccent(
+        _ accent: ClipboardCardAccent, operationID: String
+    ) throws {
+        guard !operationID.isEmpty else { throw StoreError.write }
+        lock.lock()
+        defer { lock.unlock() }
+        if accent == .automatic {
+            let stmt = try prepare(
+                "DELETE FROM clipboard_card_accents WHERE operation_id = ?"
+            )
+            defer { sqlite3_finalize(stmt) }
+            bind(operationID, to: 1, in: stmt)
+            guard sqlite3_step(stmt) == SQLITE_DONE else { throw StoreError.write }
+        } else {
+            let stmt = try prepare("""
+                INSERT INTO clipboard_card_accents(operation_id,accent) VALUES(?,?)
+                ON CONFLICT(operation_id) DO UPDATE SET accent=excluded.accent
+                """)
+            defer { sqlite3_finalize(stmt) }
+            bind(operationID, to: 1, in: stmt)
+            bind(accent.rawValue, to: 2, in: stmt)
+            guard sqlite3_step(stmt) == SQLITE_DONE else { throw StoreError.write }
+        }
     }
 
     public func listCollections() throws -> [ClipboardCollection] {

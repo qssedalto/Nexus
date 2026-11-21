@@ -27,6 +27,8 @@ struct ClipboardShelfView: View {
     @State private var collections: [ClipboardCollection] = []
     @State private var selectedCollectionID = ""
     @State private var collectionMemberIDs: [String] = []
+    @State private var cardAccents: [String: ClipboardCardAccent] = [:]
+    @State private var colorLoadGeneration = 0
     @State private var newCollectionName = ""
     @State private var showingCreateCollection = false
     @State private var showingDeleteCollection = false
@@ -387,11 +389,17 @@ struct ClipboardShelfView: View {
                 }.value
                 guard !Task.isCancelled else { return }
                 searchedOperations = found
+                loadCardAccents(for: Array(Set(
+                    appState.shelfOperations.map(\.id) + found.map(\.id)
+                )))
             } catch {
                 // A newer query superseded this keystroke.
             }
         }
         .onChange(of: appState.shelfOperations.map(\.id)) { _ in
+            loadCardAccents(for: Array(Set(
+                appState.shelfOperations.map(\.id) + searchedOperations.map(\.id)
+            )))
             if !operations.contains(where: { $0.id == selectedOperationID }) {
                 selectedOperationID = operations.first?.id
             }
@@ -444,6 +452,7 @@ struct ClipboardShelfView: View {
             ? ClipboardTextPreview.classify(operation.clipboardText ?? "")
             : .plain
         let accent: Color = {
+            if let marked = cardAccents[operation.id] { return color(for: marked) }
             switch textPreview {
             case .webLink: return .blue
             case .fencedCode: return .purple
@@ -470,6 +479,12 @@ struct ClipboardShelfView: View {
                     .foregroundStyle(accent)
                     .lineLimit(1)
                 Spacer()
+                if cardAccents[operation.id] != nil {
+                    Circle()
+                        .fill(accent)
+                        .frame(width: 9, height: 9)
+                        .accessibilityLabel(localized("Custom card color"))
+                }
                 Button {
                     togglePin(operation.id)
                 } label: {
@@ -585,6 +600,17 @@ struct ClipboardShelfView: View {
             Button(localized("Paste into previous app")) { requestPaste(operation, plainText: false) }
             Button(localized("Paste as plain text")) { requestPaste(operation, plainText: true) }
             Button(localized(isPinned ? "Unpin" : "Pin")) { togglePin(operation.id) }
+            Menu(localized("Mark card color")) {
+                ForEach(ClipboardCardAccent.allCases, id: \.rawValue) { choice in
+                    Button {
+                        setCardAccent(choice, operationID: operation.id)
+                    } label: {
+                        Label(localized(choice.title),
+                              systemImage: (cardAccents[operation.id] ?? .automatic) == choice
+                                  ? "checkmark.circle.fill" : "circle")
+                    }
+                }
+            }
             if !collections.isEmpty {
                 Menu(localized("Add to collection")) {
                     ForEach(collections) { collection in
@@ -643,6 +669,55 @@ struct ClipboardShelfView: View {
         selectedOperationID = nil
         shelfFocused = true
         return .handled
+    }
+
+    private func loadCardAccents(for ids: [String]) {
+        let keys = Array(Set(ids)).sorted().prefix(5_000)
+        let store = OperationStore.shared()
+        colorLoadGeneration += 1
+        let generation = colorLoadGeneration
+        Task {
+            let loaded = await Task.detached(priority: .utility) {
+                var colors: [String: ClipboardCardAccent] = [:]
+                guard let store else { return colors }
+                for offset in stride(from: 0, to: keys.count, by: 500) {
+                    let batch = Array(keys[offset..<min(keys.count, offset + 500)])
+                    if let found = try? store.cardAccents(operationIDs: batch) {
+                        colors.merge(found) { _, incoming in incoming }
+                    }
+                }
+                return colors
+            }.value
+            guard generation == colorLoadGeneration else { return }
+            cardAccents = loaded
+        }
+    }
+
+    private func setCardAccent(
+        _ accent: ClipboardCardAccent, operationID: String
+    ) {
+        guard let store = OperationStore.shared() else { return }
+        // Prevent an older background tag read from undoing this click.
+        colorLoadGeneration += 1
+        Task {
+            let saved = await Task.detached(priority: .utility) { () -> Bool in
+                do {
+                    try store.setCardAccent(accent, operationID: operationID)
+                    return true
+                } catch {
+                    return false
+                }
+            }.value
+            if saved {
+                if accent == .automatic {
+                    cardAccents.removeValue(forKey: operationID)
+                } else {
+                    cardAccents[operationID] = accent
+                }
+            } else {
+                message = localized("Unable to update card color")
+            }
+        }
     }
 
     private func refreshShelf() {
@@ -928,6 +1003,19 @@ struct ClipboardShelfView: View {
         case "document": return "doc.text"
         case "text": return "text.alignleft"
         default: return "doc"
+        }
+    }
+
+    private func color(for accent: ClipboardCardAccent) -> Color {
+        switch accent {
+        case .automatic: return .secondary
+        case .red: return .red
+        case .orange: return .orange
+        case .yellow: return .yellow
+        case .green: return .green
+        case .blue: return .blue
+        case .purple: return .purple
+        case .gray: return .gray
         }
     }
 

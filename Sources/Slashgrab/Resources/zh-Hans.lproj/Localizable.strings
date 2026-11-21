@@ -433,3 +433,15 @@
 
 "Switch collections while shelf is open" = "面板打开时切换收藏集";
 "0 shows all history; 1–9 select named collections in display order. Command-F focuses clipboard search. These shortcuts work only while the shelf is focused." = "按 0 显示全部历史；1–9 按当前显示顺序切换命名收藏集。Command-F 聚焦剪贴板搜索框。仅面板获得键盘焦点时有效。";
+
+"Mark card color" = "标记卡片颜色";
+"Custom card color" = "自定义卡片颜色";
+"Unable to update card color" = "无法更新卡片颜色";
+"Automatic color" = "自动颜色";
+"Red" = "红色";
+"Orange" = "橙色";
+"Yellow" = "黄色";
+"Green" = "绿色";
+"Blue" = "蓝色";
+"Purple" = "紫色";
+"Gray" = "灰色";
