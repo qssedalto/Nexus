@@ -319,3 +319,13 @@
 "Copied code" = "Copied code";
 
 "Drag cards to reorder this collection." = "Drag cards to reorder this collection.";
+
+"Custom shortcut" = "Custom shortcut";
+"Configure custom shortcut…" = "Configure custom shortcut…";
+"Custom shortcuts require two or more modifiers. Keys use physical keyboard positions; system conflicts are rejected without losing the previous shortcut." = "Custom shortcuts require two or more modifiers. Keys use physical keyboard positions; system conflicts are rejected without losing the previous shortcut.";
+"Custom clipboard shortcut" = "Custom clipboard shortcut";
+"Key" = "Key";
+"Choose at least two modifiers. If macOS already uses the combination, Nexus keeps the previous shortcut." = "Choose at least two modifiers. If macOS already uses the combination, Nexus keeps the previous shortcut.";
+"Apply shortcut" = "Apply shortcut";
+"Select at least two shortcut modifiers" = "Select at least two shortcut modifiers";
+"Configure a custom shortcut first" = "Configure a custom shortcut first";
