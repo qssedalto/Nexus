@@ -87,7 +87,11 @@ public final class ClipboardCloudJournal: @unchecked Sendable {
         changeToken: Data? = nil
     ) throws -> Int {
         guard changes.count <= 200 else { throw ClipboardCloudModelError.oversizedBatch }
-        for change in changes { _ = try change.validated() }
+        // Coalesce retry/duplicate versions within this page before writing.
+        // This makes the result and changed-key count independent of page order.
+        let uniqueChanges = try ClipboardCloudMerge.merged(
+            existing: [], incoming: changes
+        )
         if changeToken != nil {
             guard let zoneID, !zoneID.isEmpty, zoneID.utf8.count <= 180,
                   let changeToken, !changeToken.isEmpty,
@@ -98,7 +102,7 @@ public final class ClipboardCloudJournal: @unchecked Sendable {
         try execute("BEGIN IMMEDIATE")
         do {
             var changed = 0
-            for incoming in changes {
+            for incoming in uniqueChanges {
                 if let existing = try recordLocked(id: incoming.id) {
                     let winner = try ClipboardCloudMerge.winner(existing, incoming)
                     if winner == existing { continue }
