@@ -68,6 +68,20 @@ final class ClipboardMonitor: ObservableObject {
             return
         }
 
+        // A screenshot/image-only clipboard has no trustworthy file URL.
+        // Observe its declared type only; never load bitmap data or thumbnails.
+        if enabled, let store,
+           pasteboard.types?.contains(where: {
+               ["public.png", "public.tiff", "public.jpeg", "public.heic",
+                "com.compuserve.gif", "public.image"].contains($0.rawValue)
+           }) == true {
+            Task.detached(priority: .utility) {
+                try? store.record(type: "image_copy", urls: [], sourceApplication: nil,
+                                  detectionMethod: "clipboard_type", detectedTimeMS: detected)
+            }
+            return
+        }
+
         guard textEnabled, let store,
               let text = pasteboard.string(forType: .string),
               !text.isEmpty,
