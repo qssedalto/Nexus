@@ -49,6 +49,10 @@ struct ClipboardCloudSettingsView: View {
                         Task { await cloud.syncNow() }
                     }
                     .disabled(!cloud.enabled || cloud.running || !cloud.containerConfigured)
+                    Button(localized("Reset cloud change cursor")) {
+                        cloud.resetServerCursor()
+                    }
+                    .disabled(!cloud.enabled || cloud.running)
                 }
                 Text(localized("Preparation only queues local data. Each click handles up to 200 history records; collections are included when their names are authorized. Sync now uploads pending changes and downloads one cloud change page."))
                     .font(.caption).foregroundStyle(.secondary)

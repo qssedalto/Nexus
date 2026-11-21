@@ -421,3 +421,5 @@
 
 "Foreground app at copy detection (unverified): " = "检测复制时的前台应用（未验证）：";
 "Reported source app: " = "报告的来源应用：";
+
+"Reset cloud change cursor" = "重置云端变更游标";

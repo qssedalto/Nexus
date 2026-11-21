@@ -120,7 +120,8 @@ final class ClipboardCloudSyncCoordinatorTests: XCTestCase {
         } catch ClipboardCloudSyncError.unexpectedAcknowledgement {
             XCTAssertEqual(try journal.pendingCount(), 1)
             let calls = await provider.calls()
-            XCTAssertEqual(calls.fetches, 0)
+            XCTAssertEqual(calls.fetches, 1,
+                           "Remote reconciliation is intentionally fetched before upload")
         }
     }
 
@@ -165,6 +166,55 @@ final class ClipboardCloudSyncCoordinatorTests: XCTestCase {
         XCTAssertEqual(calls.fetches, 2)
     }
 
+    func testServerWinnerIsMergedBeforeLocalUploadToAvoidConflictLoop() async throws {
+        let journal = try setup()
+        let local = membership("conflicted", counter: 2)
+        let remote = ClipboardCloudRecord(
+            id: local.id, kind: .membership,
+            revision: ClipboardCloudRevision(counter: 8, deviceID: "Mac-B"),
+            payload: .membership(ClipboardCloudMembership(
+                collectionID: "c", operationID: "conflicted", sortPosition: 30
+            ))
+        )
+        try journal.stageLocal(local)
+        let provider = MockClipboardCloudTransport()
+        await provider.setDownload(.init(changes: [remote], token: Data([0x1])))
+        let coordinator = try ClipboardCloudSyncCoordinator(
+            journal: journal, transport: provider, zoneID: "private"
+        )
+        let report = try await coordinator.syncOnce(consent: .init(enabled: true))
+        XCTAssertEqual(report.downloaded, 1)
+        XCTAssertEqual(report.uploaded, 0)
+        XCTAssertEqual(report.pending, 0)
+        XCTAssertEqual(try journal.record(id: local.id), remote)
+        let calls = await provider.calls()
+        XCTAssertEqual(calls.uploads, 0)
+        XCTAssertEqual(calls.fetches, 1)
+    }
+
+    func testMultipleServerPagesDrainBeforeAnyLocalUpload() async throws {
+        let journal = try setup()
+        try journal.stageLocal(membership("local"))
+        let provider = MockClipboardCloudTransport()
+        await provider.setDownload(.init(
+            changes: [membership("remote")],
+            token: Data([0x2]), moreComing: true
+        ))
+        let coordinator = try ClipboardCloudSyncCoordinator(
+            journal: journal, transport: provider, zoneID: "private"
+        )
+        let first = try await coordinator.syncOnce(consent: .init(enabled: true))
+        XCTAssertEqual(first.uploaded, 0)
+        XCTAssertTrue(first.moreComing)
+        XCTAssertEqual(try journal.pendingCount(), 1)
+        await provider.setDownload(.init(changes: [], token: Data([0x3])))
+        let second = try await coordinator.syncOnce(consent: .init(enabled: true))
+        XCTAssertEqual(second.uploaded, 1)
+        XCTAssertFalse(second.moreComing)
+        let calls = await provider.calls()
+        XCTAssertEqual(calls.uploads, 1)
+    }
+
     func testDownloadFailureLeavesCheckpointUnchangedAndLocalAckSafe() async throws {
         let journal = try setup()
         try journal.stageLocal(membership("local"))
@@ -177,7 +227,8 @@ final class ClipboardCloudSyncCoordinatorTests: XCTestCase {
             _ = try await coordinator.syncOnce(consent: .init(enabled: true))
             XCTFail("Expected provider fetch failure")
         } catch MockClipboardCloudTransport.Failure.fetch {
-            XCTAssertEqual(try journal.pendingCount(), 0)
+            XCTAssertEqual(try journal.pendingCount(), 1,
+                           "Fetch failure must not send or acknowledge local changes")
             XCTAssertNil(try journal.token(forZone: "private"))
         }
     }

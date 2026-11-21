@@ -164,6 +164,19 @@ final class ClipboardCloudController: ObservableObject {
         }
     }
 
+    /// User-invoked recovery from CKError.changeTokenExpired. This restarts
+    /// incremental download and preserves local pending updates.
+    func resetServerCursor() {
+        guard !running, enabled, let journal else { return }
+        do {
+            try journal.resetChangeToken(forZone: zoneID.zoneName)
+            status = "Cloud sync cursor reset. The next manual sync replays the zone."
+            refreshLocalCache()
+        } catch {
+            status = "Could not reset sync cursor: \(error.localizedDescription)"
+        }
+    }
+
     func refreshLocalCache() {
         guard let journal else { return }
         do {
