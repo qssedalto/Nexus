@@ -149,6 +149,16 @@ struct ClipboardShelfView: View {
     }
 
     var body: some View {
+        if #available(macOS 14.0, *) {
+            shelfContent.onKeyPress { press in
+                handleShelfShortcut(press)
+            }
+        } else {
+            shelfContent
+        }
+    }
+
+    private var shelfContent: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .center) {
                 Image(systemName: "square.on.square")
@@ -334,7 +344,6 @@ struct ClipboardShelfView: View {
         .background(.regularMaterial)
         .focusable()
         .focused($shelfFocused)
-        .onKeyPress { press in handleShelfShortcut(press) }
         .onAppear {
             refreshShelf()
             loadCollections()
@@ -605,6 +614,7 @@ struct ClipboardShelfView: View {
     /// Scoped to the focused clipboard panel, not a second system-wide
     /// hotkey. 0 selects all history; 1–9 follow the displayed collection
     /// order. The modifier pair is user-configurable in Nexus Settings.
+    @available(macOS 14.0, *)
     private func handleShelfShortcut(_ press: KeyPress) -> KeyPress.Result {
         let hasCommand = press.modifiers.contains(.command)
         let hasControl = press.modifiers.contains(.control)
