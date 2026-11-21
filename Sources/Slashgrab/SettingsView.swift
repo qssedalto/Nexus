@@ -6,6 +6,7 @@ struct SettingsView<Updater: UpdaterControlling>: View {
     let buildInfo: AppBuildInfo
     @ObservedObject var updater: Updater
     @ObservedObject private var clipboardMonitor = ClipboardMonitor.shared
+    @ObservedObject private var clipboardHotkey = ClipboardHotkeyController.shared
 
     var body: some View {
         TabView {
@@ -98,6 +99,19 @@ struct SettingsView<Updater: UpdaterControlling>: View {
                 Text(clipboardMonitor.cleanupStatus).font(.caption).foregroundStyle(.secondary)
                 Text(localized("Pinned records are preserved. Local deletion does not automatically erase an earlier cloud upload."))
                     .font(.caption).foregroundStyle(.secondary)
+            }
+            Section(localized("Clipboard shortcut")) {
+                Picker(localized("Show or hide clipboard shelf"), selection: Binding(
+                    get: { clipboardHotkey.selected },
+                    set: { _ = clipboardHotkey.setPreset($0) }
+                )) {
+                    ForEach(ClipboardHotkeyController.Preset.allCases) { preset in
+                        Text(preset.label).tag(preset)
+                    }
+                }
+                Text(localized("Shortcuts are off by default. If the shortcut is occupied, the previous setting is kept."))
+                    .font(.caption).foregroundStyle(.secondary)
+                Text(clipboardHotkey.status).font(.caption).foregroundStyle(.secondary)
             }
             Section(localized("Copy feedback")) {
                 Picker(localized("Show feedback for"), selection: Binding(
