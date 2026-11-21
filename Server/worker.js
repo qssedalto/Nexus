@@ -80,7 +80,7 @@ export default {
         return json({
           authenticated: true,
           schema_version: 1,
-          capabilities: ["statistics.events", "statistics.summary", "operations.events", "operations.restore"]
+          capabilities: ["statistics.events", "statistics.summary", "statistics.monotonic_aggregates", "operations.events", "operations.restore"]
         });
       }
       if (path === "/api/nexus/v1/operations/events" && request.method === "POST") {
