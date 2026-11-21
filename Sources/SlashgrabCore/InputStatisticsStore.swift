@@ -244,7 +244,8 @@ public final class InputStatisticsStore: @unchecked Sendable {
 
     public func trend(from startMS: Int64, to endMS: Int64,
                       resolution: InputTrendResolution,
-                      category: String? = nil) throws -> [InputTrendBucket] {
+                      category: String? = nil,
+                      name: String? = nil) throws -> [InputTrendBucket] {
         guard startMS >= 0, endMS >= startMS else { return [] }
         try queue.sync {
             try flushOnQueue()
@@ -255,7 +256,9 @@ public final class InputStatisticsStore: @unchecked Sendable {
             var statement: OpaquePointer?
             let sql = """
                 SELECT time_ms, category, count FROM input_events
-                WHERE time_ms >= ? AND time_ms < ? AND (? IS NULL OR category = ?)
+                WHERE time_ms >= ? AND time_ms < ?
+                  AND (? IS NULL OR category = ?)
+                  AND (? IS NULL OR name = ?)
                 ORDER BY time_ms
                 """
             guard sqlite3_prepare_v2(database, sql, -1, &statement, nil) == SQLITE_OK,
@@ -269,6 +272,13 @@ public final class InputStatisticsStore: @unchecked Sendable {
             } else {
                 sqlite3_bind_null(statement, 3)
                 sqlite3_bind_null(statement, 4)
+            }
+            if let name {
+                bind(name, to: 5, in: statement)
+                bind(name, to: 6, in: statement)
+            } else {
+                sqlite3_bind_null(statement, 5)
+                sqlite3_bind_null(statement, 6)
             }
             var calendar = Calendar(identifier: .iso8601)
             calendar.timeZone = TimeZone(secondsFromGMT: 0)!
