@@ -495,14 +495,15 @@ struct ClipboardShelfView: View {
                 .lineLimit(2)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            ClipboardRichTextExcerpt(
-                operationID: operation.id,
-                fallback: snippet.isEmpty ? localized("Unknown source") : snippet,
-                monospaced: {
-                    if case .fencedCode = textPreview { return true }
-                    return false
-                }()
-            )
+            if case .fencedCode = textPreview {
+                ClipboardSyntaxExcerpt(source: snippet)
+            } else {
+                ClipboardRichTextExcerpt(
+                    operationID: operation.id,
+                    fallback: snippet.isEmpty ? localized("Unknown source") : snippet,
+                    monospaced: false
+                )
+            }
 
             ClipboardSourceAppBadge(operation: operation)
 
