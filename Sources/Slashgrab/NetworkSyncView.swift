@@ -23,13 +23,31 @@ final class NetworkSyncController: ObservableObject {
     @Published private(set) var lastSync: Date?
     @Published private(set) var remoteSummary: [String: Int64] = [:]
     @Published var operationSyncEnabled: Bool {
-        didSet { defaults.set(operationSyncEnabled, forKey: "nexusOperationSyncEnabled") }
+        didSet {
+            defaults.set(operationSyncEnabled, forKey: "nexusOperationSyncEnabled")
+            if !operationSyncEnabled {
+                operationConsentRevision &+= 1
+                operationUploadTask?.cancel()
+            }
+        }
     }
     @Published var operationSyncPaths: Bool {
-        didSet { defaults.set(operationSyncPaths, forKey: "nexusOperationSyncPaths") }
+        didSet {
+            defaults.set(operationSyncPaths, forKey: "nexusOperationSyncPaths")
+            if !operationSyncPaths {
+                operationConsentRevision &+= 1
+                operationUploadTask?.cancel()
+            }
+        }
     }
     @Published var operationSyncText: Bool {
-        didSet { defaults.set(operationSyncText, forKey: "nexusOperationSyncText") }
+        didSet {
+            defaults.set(operationSyncText, forKey: "nexusOperationSyncText")
+            if !operationSyncText {
+                operationConsentRevision &+= 1
+                operationUploadTask?.cancel()
+            }
+        }
     }
     @Published private(set) var operationSyncStatus = "Not enabled"
     @Published private(set) var operationPreview = ""
@@ -39,6 +57,10 @@ final class NetworkSyncController: ObservableObject {
     private let store = InputStatisticsStore.shared()
     private let operationStore = OperationStore.shared()
     private var timer: Timer?
+    // A narrower permission cancels the underlying URLSession request when
+    // possible. Already-delivered server requests cannot be recalled.
+    private var operationConsentRevision: UInt64 = 0
+    private var operationUploadTask: Task<OperationSyncConfirmation, Error>?
     private let keychainService = "com.prof18.slashgrab.nexus-sync"
 
     private init() {
@@ -135,6 +157,13 @@ final class NetworkSyncController: ObservableObject {
             operationSyncStatus = "Operation history upload requires separate consent"
             return
         }
+        guard operationUploadTask == nil else {
+            operationSyncStatus = "Operation upload already in progress"
+            return
+        }
+        let consentRevision = operationConsentRevision
+        let includePaths = operationSyncPaths
+        let includeText = operationSyncText
         guard let operationStore else {
             operationSyncStatus = "Operation history database unavailable"
             return
@@ -152,8 +181,8 @@ final class NetworkSyncController: ObservableObject {
                 return
             }
             let upload = pending.map { record in
-                SyncOperation(record: record, includePaths: operationSyncPaths,
-                              includeText: operationSyncText && (record.clipboardText?.count ?? 0) <= 100_000)
+                SyncOperation(record: record, includePaths: includePaths,
+                              includeText: includeText && (record.clipboardText?.count ?? 0) <= 100_000)
             }
             let body = try JSONEncoder().encode(OperationSyncBatch(
                 deviceID: persistentDeviceID(), operations: upload))
@@ -163,8 +192,29 @@ final class NetworkSyncController: ObservableObject {
             }
             var request = try makeRequest(path: "/api/nexus/v1/operations/events", method: "POST")
             request.httpBody = body
+            // Re-read all live permission toggles immediately before starting
+            // the HTTP task, not just while building the queued payload.
+            guard operationSyncEnabled, operationConsentRevision == consentRevision,
+                  (!includePaths || operationSyncPaths),
+                  (!includeText || operationSyncText) else {
+                operationSyncStatus = "Operation upload cancelled because consent changed"
+                return
+            }
+            let uploadTask = Task<OperationSyncConfirmation, Error> {
+                try await self.fetch(request)
+            }
+            operationUploadTask = uploadTask
+            defer { operationUploadTask = nil }
             operationSyncStatus = "Uploading operation metadata"
-            let confirmation: OperationSyncConfirmation = try await fetch(request)
+            let confirmation = try await uploadTask.value
+            // A server may have processed an already-started request despite
+            // cancellation. Never treat a revoked-consent response as approval.
+            guard operationSyncEnabled, operationConsentRevision == consentRevision,
+                  (!includePaths || operationSyncPaths),
+                  (!includeText || operationSyncText) else {
+                operationSyncStatus = "Consent changed during upload; check server history for data already received"
+                return
+            }
             let expected = Set(pending.map(\.id))
             let accepted = Set(confirmation.acceptedIDs)
             guard !accepted.isEmpty && accepted.isSubset(of: expected) else {
@@ -172,6 +222,9 @@ final class NetworkSyncController: ObservableObject {
             }
             try operationStore.markSynced(operationIDs: Array(accepted))
             operationSyncStatus = "Uploaded \(accepted.count) operation records"
+            appendLog(operationSyncStatus)
+        } catch is CancellationError {
+            operationSyncStatus = "Operation upload cancelled; an in-flight server request may already have arrived"
             appendLog(operationSyncStatus)
         } catch {
             // Leave records pending after timeout, auth failure, 4xx or 5xx.
