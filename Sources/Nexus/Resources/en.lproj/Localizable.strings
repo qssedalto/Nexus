@@ -504,3 +504,9 @@
 "Show Welcome Guide…" = "Show Welcome Guide…";
 "Reopen the guide if the menu bar icon is hidden." = "Reopen the guide if the menu bar icon is hidden.";
 "Help" = "Help";
+
+/* Extended deletion confirmation challenge */
+"Confirmation stage" = "Confirmation stage";
+"Deletion confirmation progress" = "Deletion confirmation progress";
+"You may cancel at any point. No statistics are deleted until the final confirmation." = "You may cancel at any point. No statistics are deleted until the final confirmation.";
+"You can cancel now without deleting any statistics." = "You can cancel now without deleting any statistics.";

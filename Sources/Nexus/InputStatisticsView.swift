@@ -179,7 +179,6 @@ struct InputStatisticsView: View {
     @State private var endSecond = 59
     @State private var startMS = 0
     @State private var endMS = 999
-    @State private var deleteConfirmation = 0
     @State private var showingDeleteAlert = false
     @State private var diagnosticsExpanded = false
     @State private var deleteAllRequested = false
@@ -370,12 +369,10 @@ struct InputStatisticsView: View {
                 Button(localized("Backup database")) { controller.backup() }
                 Button(localized("Delete selected range")) {
                     deleteAllRequested = false
-                    deleteConfirmation = 1
                     showingDeleteAlert = true
                 }
                 Button(localized("Delete all statistics"), role: .destructive) {
                     deleteAllRequested = true
-                    deleteConfirmation = 1
                     showingDeleteAlert = true
                 }
             }
@@ -418,39 +415,20 @@ struct InputStatisticsView: View {
             if !expanded { controller.diagnosticsEnabled = false }
         }
         .onDisappear { controller.diagnosticsEnabled = false }
-        .alert("\(localized("Confirm deletion")) \(deleteConfirmation)/\(StatisticsDeletionConfirmationPolicy.requiredSteps)", isPresented: $showingDeleteAlert) {
-            Button(localized("Cancel"), role: .cancel) {
-                deleteConfirmation = 0
-                deleteAllRequested = false
-            }
-            Button(localized("Confirm"), role: .destructive) {
-                if StatisticsDeletionConfirmationPolicy.allowsDeletion(
-                    afterConfirmed: deleteConfirmation
-                ) {
+        .sheet(isPresented: $showingDeleteAlert) {
+            StatisticsDeletionChallengeView(
+                deleteAllRequested: deleteAllRequested,
+                onCancel: {
+                    showingDeleteAlert = false
+                    deleteAllRequested = false
+                },
+                onConfirmed: {
                     let (lower, upper) = deleteAllRequested ? (Int64(0), Int64.max) : bounds
                     controller.delete(from: lower, to: upper)
-                    deleteConfirmation = 0
-                    deleteAllRequested = false
-                } else if let nextStep = StatisticsDeletionConfirmationPolicy.nextStep(
-                    afterConfirmed: deleteConfirmation
-                ) {
-                    deleteConfirmation = nextStep
-                    DispatchQueue.main.async { showingDeleteAlert = true }
-                } else {
-                    // An unexpected step must always fail closed.
-                    deleteConfirmation = 0
+                    showingDeleteAlert = false
                     deleteAllRequested = false
                 }
-            }
-        } message: {
-            let prompt = localized(
-                StatisticsDeletionConfirmationPolicy.prompt(forStep: deleteConfirmation)
-                    ?? "Review the time range to be deleted."
             )
-            let scope = localized(deleteAllRequested
-                ? "This deletes every locally stored input statistic. Existing cloud backups and uploads are not deleted."
-                : "This deletes statistics in the selected time range.")
-            Text(prompt + "\n\n" + scope)
         }
     }
 

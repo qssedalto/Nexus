@@ -1,10 +1,9 @@
 import Foundation
 
-/// Explicit acknowledgement sequence for destructive local input statistics
-/// deletion. Each step has a distinct prompt so repeated clicks require the
-/// user to review the scope rather than dismiss ten identical alerts.
+/// A deliberately lengthy, cancelable deletion challenge requested by the user.
+/// No step is skipped and a new confirmation session always starts at step one.
 public enum StatisticsDeletionConfirmationPolicy {
-    public static let requiredSteps = 10
+    public static let requiredSteps = 1_000
 
     private static let prompts = [
         "Review the time range to be deleted.",
@@ -15,13 +14,15 @@ public enum StatisticsDeletionConfirmationPolicy {
         "Pinned clipboard entries are separate from input statistics.",
         "A deleted statistical event cannot be restored without a separate backup.",
         "Verify that the selected range is correct before continuing.",
-        "This is the ninth confirmation; you can still cancel safely.",
-        "Final confirmation: permanently delete these local statistics."
+        "You can cancel now without deleting any statistics."
     ]
 
     public static func prompt(forStep step: Int) -> String? {
         guard (1...requiredSteps).contains(step) else { return nil }
-        return prompts[step - 1]
+        if step == requiredSteps {
+            return "Final confirmation: permanently delete these local statistics."
+        }
+        return prompts[(step - 1) % prompts.count]
     }
 
     public static func nextStep(afterConfirmed step: Int) -> Int? {

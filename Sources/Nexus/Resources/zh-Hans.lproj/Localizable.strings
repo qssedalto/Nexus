@@ -562,3 +562,9 @@
 "Show Welcome Guide…" = "显示首次使用指南…";
 "Reopen the guide if the menu bar icon is hidden." = "若菜单栏图标被隐藏，可以在此重新打开使用指南。";
 "Help" = "帮助";
+
+/* Extended deletion confirmation challenge */
+"Confirmation stage" = "确认阶段";
+"Deletion confirmation progress" = "删除确认进度";
+"You may cancel at any point. No statistics are deleted until the final confirmation." = "你可以随时取消。在完成最后一次确认之前，不会删除任何统计数据。";
+"You can cancel now without deleting any statistics." = "现在取消将不会删除任何统计数据。";
