@@ -105,31 +105,52 @@ public final class InputStatisticsStore: @unchecked Sendable {
             sqlite3_close(database)
             throw InputStoreError.write
         }
-        var versionStatement: OpaquePointer?
-        guard sqlite3_prepare_v2(database, "PRAGMA user_version", -1, &versionStatement, nil) == SQLITE_OK,
-              let versionStatement else { sqlite3_close(database); throw InputStoreError.open }
-        let version = sqlite3_step(versionStatement) == SQLITE_ROW ? sqlite3_column_int(versionStatement, 0) : 0
-        sqlite3_finalize(versionStatement)
-        if version < 2 {
-            guard sqlite3_exec(database, "BEGIN IMMEDIATE; ALTER TABLE input_events ADD COLUMN count INTEGER NOT NULL DEFAULT 1; PRAGMA user_version=2; COMMIT", nil, nil, nil) == SQLITE_OK else {
-                sqlite3_exec(database, "ROLLBACK", nil, nil, nil)
-                sqlite3_close(database)
-                throw InputStoreError.write
+        // Earlier preview versions may have added columns without updating
+        // PRAGMA user_version. Inspect the actual schema and add only missing
+        // fields rather than losing years of accumulated statistics.
+        var columnStatement: OpaquePointer?
+        guard sqlite3_prepare_v2(database, "PRAGMA table_info(input_events)", -1,
+                                 &columnStatement, nil) == SQLITE_OK,
+              let columnStatement else {
+            sqlite3_close(database)
+            throw InputStoreError.open
+        }
+        var columnNames = Set<String>()
+        while sqlite3_step(columnStatement) == SQLITE_ROW {
+            if let text = sqlite3_column_text(columnStatement, 1) {
+                columnNames.insert(String(cString: text))
             }
         }
-        if version < 3 {
-            guard sqlite3_exec(database, "BEGIN IMMEDIATE; ALTER TABLE input_events ADD COLUMN synced_at_ms INTEGER; CREATE INDEX IF NOT EXISTS input_events_pending ON input_events(synced_at_ms, id); PRAGMA user_version=3; COMMIT", nil, nil, nil) == SQLITE_OK else {
-                sqlite3_exec(database, "ROLLBACK", nil, nil, nil)
-                sqlite3_close(database)
-                throw InputStoreError.write
-            }
+        sqlite3_finalize(columnStatement)
+        guard sqlite3_exec(database, "BEGIN IMMEDIATE", nil, nil, nil) == SQLITE_OK else {
+            sqlite3_close(database)
+            throw InputStoreError.write
         }
-        if version < 4 {
-            guard sqlite3_exec(database, "BEGIN IMMEDIATE; ALTER TABLE input_events ADD COLUMN remote_device_id TEXT; ALTER TABLE input_events ADD COLUMN remote_event_id INTEGER; CREATE UNIQUE INDEX IF NOT EXISTS input_events_remote ON input_events(remote_device_id, remote_event_id); PRAGMA user_version=4; COMMIT", nil, nil, nil) == SQLITE_OK else {
-                sqlite3_exec(database, "ROLLBACK", nil, nil, nil)
-                sqlite3_close(database)
+        do {
+            let required = [
+                ("count", "INTEGER NOT NULL DEFAULT 1"),
+                ("synced_at_ms", "INTEGER"),
+                ("remote_device_id", "TEXT"),
+                ("remote_event_id", "INTEGER")
+            ]
+            for (field, type) in required where !columnNames.contains(field) {
+                guard sqlite3_exec(database,
+                      "ALTER TABLE input_events ADD COLUMN \(field) \(type)",
+                      nil, nil, nil) == SQLITE_OK else { throw InputStoreError.write }
+            }
+            let indexes = """
+                CREATE INDEX IF NOT EXISTS input_events_pending ON input_events(synced_at_ms,id);
+                CREATE UNIQUE INDEX IF NOT EXISTS input_events_remote ON input_events(remote_device_id,remote_event_id);
+                PRAGMA user_version=4;
+                """
+            guard sqlite3_exec(database, indexes, nil, nil, nil) == SQLITE_OK,
+                  sqlite3_exec(database, "COMMIT", nil, nil, nil) == SQLITE_OK else {
                 throw InputStoreError.write
             }
+        } catch {
+            sqlite3_exec(database, "ROLLBACK", nil, nil, nil)
+            sqlite3_close(database)
+            throw error
         }
         let timer = DispatchSource.makeTimerSource(queue: queue)
         timer.schedule(deadline: .now() + 1, repeating: 1)
