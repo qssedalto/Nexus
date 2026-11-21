@@ -249,8 +249,19 @@ public final class InputStatisticsStore: @unchecked Sendable {
                       category: String? = nil,
                       name: String? = nil) throws -> [InputTrendBucket] {
         guard startMS >= 0, endMS >= startMS else { return [] }
-        try queue.sync {
+        return try queue.sync {
             try flushOnQueue()
+            return try trendOnQueue(startMS: startMS, endMS: endMS,
+                                    resolution: resolution, category: category,
+                                    name: name)
+        }
+    }
+
+    /// Called only with the private SQLite serial queue held. Keep the body
+    /// separate so Swift 6 can type-check the queue closure in finite time.
+    private func trendOnQueue(startMS: Int64, endMS: Int64,
+                              resolution: InputTrendResolution,
+                              category: String?, name: String?) throws -> [InputTrendBucket] {
             // SQLite's UTC grouping avoids DST-dependent double counting.
             // Long-term aggregate rows are already stored by event timestamps.
             // To return a stable millisecond key for all resolutions, bucket
@@ -304,12 +315,13 @@ public final class InputStatisticsStore: @unchecked Sendable {
                 let previous = counts[key]?.2 ?? 0
                 counts[key] = (bucket, group, previous + sqlite3_column_int64(statement, 2))
             }
-            return counts.values.map {
-                InputTrendBucket(startMS: $0.0, category: $0.1, count: $0.2)
-            }.sorted {
-                $0.startMS == $1.startMS ? $0.category < $1.category : $0.startMS < $1.startMS
+            let rows: [InputTrendBucket] = counts.values.map { item in
+                InputTrendBucket(startMS: item.0, category: item.1, count: item.2)
             }
-        }
+            return rows.sorted { lhs, rhs in
+                if lhs.startMS == rhs.startMS { return lhs.category < rhs.category }
+                return lhs.startMS < rhs.startMS
+            }
     }
 
     public func pendingSync(limit: Int = 500) throws -> [SyncInputEvent] {
