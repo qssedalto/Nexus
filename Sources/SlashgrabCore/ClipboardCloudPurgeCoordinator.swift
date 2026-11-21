@@ -27,9 +27,12 @@ public actor ClipboardCloudPurgeCoordinator {
     }
 
     public func purgeCloudZoneAndLocalCache(
-        explicitlyConfirmed: Bool = false
+        confirmation: String = ""
     ) async throws {
-        guard explicitlyConfirmed else {
+        // A boolean from a controller can be passed as 'true' without
+        // checking whether the user typed the destructive confirmation.
+        // Require the exact confirmation text again at the deletion boundary.
+        guard confirmation == "DELETE" else {
             throw ClipboardCloudPurgeError.explicitConfirmationRequired
         }
         try await transport.deletePrivateNexusZone()
