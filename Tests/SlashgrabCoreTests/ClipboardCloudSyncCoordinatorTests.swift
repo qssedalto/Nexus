@@ -120,7 +120,8 @@ final class ClipboardCloudSyncCoordinatorTests: XCTestCase {
         } catch ClipboardCloudSyncError.unexpectedAcknowledgement {
             XCTAssertEqual(try journal.pendingCount(), 1)
             let calls = await provider.calls()
-            XCTAssertEqual(calls.fetches, 0)
+            XCTAssertEqual(calls.fetches, 1,
+                           "Remote reconciliation is intentionally fetched before upload")
         }
     }
 
