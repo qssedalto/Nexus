@@ -224,6 +224,17 @@ final class MobileClipboardController: ObservableObject {
         }
     }
 
+    func resetServerCursor() {
+        guard !running, cloudEnabled, let journal else { return }
+        do {
+            try journal.resetChangeToken(forZone: zoneID.zoneName)
+            status = "Sync cursor reset; next sync replays remote changes"
+            refresh()
+        } catch {
+            status = "Cannot reset cursor: \(error.localizedDescription)"
+        }
+    }
+
     func refresh() {
         guard let journal else { return }
         do {
