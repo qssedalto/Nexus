@@ -75,6 +75,10 @@ struct ClipboardCloudSettingsView: View {
                         .font(.caption).foregroundStyle(.secondary)
                     Spacer()
                     Button(localized("Refresh local cache")) { cloud.refreshLocalCache() }
+                    Button(localized("Restore cached cloud history to local shelf")) {
+                        Task { await cloud.restoreCachedHistory() }
+                    }
+                    .disabled(!cloud.enabled || cloud.running)
                 }
                 if cloud.enabled {
                     let remote = cloud.cachedRecords.filter {
