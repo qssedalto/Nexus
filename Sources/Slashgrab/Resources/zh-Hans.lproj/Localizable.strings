@@ -499,3 +499,13 @@
 "Allow statistics upload to configured server" = "允许向已配置服务器上传统计数据";
 "Statistics upload is disabled; local data is preserved" = "统计上传已关闭；本地记录仍然保留";
 "Statistical uploads remain off until you enable their independent switch; disabling it stops scheduled and manual statistics uploads without deleting local records." = "统计上传须通过独立开关启用；关闭后会停止自动及手动统计上传，但不会删除本地记录。";
+"Review the time range to be deleted." = "请核对即将删除的统计时间范围。";
+"These statistics were recorded locally on this Mac." = "这些统计记录保存在这台 Mac 的本地数据库。";
+"Deletion removes the selected local records permanently." = "删除操作将永久移除所选本地记录。";
+"Deleting local data does not remove existing cloud backups." = "删除本地数据不会移除现有云备份。";
+"Deleting local data does not erase previously uploaded server records." = "删除本地数据不会清除之前上传到服务器的记录。";
+"Pinned clipboard entries are separate from input statistics." = "永久固定的剪贴板条目不属于键鼠统计。";
+"A deleted statistical event cannot be restored without a separate backup." = "没有单独备份时，已删除的统计事件无法恢复。";
+"Verify that the selected range is correct before continuing." = "继续前请再次检查所选删除范围。";
+"This is the ninth confirmation; you can still cancel safely." = "这是第九次确认；现在仍可以安全取消。";
+"Final confirmation: permanently delete these local statistics." = "最终确认：永久删除这些本地统计数据。";
