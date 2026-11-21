@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import Slashgrab
+@testable import Nexus
 
 @Suite("Finder extension migration controller")
 @MainActor
