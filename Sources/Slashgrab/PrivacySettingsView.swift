@@ -11,6 +11,32 @@ struct PrivacySettingsView: View {
     @ObservedObject private var sync = NetworkSyncController.shared
     @AppStorage("nexusMonitorPasteRequests") private var pasteObservation = false
     @AppStorage("nexusClipboardFileThumbnailPreviews") private var allowFilePreviews = false
+    @State private var fullTextEnabled = false
+    @State private var fullTextBusy = false
+    @State private var fullTextStatus = ""
+
+    private func configureFullTextIndex(_ enabled: Bool) {
+        guard !fullTextBusy else { return }
+        fullTextBusy = true
+        Task {
+            let outcome = await Task.detached(priority: .utility) { () -> (Bool, String) in
+                guard let store = OperationStore.shared() else {
+                    return (false, "Local history database unavailable")
+                }
+                do {
+                    try store.configureFullTextIndex(enabled: enabled)
+                    return (try store.fullTextIndexEnabled(),
+                            enabled ? "Search index ready" : "Search index removed")
+                } catch {
+                    return ((try? store.fullTextIndexEnabled()) ?? false,
+                            "Search index unavailable: " + error.localizedDescription)
+                }
+            }.value
+            fullTextEnabled = outcome.0
+            fullTextStatus = outcome.1
+            fullTextBusy = false
+        }
+    }
 
     var body: some View {
         Form {
@@ -115,6 +141,21 @@ struct PrivacySettingsView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
 
+            Section(localized("Local full-text indexing")) {
+                Toggle(localized("Maintain on-device clipboard search index (opt-in)"),
+                       isOn: Binding(
+                        get: { fullTextEnabled },
+                        set: { configureFullTextIndex($0) }
+                       ))
+                    .disabled(fullTextBusy)
+                if fullTextBusy { ProgressView().controlSize(.small) }
+                Text(localized("Optional FTS5 indexing speeds up searches of three or more characters, including CJK text. Short terms and punctuation use the original exact search. Disabling the index removes its extra local plaintext copy without deleting clipboard history."))
+                    .font(.caption).foregroundStyle(.secondary)
+                if !fullTextStatus.isEmpty {
+                    Text(fullTextStatus).font(.caption).foregroundStyle(.secondary)
+                }
+            }
+
             Section(localized("Network consent")) {
                 Toggle(localized("Allow statistics upload to configured server"), isOn: $sync.statisticsUploadEnabled)
                 Toggle(localized("Automatic sync"), isOn: $sync.automatic)
@@ -133,5 +174,10 @@ struct PrivacySettingsView: View {
         }
         .formStyle(.grouped)
         .padding(.horizontal, 8)
+        .onAppear {
+            if let store = OperationStore.shared() {
+                fullTextEnabled = (try? store.fullTextIndexEnabled()) ?? false
+            }
+        }
     }
 }
