@@ -6,6 +6,10 @@ import SlashgrabCore
 /// This does not install a second clipboard observer or retain image pixels.
 struct ClipboardShelfView: View {
     @ObservedObject var appState: AppState
+    let onPasteRequested: () -> Void
+    let onCloseRequested: () -> Void
+    @State private var selectedOperationID: String?
+    @FocusState private var shelfFocused: Bool
     @State private var search = ""
     @State private var filter: Category = .all
     @State private var message: String?
@@ -135,7 +139,31 @@ struct ClipboardShelfView: View {
         .padding(18)
         .frame(minWidth: 710, idealWidth: 890, minHeight: 355, idealHeight: 380)
         .background(.regularMaterial)
-        .onAppear { appState.refreshOperations() }
+        .focusable()
+        .focused($shelfFocused)
+        .onAppear {
+            appState.refreshOperations()
+            shelfFocused = true
+        }
+        .onChange(of: appState.operations.map(\.id)) { _ in
+            if selectedOperationID == nil { selectedOperationID = operations.first?.id }
+        }
+        .onMoveCommand { direction in
+            let entries = operations
+            guard !entries.isEmpty else { return }
+            let index = entries.firstIndex(where: { $0.id == selectedOperationID }) ?? 0
+            switch direction {
+            case .left: selectedOperationID = entries[max(0, index - 1)].id
+            case .right: selectedOperationID = entries[min(entries.count - 1, index + 1)].id
+            default: break
+            }
+        }
+        .onSubmit {
+            if let selected = operations.first(where: { $0.id == selectedOperationID }) {
+                requestPaste(selected, plainText: false)
+            }
+        }
+        .onExitCommand(perform: onCloseRequested)
         .confirmationDialog(localized("Delete all unpinned local copy history?"),
                             isPresented: $confirmClear) {
             Button(localized("Delete unpinned local history"), role: .destructive) {
@@ -213,11 +241,22 @@ struct ClipboardShelfView: View {
         .background(accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 16))
         .overlay {
             RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(accent.opacity(0.24), lineWidth: 1)
+                .strokeBorder(
+                    selectedOperationID == operation.id ? accent : accent.opacity(0.24),
+                    lineWidth: selectedOperationID == operation.id ? 2.5 : 1
+                )
         }
         .accessibilityElement(children: .contain)
+        .onTapGesture {
+            selectedOperationID = operation.id
+        }
+        .onTapGesture(count: 2) {
+            requestPaste(operation, plainText: NSEvent.modifierFlags.contains(.control))
+        }
         .contextMenu {
-            Button(localized("Copy again")) { copyAgain(operation) }
+            Button(localized("Copy again")) { _ = copyAgain(operation) }
+            Button(localized("Paste into previous app")) { requestPaste(operation, plainText: false) }
+            Button(localized("Paste as plain text")) { requestPaste(operation, plainText: true) }
             Button(localized(isPinned ? "Unpin" : "Pin")) { togglePin(operation.id) }
             Button(localized("Delete from local history"), role: .destructive) {
                 deleteLocally(operation.id)
@@ -273,11 +312,32 @@ struct ClipboardShelfView: View {
         }
     }
 
-    private func copyAgain(_ operation: RecordedOperation) {
+    private func requestPaste(_ operation: RecordedOperation, plainText: Bool) {
+        selectedOperationID = operation.id
+        let didCopy: Bool
+        if plainText {
+            let content = operation.clipboardText ?? operation.items.compactMap(\.source).joined(separator: "\n")
+            guard !content.isEmpty else {
+                message = localized("Source file unavailable")
+                return
+            }
+            didCopy = appState.copyAgain(content)
+        } else {
+            didCopy = copyAgain(operation)
+        }
+        if didCopy {
+            onPasteRequested()
+        }
+        // The paste is a request to the previously active app, not proof
+        // that a third-party target actually accepted the content.
+    }
+
+    @discardableResult
+    private func copyAgain(_ operation: RecordedOperation) -> Bool {
         if let text = operation.clipboardText, !text.isEmpty {
-            appState.copyAgain(text)
-            message = localized("Copied again")
-            return
+            let copied = appState.copyAgain(text)
+            message = localized(copied ? "Copied again" : "Clipboard write failed")
+            return copied
         }
         let urls = operation.items.compactMap { item -> NSURL? in
             guard let source = item.source, source.hasPrefix("/") else { return nil }
@@ -285,15 +345,17 @@ struct ClipboardShelfView: View {
         }
         guard !urls.isEmpty && urls.count == operation.items.count else {
             message = localized("Source file unavailable")
-            return
+            return false
         }
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         if pasteboard.writeObjects(urls) {
-            // The existing file clipboard observer, if enabled, will log it.
+            ClipboardMonitor.shared.ignoreCurrentChange()
             message = localized("Copied again")
+            return true
         } else {
             message = localized("Clipboard write failed")
+            return false
         }
     }
 

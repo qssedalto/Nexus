@@ -86,7 +86,8 @@ final class AppState: ObservableObject {
         return copyOutput(output, successMessage: localized("Path copied"), urls: urls, eventTimeMS: eventTimeMS)
     }
 
-    func copyAgain(_ output: String) {
+    @discardableResult
+    func copyAgain(_ output: String) -> Bool {
         copyOutput(output, successMessage: localized("Copied again"))
     }
 
