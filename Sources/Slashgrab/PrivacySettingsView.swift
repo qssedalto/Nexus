@@ -11,6 +11,7 @@ struct PrivacySettingsView: View {
     @ObservedObject private var sync = NetworkSyncController.shared
     @AppStorage("nexusMonitorPasteRequests") private var pasteObservation = false
     @AppStorage("nexusClipboardFileThumbnailPreviews") private var allowFilePreviews = false
+    @AppStorage("nexusClipboardRemoteTitlesEnabled") private var allowRemoteTitles = false
     @State private var fullTextEnabled = false
     @State private var fullTextBusy = false
     @State private var fullTextStatus = ""
@@ -94,7 +95,12 @@ struct PrivacySettingsView: View {
                 Toggle(localized("Save clipboard-provided link titles (opt-in)"),
                        isOn: $clipboard.linkTitleEnabled)
                     .disabled(!clipboard.historyEnabled || !clipboard.textEnabled)
-                Text(localized("Only a title already present in the copied link's pasteboard is retained locally. Nexus never fetches the webpage, and titles are removed when their history entry is deleted."))
+                Text(localized("Clipboard-provided titles are saved locally when permitted, without network activity."))
+                    .font(.caption).foregroundStyle(.secondary)
+                Toggle(localized("Allow explicit website title lookup (HTTPS only)"),
+                       isOn: $allowRemoteTitles)
+                    .disabled(!clipboard.historyEnabled || !clipboard.textEnabled)
+                Text(localized("Off by default. After enabling, right-click a link card and choose Fetch website title once. This contacts that public website and reveals the selected URL; query parameters, URL credentials, local hosts and redirects are refused. No automatic requests."))
                     .font(.caption).foregroundStyle(.secondary)
                 Toggle(localized("Save copied image pixels (opt-in, 8 MB maximum)"),
                        isOn: $clipboard.imageEnabled)
