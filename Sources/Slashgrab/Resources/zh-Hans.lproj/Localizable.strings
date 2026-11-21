@@ -514,3 +514,12 @@
 "Automatic sync is off by default. If enabled, Nexus prepares at most 200 local history records per cycle and synchronizes only the CloudKit categories you have authorized. The private zone must first be created manually; turning off automatic sync stops future scheduled cycles." = "自动同步默认关闭。启用后，Nexus 每轮最多准备 200 条本地历史，只同步你已授权的 CloudKit 数据类别。首次使用仍需手动创建私有云端区域；关闭自动同步后将停止后续定时任务。";
 "CloudKit requires a signed container and the selected data permissions. Manual sync works independently of the automatic schedule. Disabling either sync switch prevents future scheduled CloudKit requests." = "CloudKit 需要已签名且配置正确的容器和相应数据授权。手动同步不依赖自动同步；关闭任一相关开关都会停止后续定时 CloudKit 请求。";
 "Last successful sync:" = "上次成功同步：";
+"Include original clipboard images in iCloud (up to 8 MB)" = "在 iCloud 中同步剪贴板图片原件（最多 8 MB）";
+"Image transfer is off by default. Enabling it uploads original image copies as private CloudKit assets. File originals are not included; disabling permission stops future transfers but does not erase cloud copies already uploaded." = "图片原件同步默认关闭。开启后，复制的图片原件将作为私有 CloudKit 资源同步；不包含文件原件。关闭授权会停止后续传输，但不会自动删除已上传的云端副本。";
+"Include original clipboard images (up to 8 MB)" = "包括剪贴板图片原件（最多 8 MB）";
+"Image originals are downloaded from your private CloudKit zone only after this separate permission is enabled. File originals are not synchronized. Your clipboard is never inspected in the background." = "只有单独开启本项后才会从私人 CloudKit 区域下载图片原件。文件原件尚不同步，也不会在后台检查剪贴板。";
+"Copy image" = "复制图片";
+"Cloud clipboard image" = "云端剪贴板图片";
+"Image preview unavailable" = "图片预览不可用";
+"Cloud image unavailable" = "云端图片不可用";
+"Cloud image copied to clipboard" = "云端图片已复制到剪贴板";
