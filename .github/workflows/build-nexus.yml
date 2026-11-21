@@ -1,0 +1,95 @@
+name: Build Nexus.app (macOS Apple Silicon)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Nexus Release / arm64 / ad-hoc
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out Nexus
+        uses: actions/checkout@v4
+
+      - name: Verify Apple Silicon toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = arm64
+          xcodebuild -version
+          swift --version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Compile and ad-hoc sign Nexus.app
+        shell: bash
+        env:
+          APP_NAME: Nexus
+          BUNDLE_ID: com.qssedalto.nexus
+          APP_VARIANT: production
+          SIGNING_MODE: adhoc
+          ARCHES: arm64
+          ALLOW_MISSING_SPARKLE_FOR_LOCAL_RUN: "1"
+          ENABLE_SPARKLE_AUTOMATIC_CHECKS: "false"
+        run: |
+          set -euo pipefail
+          ./Scripts/package_app.sh release --production
+
+      - name: Validate compiled app and Finder extension
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="Nexus.app"
+          EXT="$APP/Contents/PlugIns/NexusFinderSync.appex"
+          APP_INFO="$APP/Contents/Info.plist"
+          EXT_INFO="$EXT/Contents/Info.plist"
+
+          test -d "$APP"
+          test -f "$EXT_INFO"
+          /usr/bin/plutil -lint "$APP_INFO" "$EXT_INFO"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_INFO")" = "com.qssedalto.nexus"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$EXT_INFO")" = "com.qssedalto.nexus.findersync"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :NexusBuildVariant' "$APP_INFO")" = "production"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :SUEnableAutomaticChecks' "$APP_INFO")" = "false"
+          test -z "$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' "$APP_INFO")"
+          test "$(/usr/bin/lipo -archs "$APP/Contents/MacOS/Nexus")" = "arm64"
+          /usr/bin/codesign --verify --deep --strict --verbose=2 "$APP"
+          /usr/bin/codesign --verify --strict --verbose=2 "$EXT"
+
+      - name: Package downloadable Nexus.app ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          /usr/bin/ditto --norsrc -c -k --keepParent "Nexus.app" "Nexus-macOS-arm64-adhoc.zip"
+          /usr/bin/unzip -tq "Nexus-macOS-arm64-adhoc.zip"
+          test -s "Nexus-macOS-arm64-adhoc.zip"
+
+      - name: Upload compiled app
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nexus-macOS-arm64-adhoc-${{ github.run_number }}
+          path: Nexus-macOS-arm64-adhoc.zip
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+      - name: Build summary
+        shell: bash
+        run: |
+          {
+            echo "## Nexus macOS build"
+            echo ""
+            echo "- Build: **Release**, Apple Silicon **arm64**"
+            echo "- Bundle ID: `com.qssedalto.nexus`"
+            echo "- Download: open this run's **Artifacts** and download **Nexus-macOS-arm64-adhoc-${GITHUB_RUN_NUMBER}**."
+            echo "- Output: `Nexus-macOS-arm64-adhoc.zip` containing `Nexus.app` and its Finder extension."
+            echo "- Signing: **Ad Hoc only**. This app is **not Developer ID signed or notarized**, and macOS may block it. Finder extension/App Group integration is not guaranteed. It is a build artifact, not a public release."
+          } >> "$GITHUB_STEP_SUMMARY"
