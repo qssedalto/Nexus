@@ -1,8 +1,8 @@
 import SwiftUI
 import SlashgrabCore
 
-/// All cloud operations are manual. Simply opening this tab only reads
-/// local UserDefaults/SQLite; it does not request an Apple account or network.
+/// iCloud networking is manual unless the user enables the separate scheduled
+/// synchronization switch. Opening this view does not access the account.
 @MainActor
 struct ClipboardCloudSettingsView: View {
     @ObservedObject private var cloud = ClipboardCloudController.shared
@@ -12,9 +12,13 @@ struct ClipboardCloudSettingsView: View {
 
     var body: some View {
         Form {
-            Section(localized("iCloud clipboard (manual opt-in)")) {
+            Section(localized("iCloud clipboard (user controlled)")) {
                 Toggle(localized("Enable iCloud clipboard history sync"), isOn: $cloud.enabled)
-                Text(localized("Off by default. Your current Nexus installation does not upload clipboard history until you explicitly configure a signed CloudKit container, authorize the categories below and press Sync Now."))
+                Toggle(localized("Automatically sync iCloud clipboard every 5 minutes"), isOn: $cloud.automaticSyncEnabled)
+                    .disabled(!cloud.enabled || !cloud.containerConfigured)
+                Text(localized("Automatic sync is off by default. If enabled, Nexus prepares at most 200 local history records per cycle and synchronizes only the CloudKit categories you have authorized. The private zone must first be created manually; turning off automatic sync stops future scheduled cycles."))
+                    .font(.caption).foregroundStyle(.secondary)
+                Text(localized("CloudKit requires a signed container and the selected data permissions. Manual sync works independently of the automatic schedule. Disabling either sync switch prevents future scheduled CloudKit requests."))
                     .font(.caption).foregroundStyle(.secondary)
                 HStack {
                     Label(
@@ -69,7 +73,7 @@ struct ClipboardCloudSettingsView: View {
                 .font(.caption)
                 if let previous = cloud.lastSuccessfulSync {
                     HStack {
-                        Text(localized("Last successful manual sync:"))
+                        Text(localized("Last successful sync:"))
                         Text(
                             Date(timeIntervalSince1970:
                                 TimeInterval(previous.finishedTimeMS) / 1_000),

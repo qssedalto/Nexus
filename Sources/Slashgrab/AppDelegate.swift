@@ -35,6 +35,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         InputStatisticsController.shared.startIfPermitted()
         _ = InputCloudBackupController.shared
         _ = NetworkSyncController.shared
+        // Start the CloudKit scheduler on login only when both independent
+        // consent switches were already enabled. Otherwise even the local
+        // cloud journal remains unopened until the user visits its settings.
+        if UserDefaults.standard.bool(forKey: "nexusCloudClipboardEnabled"),
+           UserDefaults.standard.bool(forKey: "nexusCloudClipboardAutomaticSync") {
+            _ = ClipboardCloudController.shared
+        }
         ClipboardMonitor.shared.onDetected = { [weak self] key in
             self?.appState.clipboardDidChange(key)
         }
