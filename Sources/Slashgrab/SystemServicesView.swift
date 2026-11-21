@@ -55,6 +55,7 @@ struct SystemServicesView: View {
     @StateObject private var model = SystemServicesModel()
     @State private var search = ""
     @State private var category = "All"
+    @State private var showGlobalLayout = false
 
     private var categories: [String] {
         ["All"] + Array(Set(model.services.compactMap(\.category))).sorted()
@@ -83,6 +84,12 @@ struct SystemServicesView: View {
             }
             Text(localized("Services found in installed application bundles. Activation and menu placement are determined by macOS."))
                 .font(.caption).foregroundStyle(.secondary)
+
+            DisclosureGroup(localized("Global Services menu layout"), isExpanded: $showGlobalLayout) {
+                GlobalServicesMenuControls()
+            }
+            .padding(.horizontal, 5)
+
             List(displayed) { service in
                 DisclosureGroup(service.name) {
                     LabeledContent(localized("Application"), value: service.application)
