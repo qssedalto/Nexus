@@ -194,7 +194,11 @@ final class NetworkSyncController: ObservableObject {
             status = "Statistics deletion in progress; upload blocked"
             return
         }
-        if automaticRun && !automatic { return }
+        guard PrivacyFeatureSwitchPolicy.shouldUploadStatistics(
+            enabled: statisticsUploadEnabled,
+            automaticRun: automaticRun,
+            automatic: automatic
+        ) else { return }
         guard statisticsUploadTask == nil && !statisticsSyncPreparationInProgress else {
             status = "Statistics upload already in progress"
             return
