@@ -23,7 +23,7 @@ final class MobileClipboardController: ObservableObject {
     @Published private(set) var records: [ClipboardCloudRecord] = []
     @Published private(set) var localEntries: [MobileLocalClipboardEntry] = []
     @Published private(set) var pendingCount = 0
-    @Published private(set) var status = "No cloud network activity until you press Sync"
+    @Published private(set) var status = NSLocalizedString("No cloud network activity until you press Sync", comment: "")
     @Published private(set) var running = false
     @Published private(set) var lastSuccessfulSync: ClipboardCloudRunSummary?
 
@@ -88,15 +88,15 @@ final class MobileClipboardController: ObservableObject {
     /// on app launch, from notifications or by SwiftUI rendering.
     func importClipboardText() {
         guard let localStore else {
-            status = "Local clipboard database unavailable"
+            status = NSLocalizedString("Local clipboard database unavailable", comment: "")
             return
         }
         guard let text = UIPasteboard.general.string, !text.isEmpty else {
-            status = "The clipboard contains no text"
+            status = NSLocalizedString("The clipboard contains no text", comment: "")
             return
         }
         guard text.utf8.count <= MobileClipboardLocalStore.maximumTextBytes else {
-            status = "Copied text is above the 64 KB content safety limit"
+            status = NSLocalizedString("Copied text is above the 64 KB content safety limit", comment: "")
             return
         }
         let stamp = Int64(Date().timeIntervalSince1970 * 1_000)
@@ -121,12 +121,12 @@ final class MobileClipboardController: ObservableObject {
                         payload: .operation(payload)
                     )
                     try journal.stageLocal(change)
-                    status = "Saved locally and queued for manual iCloud sync"
+                    status = NSLocalizedString("Saved locally and queued for manual iCloud sync", comment: "")
                 } else {
-                    status = "Saved locally, cloud metadata unavailable"
+                    status = NSLocalizedString("Saved locally, cloud metadata unavailable", comment: "")
                 }
             } else {
-                status = "Saved to local clipboard history (iCloud off)"
+                status = NSLocalizedString("Saved to local clipboard history (iCloud off)", comment: "")
             }
             refresh()
         } catch {
@@ -136,7 +136,7 @@ final class MobileClipboardController: ObservableObject {
 
     func copyLocalText(_ entry: MobileLocalClipboardEntry) {
         UIPasteboard.general.string = entry.text
-        status = "Local text copied to system clipboard"
+        status = NSLocalizedString("Local text copied to system clipboard", comment: "")
     }
 
     func deleteLocalText(_ entry: MobileLocalClipboardEntry) {
@@ -156,8 +156,8 @@ final class MobileClipboardController: ObservableObject {
             }
             refresh()
             status = cloudEnabled
-                ? "Local entry deleted; cloud tombstone queued when applicable"
-                : "Local clipboard entry deleted"
+                ? NSLocalizedString("Local entry deleted; cloud tombstone queued when applicable", comment: "")
+                : NSLocalizedString("Local clipboard entry deleted", comment: "")
         } catch {
             status = "Could not delete local entry: \(error.localizedDescription)"
         }
@@ -165,12 +165,12 @@ final class MobileClipboardController: ObservableObject {
 
     func createCollection(named proposed: String) {
         guard cloudEnabled, includeNames, let journal else {
-            status = "Allow collection names before saving a collection"
+            status = NSLocalizedString("Allow collection names before saving a collection", comment: "")
             return
         }
         let name = proposed.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty, name.count <= 50 else {
-            status = "Collection name must contain 1–50 characters"
+            status = NSLocalizedString("Collection name must contain 1–50 characters", comment: "")
             return
         }
         let uuid = UUID().uuidString
@@ -185,7 +185,7 @@ final class MobileClipboardController: ObservableObject {
         do {
             try journal.stageLocal(record)
             refresh()
-            status = "Permanent collection staged locally"
+            status = NSLocalizedString("Permanent collection staged locally", comment: "")
         } catch {
             status = "Cannot create collection: \(error.localizedDescription)"
         }
@@ -216,7 +216,7 @@ final class MobileClipboardController: ObservableObject {
             )
             try journal.stageLocal(next)
             refresh()
-            status = "Added to permanent collection"
+            status = NSLocalizedString("Added to permanent collection", comment: "")
         } catch {
             status = "Cannot update collection: \(error.localizedDescription)"
         }
@@ -230,7 +230,7 @@ final class MobileClipboardController: ObservableObject {
             ) else { return }
             try journal.stageLocal(record.tombstone(revision: revision))
             refresh()
-            status = "Deleted locally; tombstone queued for next sync"
+            status = NSLocalizedString("Deleted locally; tombstone queued for next sync", comment: "")
         } catch {
             status = "Delete failed: \(error.localizedDescription)"
         }
@@ -241,7 +241,7 @@ final class MobileClipboardController: ObservableObject {
               case .operation(let op)? = record.payload,
               let body = op.text, includeText else { return }
         UIPasteboard.general.string = body
-        status = "Text copied to system clipboard"
+        status = NSLocalizedString("Text copied to system clipboard", comment: "")
     }
 
     func setupPrivateZone() async {
@@ -251,7 +251,7 @@ final class MobileClipboardController: ObservableObject {
         do {
             let transport = try await makeTransport()
             try await transport.createZoneIfRequested()
-            status = "iCloud private zone ready"
+            status = NSLocalizedString("iCloud private zone ready", comment: "")
         } catch {
             status = "iCloud setup unavailable: \(error.localizedDescription)"
         }
@@ -288,7 +288,7 @@ final class MobileClipboardController: ObservableObject {
         guard !running, cloudEnabled, let journal else { return }
         do {
             try journal.resetChangeToken(forZone: zoneID.zoneName)
-            status = "Sync cursor reset; next sync replays remote changes"
+            status = NSLocalizedString("Sync cursor reset; next sync replays remote changes", comment: "")
             refresh()
         } catch {
             status = "Cannot reset cursor: \(error.localizedDescription)"

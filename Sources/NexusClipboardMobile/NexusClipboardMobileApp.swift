@@ -126,7 +126,9 @@ struct MobileHomeView: View {
                     }
                     Section("Manual synchronization") {
                         LabeledContent("CloudKit container", value:
-                            cloud.containerConfigured ? "Configured" : "Not configured")
+                            cloud.containerConfigured
+                                ? String(localized: "Configured")
+                                : String(localized: "Not configured"))
                         Button("Create private iCloud zone") {
                             Task { await cloud.setupPrivateZone() }
                         }
@@ -216,7 +218,8 @@ struct MobileHomeView: View {
             HStack {
                 Image(systemName: "doc.on.clipboard")
                     .foregroundStyle(.tint)
-                Text(record.revision.deviceID == "unknown" ? "Clipboard" : "History")
+                Text(record.revision.deviceID == "unknown"
+                     ? String(localized: "Clipboard") : String(localized: "History"))
                     .font(.headline)
                 Spacer()
                 Button(role: .destructive) {
@@ -227,8 +230,8 @@ struct MobileHomeView: View {
             if case .operation(let info)? = record.payload {
                 Text(
                     cloud.includeText
-                        ? (info.text ?? "Metadata only")
-                        : "Content hidden by current privacy preference"
+                        ? (info.text ?? String(localized: "Metadata only"))
+                        : String(localized: "Content hidden by current privacy preference")
                 )
                 .font(.body)
                 .lineLimit(5)
