@@ -511,17 +511,21 @@ struct ClipboardShelfView: View {
                 }
             }
 
-            Text({
-                switch textPreview {
-                case .webLink(let host): return host
-                case .fencedCode: return localized("Copied code")
-                case .plain:
-                    return operation.type == "text_copy" ? localized("Copied text") : label
-                }
-            }())
-                .font(.subheadline.weight(.semibold))
-                .lineLimit(2)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            if case .webLink(let host) = textPreview {
+                ClipboardLinkTitleView(operationID: operation.id, host: host)
+            } else {
+                Text({
+                    switch textPreview {
+                    case .fencedCode: return localized("Copied code")
+                    case .plain:
+                        return operation.type == "text_copy" ? localized("Copied text") : label
+                    case .webLink: return label
+                    }
+                }())
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
 
             if case .fencedCode = textPreview {
                 ClipboardSyntaxExcerpt(source: snippet)
