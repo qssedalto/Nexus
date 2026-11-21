@@ -32,6 +32,14 @@ jobs:
             CODE_SIGNING_ALLOWED=NO ENABLE_DEBUG_DYLIB=NO \
             MARKETING_VERSION="$MARKETING_VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
             build -quiet
+          # Guard the existing Debug app against accidentally registering a
+          # second system-wide copy-path service.
+          BASELINE_INFO="$RUNNER_TEMP/nexus-derived/Build/Products/Debug/Nexus Dev.app/Contents/Info.plist"
+          test -f "$BASELINE_INFO"
+          if /usr/libexec/PlistBuddy -c 'Print :NSServices' "$BASELINE_INFO" >/dev/null 2>&1; then
+            echo 'ERROR: Production-like Debug build unexpectedly declares NSServices' >&2
+            exit 1
+          fi
 
       - name: Verify isolated NSServices-only Finder prototype
         run: bash Scripts/test_services_prototype.sh
