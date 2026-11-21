@@ -547,9 +547,20 @@ public final class OperationStore: @unchecked Sendable {
         from startMS: Int64 = 0,
         to endMS: Int64 = Int64.max,
         limit: Int = 100,
-        offset: Int = 0
+        offset: Int = 0,
+        collectionID: String = ""
     ) throws -> [RecordedOperation] {
-        guard startMS < endMS, offset >= 0, offset <= 50_000 else { return [] }
+        guard startMS < endMS, offset >= 0, offset <= 50_000,
+              collectionID.utf8.count <= 128 else { return [] }
+        // Collection membership is filtered in SQL, before paging, so a
+        // match after the first 100 saved cards is not silently hidden.
+        let collectionJoin = collectionID.isEmpty ? "" : """
+            JOIN clipboard_collection_entries m
+              ON m.operation_id = o.id AND m.collection_id = ?
+            """
+        let ordering = collectionID.isEmpty
+            ? "ORDER BY COALESCE(o.event_time_ms, o.detected_time_ms) DESC, o.id DESC"
+            : "ORDER BY m.position ASC, o.id ASC"
         let needle = String(query.trimmingCharacters(in: .whitespacesAndNewlines).prefix(256))
         let app = String(sourceApplication.trimmingCharacters(in: .whitespacesAndNewlines).prefix(128))
         let kindClause: String
@@ -578,6 +589,7 @@ public final class OperationStore: @unchecked Sendable {
                    o.completed_time_ms, o.source_application, o.detection_method,
                    o.status, o.target, o.duration_ms, o.clipboard_text
             FROM operations o
+            \(collectionJoin)
             WHERE o.type IN ('copy', 'path_copy', 'text_copy', 'image_copy', 'drop_copy')
               AND COALESCE(o.event_time_ms, o.detected_time_ms) >= ?
               AND COALESCE(o.event_time_ms, o.detected_time_ms) < ?
@@ -590,20 +602,25 @@ public final class OperationStore: @unchecked Sendable {
                     ))
               AND (? = '' OR instr(lower(COALESCE(o.source_application, '')), lower(?)) > 0)
             \(kindClause)
-            ORDER BY COALESCE(o.event_time_ms, o.detected_time_ms) DESC, o.id DESC
+            \(ordering)
             LIMIT ? OFFSET ?
             """)
         defer { sqlite3_finalize(statement) }
-        bind(startMS, to: 1, in: statement)
-        bind(endMS, to: 2, in: statement)
-        bind(needle, to: 3, in: statement)
-        bind(needle, to: 4, in: statement)
-        bind(needle, to: 5, in: statement)
-        bind(needle, to: 6, in: statement)
-        bind(app, to: 7, in: statement)
-        bind(app, to: 8, in: statement)
-        bind(Int64(max(1, min(200, limit))), to: 9, in: statement)
-        bind(Int64(offset), to: 10, in: statement)
+        var index: Int32 = 1
+        if !collectionID.isEmpty {
+            bind(collectionID, to: index, in: statement)
+            index += 1
+        }
+        bind(startMS, to: index, in: statement); index += 1
+        bind(endMS, to: index, in: statement); index += 1
+        bind(needle, to: index, in: statement); index += 1
+        bind(needle, to: index, in: statement); index += 1
+        bind(needle, to: index, in: statement); index += 1
+        bind(needle, to: index, in: statement); index += 1
+        bind(app, to: index, in: statement); index += 1
+        bind(app, to: index, in: statement); index += 1
+        bind(Int64(max(1, min(200, limit))), to: index, in: statement); index += 1
+        bind(Int64(offset), to: index, in: statement)
         var results: [RecordedOperation] = []
         while true {
             let step = sqlite3_step(statement)
