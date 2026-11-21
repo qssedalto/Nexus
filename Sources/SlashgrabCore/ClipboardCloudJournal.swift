@@ -206,6 +206,25 @@ public final class ClipboardCloudJournal: @unchecked Sendable {
         return sqlite3_changes(database) > 0
     }
 
+    /// Explicitly discard this device's CloudKit cache, pending outbox and
+    /// server cursors. Does not affect the original local clipboard history,
+    /// and never contacts iCloud. Do NOT call merely because sync is disabled.
+    /// Keep the two table deletions in one transaction to avoid a stale token
+    /// surviving without its corresponding cached records after a crash.
+    public func discardAllLocalCloudData() throws {
+        lock.lock()
+        defer { lock.unlock() }
+        try execute("BEGIN IMMEDIATE")
+        do {
+            try execute("DELETE FROM cloud_records")
+            try execute("DELETE FROM cloud_change_tokens")
+            try execute("COMMIT")
+        } catch {
+            try? execute("ROLLBACK")
+            throw error
+        }
+    }
+
     /// Explicit recovery for an expired or invalid server change token.
     /// This never erases cached content or staged local mutations. The next
     /// download starts from the beginning and deterministic merges dedupe it.
