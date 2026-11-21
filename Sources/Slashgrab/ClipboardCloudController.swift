@@ -299,13 +299,13 @@ final class ClipboardCloudController: ObservableObject {
                 transport: transport, journal: journal
             )
             try await purge.purgeCloudZoneAndLocalCache(
-                confirmation: confirmation
+                confirmation: confirmation,
+                afterRemoteDeletion: {
+                    // If local mirror removal fails, preserve CloudKit's
+                    // outbox and cursor for a safe, idempotent retry.
+                    _ = try store.discardImportedCloudMirrors()
+                }
             )
-            // The coordinator clears only the cloud journal after the server
-            // acknowledges deletion. Locally imported mirrors are separate.
-            _ = try await Task.detached(priority: .utility) {
-                try store.discardImportedCloudMirrors()
-            }.value
             resetCloudPreferencesAfterPurge()
             refreshLocalCache()
             status = localized("Nexus private iCloud clipboard zone deleted. Disable sync on other devices to prevent recreation.")
