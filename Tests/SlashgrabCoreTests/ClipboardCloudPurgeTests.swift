@@ -84,6 +84,37 @@ final class ClipboardCloudPurgeTests: XCTestCase {
         XCTAssertEqual(calls, 1)
     }
 
+    func testMirrorCleanupFailureAfterRemoteDeletionKeepsLocalRecovery() async throws {
+        enum MirrorFailure: Error { case storage }
+        let (journal, root) = try makeJournal()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let remote = MockZoneDeletion()
+        let purge = ClipboardCloudPurgeCoordinator(
+            transport: remote, journal: journal
+        )
+        do {
+            try await purge.purgeCloudZoneAndLocalCache(
+                confirmation: "DELETE",
+                afterRemoteDeletion: { throw MirrorFailure.storage }
+            )
+            XCTFail("Expected mirror cleanup failure")
+        } catch MirrorFailure.storage {
+            XCTAssertEqual(try journal.pendingCount(), 1)
+            XCTAssertNotNil(try journal.token(forZone: "NexusClipboard"))
+            XCTAssertEqual(try journal.cachedRecords().count, 1)
+        }
+        let calls = await remote.callCount()
+        XCTAssertEqual(calls, 1)
+        // Repeat after fixing local storage; a missing server zone is
+        // considered successful by the production transport.
+        try await purge.purgeCloudZoneAndLocalCache(
+            confirmation: "DELETE",
+            afterRemoteDeletion: {}
+        )
+        XCTAssertEqual(try journal.pendingCount(), 0)
+        XCTAssertNil(try journal.token(forZone: "NexusClipboard"))
+    }
+
     func testSuccessfulPurgeClearsOutboxCacheAndTokenAcrossRestart() async throws {
         let (journal, root) = try makeJournal()
         defer { try? FileManager.default.removeItem(at: root) }
