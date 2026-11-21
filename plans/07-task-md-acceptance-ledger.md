@@ -30,7 +30,9 @@ Source of truth: [task.md](../task.md), 1,450 lines. This ledger describes actua
 
 ## Not completed by this PR
 
-- [ ] A single Finder NSServices entry for iCloud Drive that never duplicates the existing Finder Sync command; system-level submenu experiments with documented limits
+- [x] Isolated, opt-in `ServicesPrototype` build with a single static NSServices entry and its own Finder Sync contextual menu compiled off; CI checks registration, code flags and unchanged normal Debug build
+- [x] Opt-in global Services submenu preference controls with confirmation and exact integer/unset backup/restore (source + build checked; **no runtime preference mutation tests**)
+- [ ] Real macOS iCloud Drive / OneDrive Finder test proving a **single visible** entry across local/cloud folders and determining first-level vs submenu placement
 - [ ] Full per-key/per-device HID coverage including hardware F21-F24, Globe/Fn, uncommon side buttons and media keys
 - [ ] End-to-end external copy **and paste completion** evidence; shortcuts alone cannot prove a paste succeeded
 - [ ] Dedicated folder-size background calculation with explicit cancellation and no blocking Finder operations

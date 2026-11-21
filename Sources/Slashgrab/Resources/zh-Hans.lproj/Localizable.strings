@@ -145,3 +145,27 @@
 "Clipboard files detected" = "检测到文件复制";
 "Clipboard image detected" = "检测到图片复制";
 "Clipboard text detected" = "检测到文本复制";
+
+"Follow system default" = "跟随系统默认";
+"Expand all Services where possible" = "尽可能将所有服务展开到一级菜单";
+"Group Services in submenu" = "将所有服务收纳进子菜单";
+"System default (no override)" = "系统默认（未设置）";
+"Global threshold" = "全局服务折叠阈值";
+"Global Services setting updated; reopen the Finder menu." = "已更新全局服务菜单设置，请重新打开访达右键菜单。";
+"No saved original setting found" = "未找到此前保存的原始设置。";
+"Original global Services setting restored" = "已恢复原始全局服务菜单设置。";
+"Cannot inspect global Services preferences" = "无法读取全局服务菜单偏好设置。";
+"Existing preference type is not an integer; no changes were made" = "现有设置不是整数类型，未作任何修改。";
+"Could not change global Services preferences; no settings were deleted" = "未能修改全局服务设置，原始备份仍然保留。";
+"This setting changes the Services submenu for every app, not only Nexus." = "此设置会影响所有应用的「服务」菜单，而不仅仅是天枢。";
+"Current global setting" = "当前全局设置";
+"Services menu layout" = "服务菜单布局";
+"Apply system-wide…" = "应用到整个系统…";
+"Change Services menus for all apps?" = "要修改所有应用的服务菜单吗？";
+"Apply system-wide" = "应用到整个系统";
+"This global setting may change where other apps' Services appear. Finder may need to reopen its context menu." = "此全局设置可能改变其他应用服务项的位置。访达可能需要重新打开右键菜单。";
+"Restore previous global value…" = "恢复之前的全局设置…";
+"Restore the saved global Services value?" = "要恢复保存的原始服务菜单设置吗？";
+"Restore original" = "恢复原始设置";
+"Restore the exact integer value (or unset state) saved before Nexus first changed this preference." = "恢复天枢首次修改前保存的原始整数值，或者原本未设置的状态。";
+"Global Services menu layout" = "全局服务菜单布局";
