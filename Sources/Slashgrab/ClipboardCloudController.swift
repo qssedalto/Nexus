@@ -28,6 +28,7 @@ final class ClipboardCloudController: ObservableObject {
     @Published private(set) var pendingCount = 0
     @Published private(set) var cachedRecords: [ClipboardCloudRecord] = []
     @Published private(set) var running = false
+    @Published private(set) var lastSuccessfulSync: ClipboardCloudRunSummary?
 
     private let defaults: UserDefaults
     private let deviceID: String
@@ -41,6 +42,8 @@ final class ClipboardCloudController: ObservableObject {
     private init() {
         let defaults = UserDefaults.standard
         self.defaults = defaults
+        lastSuccessfulSync = defaults.data(forKey: "nexusCloudClipboardLastSuccess")
+            .flatMap { try? JSONDecoder().decode(ClipboardCloudRunSummary.self, from: $0) }
         enabled = defaults.bool(forKey: "nexusCloudClipboardEnabled")
         includeNames = defaults.bool(forKey: "nexusCloudClipboardNames")
         includeText = defaults.bool(forKey: "nexusCloudClipboardText")
@@ -156,6 +159,15 @@ final class ClipboardCloudController: ObservableObject {
             // Current privacy settings are rechecked when the coordinator
             // decides whether old, queued metadata can leave this Mac.
             let report = try await coordinator.syncOnce(consent: currentConsent)
+            if let summary = ClipboardCloudRunSummary(
+                report: report,
+                finishedTimeMS: Int64(Date().timeIntervalSince1970 * 1_000)
+            ) {
+                lastSuccessfulSync = summary
+                if let encoded = try? JSONEncoder().encode(summary) {
+                    defaults.set(encoded, forKey: "nexusCloudClipboardLastSuccess")
+                }
+            }
             refreshLocalCache()
             status = "Uploaded \(report.uploaded), received \(report.downloaded), pending \(report.pending)" +
                 (report.moreComing ? " — more cloud pages available" : "")
