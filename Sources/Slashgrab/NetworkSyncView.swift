@@ -7,7 +7,10 @@ import SlashgrabCore
 final class NetworkSyncController: ObservableObject {
     static let shared = NetworkSyncController()
     @Published var serverAddress: String {
-        didSet { defaults.set(serverAddress, forKey: "nexusSyncServer") }
+        didSet {
+            defaults.set(serverAddress, forKey: "nexusSyncServer")
+            serverOperationsSupported = false
+        }
     }
     @Published var automatic: Bool {
         didSet { defaults.set(automatic, forKey: "nexusSyncAutomatic"); schedule() }
@@ -16,6 +19,7 @@ final class NetworkSyncController: ObservableObject {
         didSet { defaults.set(preciseEvents, forKey: "nexusSyncPreciseEvents") }
     }
     @Published private(set) var status = "Idle"
+    @Published private(set) var serverOperationsSupported = false
     @Published private(set) var lastSync: Date?
     @Published private(set) var remoteSummary: [String: Int64] = [:]
     @Published var operationSyncEnabled: Bool {
@@ -68,16 +72,27 @@ final class NetworkSyncController: ObservableObject {
     func removeToken() {
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: keychainService, kSecAttrAccount as String: "api-token"]
         SecItemDelete(query as CFDictionary)
+        serverOperationsSupported = false
         status = "Token removed"
     }
 
     func testConnection() async {
+        serverOperationsSupported = false
         do {
             let request = try makeRequest(path: "/api/nexus/v1/me", method: "GET")
-            let (_, response) = try await URLSession.shared.data(for: request)
-            guard let http = response as? HTTPURLResponse else { throw SyncError.invalidResponse }
-            status = http.statusCode == 200 ? "Connected" : "HTTP \(http.statusCode)"
-        } catch { status = error.localizedDescription }
+            let hello: ServerHello = try await fetch(request)
+            guard hello.authenticated else { throw SyncError.invalidResponse }
+            guard hello.schemaVersion == 1 else {
+                status = localized("Server schema not recognized; operation sync not verified")
+                return
+            }
+            serverOperationsSupported = (hello.capabilities ?? []).contains("operations.events")
+            status = localized(serverOperationsSupported
+                ? "Connected: statistics and operation history APIs available"
+                : "Connected: operation history API unavailable or not advertised")
+        } catch {
+            status = error.localizedDescription
+        }
     }
 
     func syncNow() async {
@@ -318,6 +333,16 @@ final class NetworkSyncController: ObservableObject {
                     await self?.syncOperationsNow()
                 }
             }
+        }
+    }
+
+    private struct ServerHello: Decodable {
+        let authenticated: Bool
+        let schemaVersion: Int?
+        let capabilities: [String]?
+        enum CodingKeys: String, CodingKey {
+            case authenticated, capabilities
+            case schemaVersion = "schema_version"
         }
     }
 
