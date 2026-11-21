@@ -545,3 +545,20 @@
 "Fetch website title once" = "获取一次网页标题";
 "Website title unavailable" = "无法获取网页标题";
 "Website title saved locally" = "网页标题已保存到本机";
+
+/* Preserved Nexus onboarding and accessibility translations */
+"Copyright © 2026 qssedalto. Portions © 2026 Marco Gomiero." = "版权所有 © 2026 qssedalto；部分内容版权所有 © 2026 Marco Gomiero。";
+"Welcome to Nexus" = "欢迎使用天枢";
+"Nexus is running." = "天枢已成功启动。";
+"Nexus lives in the menu bar, not the Dock. Here is how to find it." = "天枢常驻菜单栏，而不是程序坞。下面介绍如何找到它。";
+"Find the Nexus menu bar icon" = "在菜单栏找到天枢图标";
+"Look in the upper-right menu bar. Click Nexus to open its menu, or drag a file onto the icon to copy its path." = "请查看屏幕右上角的菜单栏。点击天枢图标打开菜单，或将文件拖到图标上复制路径。";
+"Using Hidden Bar or another menu bar organizer?" = "正在使用 Hidden Bar 或其他菜单栏整理工具？";
+"Expand the hidden icons, find Nexus, and move or pin it into the visible menu bar area." = "先展开被隐藏的菜单栏图标，找到天枢，再将它移动或固定到始终可见的区域。";
+"If you cannot find Nexus later" = "以后找不到天枢怎么办？";
+"Open Nexus again from Finder or Applications to show this guide. You can also reopen it from Settings → General." = "从访达或「应用程序」中再次打开天枢，即可重新显示本指南；也可以在「设置 → 通用」中打开。";
+"Open Settings…" = "打开设置…";
+"Got it — start using Nexus" = "知道了，开始使用天枢";
+"Show Welcome Guide…" = "显示首次使用指南…";
+"Reopen the guide if the menu bar icon is hidden." = "若菜单栏图标被隐藏，可以在此重新打开使用指南。";
+"Help" = "帮助";

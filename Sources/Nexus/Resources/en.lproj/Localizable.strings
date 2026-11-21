@@ -487,3 +487,20 @@
 "Fetch website title once" = "Fetch website title once";
 "Website title unavailable" = "Website title unavailable";
 "Website title saved locally" = "Website title saved locally";
+
+/* Preserved Nexus onboarding and accessibility translations */
+"Copyright © 2026 qssedalto. Portions © 2026 Marco Gomiero." = "Copyright © 2026 qssedalto. Portions © 2026 Marco Gomiero.";
+"Welcome to Nexus" = "Welcome to Nexus";
+"Nexus is running." = "Nexus is running.";
+"Nexus lives in the menu bar, not the Dock. Here is how to find it." = "Nexus lives in the menu bar, not the Dock. Here is how to find it.";
+"Find the Nexus menu bar icon" = "Find the Nexus menu bar icon";
+"Look in the upper-right menu bar. Click Nexus to open its menu, or drag a file onto the icon to copy its path." = "Look in the upper-right menu bar. Click Nexus to open its menu, or drag a file onto the icon to copy its path.";
+"Using Hidden Bar or another menu bar organizer?" = "Using Hidden Bar or another menu bar organizer?";
+"Expand the hidden icons, find Nexus, and move or pin it into the visible menu bar area." = "Expand the hidden icons, find Nexus, and move or pin it into the visible menu bar area.";
+"If you cannot find Nexus later" = "If you cannot find Nexus later";
+"Open Nexus again from Finder or Applications to show this guide. You can also reopen it from Settings → General." = "Open Nexus again from Finder or Applications to show this guide. You can also reopen it from Settings → General.";
+"Open Settings…" = "Open Settings…";
+"Got it — start using Nexus" = "Got it — start using Nexus";
+"Show Welcome Guide…" = "Show Welcome Guide…";
+"Reopen the guide if the menu bar icon is hidden." = "Reopen the guide if the menu bar icon is hidden.";
+"Help" = "Help";
