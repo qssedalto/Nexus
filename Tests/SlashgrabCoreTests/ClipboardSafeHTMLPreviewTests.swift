@@ -39,6 +39,44 @@ final class ClipboardSafeHTMLPreviewTests: XCTestCase {
         XCTAssertEqual(preview.runs.first?.lengthUTF16, preview.text.utf16.count)
     }
 
+    func testHeadingsListsAndQuotesHaveSafePlainTextStructure() throws {
+        let preview = try XCTUnwrap(ClipboardSafeHTMLPreview.parse(
+            "<h2>报告😀</h2><ul><li>第一项</li><li><strong>第二项</strong></li></ul>"
+                + "<blockquote><em>注释</em></blockquote>"
+        ))
+        XCTAssertEqual(preview.text, "报告😀\n第一项\n第二项\n注释")
+        XCTAssertTrue(preview.runs.contains {
+            $0.bold && $0.locationUTF16 == 0
+                && $0.lengthUTF16 == "报告😀".utf16.count
+        })
+        XCTAssertTrue(preview.runs.contains { $0.italic })
+        for run in preview.runs {
+            XCTAssertLessThanOrEqual(
+                run.locationUTF16 + run.lengthUTF16,
+                preview.text.utf16.count
+            )
+        }
+    }
+
+    func testSafePreformattedAndSectionTagsDoNotLoadResources() throws {
+        let preview = try XCTUnwrap(ClipboardSafeHTMLPreview.parse(
+            "<section><h3>代码</h3><pre><code>let n = 42</code></pre></section>"
+        ))
+        XCTAssertEqual(preview.text, "代码\nlet n = 42")
+        XCTAssertTrue(preview.runs.contains { $0.bold })
+        let invalid = [
+            "<li><b>孤立的项目</b></li>",
+            "<h2 onclick=alert(1)>标题</h2>",
+            "<ul><li>x</ul></li>",
+            "<blockquote cite='https://example.com'><b>x</b></blockquote>",
+            "<pre><script>alert(1)</script></pre>",
+            "<section><img src='https://example.com/pixel'></section>"
+        ]
+        for html in invalid {
+            XCTAssertNil(ClipboardSafeHTMLPreview.parse(html), html)
+        }
+    }
+
     func testRejectsScriptsURLsImagesAndAnyHTMLAttributes() {
         let dangerous = [
             "<script>alert('x')</script>",
