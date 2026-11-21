@@ -371,10 +371,16 @@ struct ClipboardShelfView: View {
             }
             .padding(.bottom, 2)
 
-            Image(systemName: icon(for: kind))
-                .font(.system(size: 31, weight: .ultraLight))
-                .foregroundStyle(accent)
-                .frame(maxWidth: .infinity, minHeight: 57)
+            Group {
+                if kind == "image" {
+                    ClipboardImagePreview(operationID: operation.id)
+                } else {
+                    Image(systemName: icon(for: kind))
+                        .font(.system(size: 31, weight: .ultraLight))
+                        .foregroundStyle(accent)
+                        .frame(maxWidth: .infinity, minHeight: 57)
+                }
+            }
 
             Text(operation.type == "text_copy" ? localized("Copied text") : label)
                 .font(.subheadline.weight(.semibold))
@@ -646,6 +652,20 @@ struct ClipboardShelfView: View {
 
     @discardableResult
     private func copyAgain(_ operation: RecordedOperation) -> Bool {
+        if operation.type == "image_copy" {
+            guard let image = try? OperationStore.shared()?.imageContent(operationID: operation.id) else {
+                message = localized("Original clipboard image unavailable")
+                return false
+            }
+            let pasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+            let copied = pasteboard.setData(
+                image.data, forType: NSPasteboard.PasteboardType(image.pasteboardType)
+            )
+            if copied { ClipboardMonitor.shared.ignoreCurrentChange() }
+            message = localized(copied ? "Copied again" : "Clipboard write failed")
+            return copied
+        }
         if let text = operation.clipboardText, !text.isEmpty {
             let copied = appState.copyAgain(text)
             message = localized(copied ? "Copied again" : "Clipboard write failed")
@@ -716,5 +736,34 @@ struct ClipboardShelfView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "MM-dd HH:mm:ss.SSS"
         return formatter.string(from: Date(timeIntervalSince1970: TimeInterval(value) / 1_000))
+    }
+}
+
+private struct ClipboardImagePreview: View {
+    let operationID: String
+    @State private var thumbnail: NSImage?
+
+    var body: some View {
+        Group {
+            if let thumbnail {
+                Image(nsImage: thumbnail)
+                    .resizable()
+                    .scaledToFit()
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            } else {
+                Image(systemName: "photo")
+                    .font(.system(size: 31, weight: .ultraLight))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 57, maxHeight: 77)
+        .task(id: operationID) {
+            let store = OperationStore.shared()
+            let bytes = await Task.detached(priority: .utility) {
+                try? store?.imageThumbnail(operationID: operationID)
+            }.value
+            guard !Task.isCancelled else { return }
+            thumbnail = bytes.flatMap { NSImage(data: $0) }
+        }
     }
 }
