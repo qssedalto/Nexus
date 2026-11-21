@@ -35,6 +35,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         InputStatisticsController.shared.startIfPermitted()
         _ = InputCloudBackupController.shared
         _ = NetworkSyncController.shared
+        // Initializes the user-controlled CloudKit scheduler at login;
+        // without its explicit automatic-sync permission it does no network I/O.
+        _ = ClipboardCloudController.shared
         ClipboardMonitor.shared.onDetected = { [weak self] key in
             self?.appState.clipboardDidChange(key)
         }
