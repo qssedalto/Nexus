@@ -1085,6 +1085,7 @@ public final class OperationStore: @unchecked Sendable {
                     INSERT INTO clipboard_collections(id,name,created_time_ms)
                     VALUES(?,?,?)
                     ON CONFLICT(id) DO UPDATE SET name=excluded.name
+                    WHERE clipboard_collections.name <> excluded.name
                     """)
                 bind(mirror, to: 1, in: stmt)
                 bind(title, to: 2, in: stmt)
@@ -1148,6 +1149,7 @@ public final class OperationStore: @unchecked Sendable {
                     (collection_id,operation_id,position) VALUES(?,?,?)
                     ON CONFLICT(collection_id,operation_id)
                     DO UPDATE SET position=excluded.position
+                    WHERE clipboard_collection_entries.position <> excluded.position
                     """)
                 bind(collectionID, to: 1, in: stmt)
                 bind(resolved, to: 2, in: stmt)
