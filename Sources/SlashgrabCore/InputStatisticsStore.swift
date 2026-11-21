@@ -348,13 +348,14 @@ public final class InputStatisticsStore: @unchecked Sendable {
     public func trend(from startMS: Int64, to endMS: Int64,
                       resolution: InputTrendResolution,
                       category: String? = nil,
-                      name: String? = nil) throws -> [InputTrendBucket] {
+                      name: String? = nil,
+                      source: String? = nil) throws -> [InputTrendBucket] {
         guard startMS >= 0, endMS >= startMS else { return [] }
         return try queue.sync {
             try flushOnQueue()
             return try trendOnQueue(startMS: startMS, endMS: endMS,
                                     resolution: resolution, category: category,
-                                    name: name)
+                                    name: name, source: source)
         }
     }
 
@@ -362,7 +363,8 @@ public final class InputStatisticsStore: @unchecked Sendable {
     /// separate so Swift 6 can type-check the queue closure in finite time.
     private func trendOnQueue(startMS: Int64, endMS: Int64,
                               resolution: InputTrendResolution,
-                              category: String?, name: String?) throws -> [InputTrendBucket] {
+                              category: String?, name: String?,
+                              source: String?) throws -> [InputTrendBucket] {
             // Push the potentially massive event-range scan/grouping into
             // SQLite. Swift sees only hourly/daily UTC buckets, even when
             // many years of input events are stored.
@@ -375,6 +377,7 @@ public final class InputStatisticsStore: @unchecked Sendable {
                 WHERE time_ms >= ? AND time_ms < ?
                   AND (? IS NULL OR category = ?)
                   AND (? IS NULL OR name = ?)
+                  AND (? IS NULL OR source = ?)
                 GROUP BY bucket_ms, category
                 ORDER BY bucket_ms, category
                 """
@@ -396,6 +399,13 @@ public final class InputStatisticsStore: @unchecked Sendable {
             } else {
                 sqlite3_bind_null(statement, 5)
                 sqlite3_bind_null(statement, 6)
+            }
+            if let source {
+                bind(source, to: 7, in: statement)
+                bind(source, to: 8, in: statement)
+            } else {
+                sqlite3_bind_null(statement, 7)
+                sqlite3_bind_null(statement, 8)
             }
             var calendar = Calendar(identifier: .iso8601)
             calendar.timeZone = TimeZone(secondsFromGMT: 0)!
