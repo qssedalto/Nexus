@@ -142,3 +142,6 @@
 "Records detected clipboard changes, not confirmed file transfers or paste completion." = "此功能记录检测到的剪贴板变化，不代表文件传输或粘贴已完成。";
 "Text copy" = "复制文本";
 "Image copy" = "复制图片";
+"Clipboard files detected" = "检测到文件复制";
+"Clipboard image detected" = "检测到图片复制";
+"Clipboard text detected" = "检测到文本复制";
