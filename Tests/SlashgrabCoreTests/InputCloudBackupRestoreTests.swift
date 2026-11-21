@@ -42,10 +42,11 @@ final class InputCloudBackupRestoreTests: XCTestCase {
                                        name: "escape", source: "quartz_uptime"))
         b.enqueue(ClassifiedInputEvent(timeMS: 2000, category: "mouse",
                                        name: "mouse_left", source: "quartz_uptime"))
-        let snapshotA = root.appendingPathComponent("A.sqlite")
+        // Avoid a.sqlite / A.sqlite aliasing on default case-insensitive APFS.
+        let snapshotA = root.appendingPathComponent("snapshot-A.sqlite")
         try a.backup(to: snapshotA)
         XCTAssertEqual(try b.restoreBackup(from: snapshotA, deviceID: "icloud:A"), 1)
-        let snapshotB = root.appendingPathComponent("B.sqlite")
+        let snapshotB = root.appendingPathComponent("snapshot-B.sqlite")
         try b.backup(to: snapshotB)
         // B's backup contains B's original event and the previously imported
         // A event. The latter must not be re-attributed to B and counted twice.
