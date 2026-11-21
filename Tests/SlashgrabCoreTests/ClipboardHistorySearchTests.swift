@@ -122,4 +122,66 @@ final class ClipboardHistorySearchTests: XCTestCase {
         XCTAssertEqual(Set(shelf.map(\.id)).count, 200)
     }
 
+
+    func testPermanentCollectionSearchFindsOlderCardsBeyondFirstHundred() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try OperationStore(url: root.appendingPathComponent("collections.sqlite"))
+        for index in 0..<231 {
+            try store.record(type: "text_copy", urls: [], sourceApplication: nil,
+                             detectionMethod: "clipboard",
+                             detectedTimeMS: Int64(100 + index),
+                             clipboardText: index == 225 ? "old collection target" : "item \(index)")
+        }
+        let collection = try store.createCollection(named: "History")
+        let recorded = try store.query(from: 0, to: Int64.max)
+        for entry in recorded.reversed() {
+            XCTAssertTrue(try store.addOperation(id: entry.id, toCollection: collection.id))
+        }
+        try store.record(type: "text_copy", urls: [], sourceApplication: nil,
+                         detectionMethod: "clipboard", detectedTimeMS: 1_000,
+                         clipboardText: "old collection target outside")
+
+        let matches = try store.searchClipboard(query: "old collection target",
+                                                collectionID: collection.id)
+        XCTAssertEqual(matches.map(\.clipboardText), ["old collection target"],
+                       "Unrelated copies must not leak into a collection search")
+
+        let page1 = try store.searchClipboard(query: "", limit: 200,
+                                              collectionID: collection.id)
+        let page2 = try store.searchClipboard(query: "", limit: 200,
+                                              offset: 200, collectionID: collection.id)
+        XCTAssertEqual(page1.count, 200)
+        XCTAssertEqual(page2.count, 31)
+        XCTAssertEqual(page1.first?.clipboardText, "item 0")
+        XCTAssertEqual(page2.last?.clipboardText, "item 230")
+        XCTAssertEqual(Set((page1 + page2).map(\.id)).count, 231)
+        XCTAssertEqual(try store.searchClipboard(query: "", from: 325, to: 326,
+                                                 collectionID: collection.id)
+            .first?.clipboardText, "old collection target")
+    }
+
+    func testProtectedUUIDLookupUsesCallerPriorityBeforeRecordLimit() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try OperationStore(url: root.appendingPathComponent("protected.sqlite"))
+        for index in 0..<505 {
+            try store.record(type: "text_copy", urls: [], sourceApplication: nil,
+                             detectionMethod: "clipboard",
+                             detectedTimeMS: Int64(index + 1),
+                             clipboardText: "protected \(index)")
+        }
+        let ids = try store.query(from: 0, to: Int64.max).map(\.id).sorted()
+        let priority = try XCTUnwrap(ids.last)
+        let requested = [priority] + ids.dropLast()
+        let loaded = try store.query(ids: Array(requested))
+        XCTAssertEqual(loaded.count, 500)
+        XCTAssertTrue(loaded.contains(where: { $0.id == priority }),
+                      "A selected collection record must not disappear under the lookup cap")
+        XCTAssertFalse(loaded.contains(where: { $0.id == ids[499] }),
+                       "Rows beyond the explicit 500-record budget must not load")
+    }
+
 }
