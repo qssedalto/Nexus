@@ -30,7 +30,9 @@ struct ClipboardShelfView: View {
     @State private var cardAccents: [String: ClipboardCardAccent] = [:]
     @State private var colorLoadGeneration = 0
     @State private var newCollectionName = ""
+    @State private var renamedCollectionName = ""
     @State private var showingCreateCollection = false
+    @State private var showingRenameCollection = false
     @State private var showingDeleteCollection = false
     @AppStorage("nexusPinnedClipboardOperationIDs") private var pinnedRaw = ""
     @AppStorage("nexusClipboardFileThumbnailPreviews") private var filePreviewEnabled = false
@@ -238,6 +240,13 @@ struct ClipboardShelfView: View {
                     .help(localized("Create collection"))
                 if !selectedCollectionID.isEmpty {
                     Button {
+                        renamedCollectionName = collections.first {
+                            $0.id == selectedCollectionID
+                        }?.name ?? ""
+                        showingRenameCollection = true
+                    } label: { Image(systemName: "pencil") }
+                        .help(localized("Rename collection"))
+                    Button {
                         showingDeleteCollection = true
                     } label: { Image(systemName: "trash") }
                         .help(localized("Delete collection only"))
@@ -437,6 +446,11 @@ struct ClipboardShelfView: View {
             TextField(localized("Collection name"), text: $newCollectionName)
             Button(localized("Cancel"), role: .cancel) {}
             Button(localized("Create")) { createCollection() }
+        }
+        .alert(localized("Rename permanent collection"), isPresented: $showingRenameCollection) {
+            TextField(localized("Collection name"), text: $renamedCollectionName)
+            Button(localized("Cancel"), role: .cancel) {}
+            Button(localized("Rename")) { renameSelectedCollection() }
         }
         .alert(localized("Delete this collection?"), isPresented: $showingDeleteCollection) {
             Button(localized("Cancel"), role: .cancel) {}
@@ -792,6 +806,24 @@ struct ClipboardShelfView: View {
             }
             selectedCollectionID = created.id
             loadCollections()
+        }
+    }
+
+    private func renameSelectedCollection() {
+        let id = selectedCollectionID
+        let name = renamedCollectionName
+        guard !id.isEmpty else { return }
+        let store = OperationStore.shared()
+        Task {
+            let changed = await Task.detached(priority: .utility) {
+                (try? store?.renameCollection(id: id, to: name)) ?? false
+            }.value
+            if changed {
+                loadCollections()
+                message = localized("Collection renamed")
+            } else {
+                message = localized("Unable to rename collection")
+            }
         }
     }
 
