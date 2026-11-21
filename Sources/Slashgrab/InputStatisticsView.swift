@@ -66,6 +66,10 @@ final class InputStatisticsController: ObservableObject {
         }
     }
 
+    func setPasteRequestHandler(_ handler: @escaping @Sendable (Int64) -> Void) {
+        monitor?.onPasteRequest = handler
+    }
+
     func startIfPermitted() {
         permissionGranted = monitor?.hasPermission ?? false
         if permissionGranted && !paused { _ = monitor?.start() }

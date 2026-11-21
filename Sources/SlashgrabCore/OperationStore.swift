@@ -107,7 +107,8 @@ public final class OperationStore: @unchecked Sendable {
     public func record(type: String, urls: [URL], sourceApplication: String?, detectionMethod: String, eventTimeMS: Int64? = nil, detectedTimeMS: Int64? = nil, completedTimeMS: Int64? = nil, target: String? = nil, clipboardText: String? = nil) throws {
         // Text-only clipboard changes have no file URL; keep them as one
         // operation with a text item rather than silently dropping them.
-        guard !urls.isEmpty || (type == "text_copy" && clipboardText?.isEmpty == false) || type == "image_copy" else { return }
+        guard !urls.isEmpty || (type == "text_copy" && clipboardText?.isEmpty == false)
+              || type == "image_copy" || type == "paste_request" else { return }
         let detected = detectedTimeMS ?? Int64(Date().timeIntervalSince1970 * 1000)
         let operationID = UUID().uuidString
         var items = urls.map(RecordedItem.init(url:))
@@ -120,7 +121,8 @@ public final class OperationStore: @unchecked Sendable {
         }
         // A clipboard reference is not a completed file transfer. Its
         // completion/duration must remain NULL unless actually confirmed.
-        let status = completedTimeMS == nil ? "clipboard_detected" : "clipboard_written"
+        let status = type == "paste_request" ? "paste_requested"
+            : completedTimeMS == nil ? "clipboard_detected" : "clipboard_written"
         let duration: Int64? = {
             guard let eventTimeMS, let completedTimeMS else { return nil }
             return max(0, completedTimeMS - eventTimeMS)

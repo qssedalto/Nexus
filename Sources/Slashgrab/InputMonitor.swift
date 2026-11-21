@@ -5,12 +5,14 @@ import SlashgrabCore
 
 final class InputMonitor: @unchecked Sendable {
     private let store: InputStatisticsStore
+    private let operationStore = OperationStore.shared()
     private var tap: CFMachPort?
     private var source: CFRunLoopSource?
     private var mediaMonitor: Any?
     private var hidMonitor: HIDConsumerMonitor?
     private var recentSystemEvents: [String: (source: String, timeMS: Int64)] = [:]
     var onDiagnostic: (@Sendable (InputDiagnosticEvent) -> Void)?
+    var onPasteRequest: (@Sendable (Int64) -> Void)?
 
     init(store: InputStatisticsStore) { self.store = store }
 
@@ -77,6 +79,23 @@ final class InputMonitor: @unchecked Sendable {
             if let shortcut = Self.shortcutName(code: code, flags: event.flags) {
                 store.enqueue(ClassifiedInputEvent(timeMS: timeMS, category: "shortcut", name: shortcut, source: "quartz_uptime", isRepeat: repeated))
                 onDiagnostic?(InputDiagnosticEvent(timeMS: timeMS, name: shortcut, source: "quartz_uptime", supported: true))
+                // This observes a keyboard request only. macOS provides no
+                // reliable third-party confirmation that a paste succeeded.
+                // It is independently opt-in and never reads clipboard text.
+                if shortcut == "command_v", !repeated,
+                   UserDefaults.standard.bool(forKey: "nexusMonitorPasteRequests") {
+                    let recordStore = operationStore
+                    let observedMS = Int64(Date().timeIntervalSince1970 * 1000)
+                    Task.detached(priority: .utility) {
+                        try? recordStore?.record(
+                            type: "paste_request", urls: [],
+                            sourceApplication: nil,
+                            detectionMethod: "quartz_shortcut",
+                            eventTimeMS: timeMS, detectedTimeMS: observedMS
+                        )
+                    }
+                    onPasteRequest?(timeMS)
+                }
             }
         case .flagsChanged:
             guard !IsSecureEventInputEnabled() else { return }

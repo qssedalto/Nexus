@@ -7,6 +7,7 @@ struct SettingsView<Updater: UpdaterControlling>: View {
     @ObservedObject var updater: Updater
     @ObservedObject private var clipboardMonitor = ClipboardMonitor.shared
     @ObservedObject private var clipboardHotkey = ClipboardHotkeyController.shared
+    @AppStorage("nexusMonitorPasteRequests") private var pasteRequestMonitoring = false
 
     var body: some View {
         TabView {
@@ -69,6 +70,9 @@ struct SettingsView<Updater: UpdaterControlling>: View {
                 Toggle(localized("Monitor file copies from the clipboard"), isOn: $clipboardMonitor.enabled)
                 Toggle(localized("Record clipboard text (opt-in)"), isOn: $clipboardMonitor.textEnabled)
                 Toggle(localized("Pause clipboard history collection"), isOn: $clipboardMonitor.paused)
+                Toggle(localized("Observe Command+V paste requests (opt-in)"), isOn: $pasteRequestMonitoring)
+                Text(localized("Only a shortcut request and event timestamp are saved. This cannot verify a successful paste, does not inspect the destination, and requires input-monitoring permission."))
+                    .font(.caption).foregroundStyle(.secondary)
                 Text(localized("Text history can include private information. Enable only when you want Nexus to store copied text locally."))
                     .font(.caption).foregroundStyle(.secondary)
                 Text(localized("Records detected clipboard changes, not confirmed file transfers or paste completion."))

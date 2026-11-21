@@ -191,4 +191,28 @@ final class OperationStoreTests: XCTestCase {
         XCTAssertTrue(try store.pendingSync().isEmpty)
     }
 
+
+    func testPassivePasteRequestStoresNoContentOrFalseCompletion() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = try OperationStore(url: directory.appendingPathComponent("operations.sqlite"))
+        try store.record(
+            type: "paste_request", urls: [], sourceApplication: nil,
+            detectionMethod: "quartz_shortcut", eventTimeMS: 1400,
+            detectedTimeMS: 1403
+        )
+        let event = try XCTUnwrap(store.query(from: 1400, to: 1404).first)
+        XCTAssertEqual(event.type, "paste_request")
+        XCTAssertEqual(event.status, "paste_requested")
+        XCTAssertEqual(event.eventTimeMS, 1400)
+        XCTAssertEqual(event.detectedTimeMS, 1403)
+        XCTAssertNil(event.completedTimeMS)
+        XCTAssertNil(event.durationMS)
+        XCTAssertNil(event.target)
+        XCTAssertNil(event.clipboardText)
+        XCTAssertNil(event.sourceApplication)
+        XCTAssertTrue(event.items.isEmpty)
+    }
+
 }

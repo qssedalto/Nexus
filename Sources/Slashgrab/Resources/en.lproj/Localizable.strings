@@ -250,3 +250,9 @@
 "Declared shortcut" = "Declared shortcut";
 "Show application in Finder" = "Show application in Finder";
 "Change service settings in macOS…" = "Change service settings in macOS…";
+
+"Observe Command+V paste requests (opt-in)" = "Observe Command+V paste requests (opt-in)";
+"Only a shortcut request and event timestamp are saved. This cannot verify a successful paste, does not inspect the destination, and requires input-monitoring permission." = "Only a shortcut request and event timestamp are saved. This cannot verify a successful paste, does not inspect the destination, and requires input-monitoring permission.";
+"Paste request detected" = "Paste request detected";
+"Paste request" = "Paste request";
+"Paste requested, completion unknown" = "Paste requested, completion unknown";

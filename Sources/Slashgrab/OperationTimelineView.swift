@@ -48,6 +48,7 @@ struct OperationTimelineView: View {
                 Text(localized("Path copy")).tag("path_copy")
                 Text(localized("Text copy")).tag("text_copy")
                 Text(localized("Image copy")).tag("image_copy")
+                Text(localized("Paste request")).tag("paste_request")
             }
             Picker(localized("Item type"), selection: $itemKind) {
                 Text(localized("All")).tag("All")
@@ -118,8 +119,12 @@ struct OperationTimelineView: View {
                     HStack {
                         Text(Self.timestamp(operation.eventTimeMS ?? operation.detectedTimeMS))
                             .monospacedDigit()
-                        Text(localized(operation.type == "text_copy" ? "Text copy" : operation.type == "image_copy" ? "Image copy" : operation.type == "copy" ? "File copy" : "Path copy"))
-                        Text(operation.type == "text_copy" ? (operation.clipboardText ?? localized("Text")) : (operation.items.count == 1 ? operation.items[0].name : "\(operation.items.count) \(localized("items"))"))
+                        Text(localized(operation.type == "paste_request" ? "Paste request" : operation.type == "text_copy" ? "Text copy" : operation.type == "image_copy" ? "Image copy" : operation.type == "copy" ? "File copy" : "Path copy"))
+                        Text(operation.type == "paste_request"
+                             ? localized("Paste requested, completion unknown")
+                             : operation.type == "text_copy" ? (operation.clipboardText ?? localized("Text"))
+                             : (operation.items.count == 1 ? operation.items[0].name
+                                : "\(operation.items.count) \(localized("items"))"))
                             .lineLimit(1)
                     }
                 }
