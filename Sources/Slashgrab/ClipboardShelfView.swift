@@ -250,11 +250,6 @@ struct ClipboardShelfView: View {
                     .font(.caption2).foregroundStyle(.secondary)
             }
 
-            // Search results remain bounded even with years of history.
-            if false {
-                EmptyView()
-            }
-
             HStack(spacing: 6) {
                 Image(systemName: "info.circle")
                 Text(localized("Cards show metadata only for images and files; clipboard detection does not mean a file was pasted."))
