@@ -387,3 +387,5 @@
 "Apply shortcut" = "应用快捷键";
 "Select at least two shortcut modifiers" = "请至少选择两个快捷键修饰键";
 "Configure a custom shortcut first" = "请先设置自定义快捷键";
+
+"Drop a card into a collection:" = "将卡片拖入收藏集：";
