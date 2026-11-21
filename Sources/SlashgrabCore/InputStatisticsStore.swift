@@ -159,6 +159,7 @@ public final class InputStatisticsStore: @unchecked Sendable {
             let indexes = """
                 CREATE INDEX IF NOT EXISTS input_events_pending ON input_events(synced_at_ms,id);
                 CREATE UNIQUE INDEX IF NOT EXISTS input_events_remote ON input_events(remote_device_id,remote_event_id);
+                CREATE INDEX IF NOT EXISTS input_events_source_range ON input_events(source, time_ms);
                 PRAGMA user_version=4;
                 """
             guard sqlite3_exec(database, indexes, nil, nil, nil) == SQLITE_OK,
