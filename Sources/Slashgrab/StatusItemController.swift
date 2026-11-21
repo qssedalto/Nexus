@@ -210,8 +210,9 @@ final class StatusItemController {
             return
         }
         guard AXIsProcessTrusted() else {
-            let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
-            _ = AXIsProcessTrustedWithOptions([key: true] as CFDictionary)
+            // Stable documented AX option key. Reading the imported CF
+            // global constant directly violates Swift 6 strict concurrency.
+            _ = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
             return
         }
         clipboardShelfPanel?.orderOut(nil)
