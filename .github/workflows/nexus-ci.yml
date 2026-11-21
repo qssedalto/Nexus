@@ -41,6 +41,11 @@ jobs:
           bash -n Scripts/*.sh ci.sh
       - name: SwiftPM and Xcode test suites
         run: ./Scripts/test.sh
+      - name: Guard against stale checked-in Xcode project
+        run: |
+          # Scripts/test.sh regenerates the project with XcodeGen.
+          # A passing build must also match the project committed to the repo.
+          git diff --exit-code -- Nexus.xcodeproj/project.pbxproj Nexus.xcodeproj/xcshareddata/xcschemes/Nexus.xcscheme
       - name: Verify unsigned-build packaging and bundle names
         run: |
           ./Scripts/build_and_run.sh --verify
