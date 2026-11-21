@@ -190,7 +190,7 @@ struct ClipboardCloudSettingsView: View {
                     }
                     Button(localized("Erase Nexus iCloud records"), role: .destructive) {
                         showCloudEraseSheet = false
-                        Task { await cloud.erasePrivateNexusCloudZone() }
+                        Task { await cloud.erasePrivateNexusCloudZone(confirmation: cloudEraseConfirmation) }
                     }
                     .disabled(cloudEraseConfirmation != "DELETE" || cloud.running)
                 }
