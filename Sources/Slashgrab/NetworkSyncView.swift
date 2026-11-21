@@ -3,6 +3,20 @@ import Security
 import SwiftUI
 import SlashgrabCore
 
+/// Never follow server redirects with the user's API bearer token or
+/// clipboard/statistics request body. A 3xx response is treated as a failed
+/// request rather than forwarding sensitive data to a different origin.
+private final class NexusRejectHTTPRedirects: NSObject, URLSessionTaskDelegate {
+    func urlSession(
+        _ session: URLSession, task: URLSessionTask,
+        willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest,
+        completionHandler: @escaping (URLRequest?) -> Void
+    ) {
+        completionHandler(nil)
+    }
+}
+
 @MainActor
 final class NetworkSyncController: ObservableObject {
     static let shared = NetworkSyncController()
@@ -40,6 +54,17 @@ final class NetworkSyncController: ObservableObject {
     private let operationStore = OperationStore.shared()
     private var timer: Timer?
     private let keychainService = "com.prof18.slashgrab.nexus-sync"
+    private let session: URLSession = {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.httpShouldSetCookies = false
+        configuration.httpCookieStorage = nil
+        configuration.urlCache = nil
+        return URLSession(
+            configuration: configuration,
+            delegate: NexusRejectHTTPRedirects(),
+            delegateQueue: nil
+        )
+    }()
 
     private init() {
         defaults = .standard
@@ -101,22 +126,34 @@ final class NetworkSyncController: ObservableObject {
             let pending = try store.pendingSync()
             guard !pending.isEmpty else { status = "Up to date"; return }
             let deviceID = persistentDeviceID()
-            let events = pending.map { event in
-                UploadEvent(id: event.id, timeMS: preciseEvents && event.category != "ordinary" ? event.timeMS : (event.timeMS / 60_000) * 60_000, category: event.category, name: event.name, count: event.count)
+            // Minimize network metadata: ordinary character presses become
+            // hourly UTC totals, other inputs minute totals unless precise
+            // non-text events were separately enabled by the user.
+            let plan = try InputUploadPrivacyPolicy.prepare(
+                pending, preciseNonTextEvents: preciseEvents
+            )
+            let events = plan.events.map { event in
+                UploadEvent(
+                    id: event.id, timeMS: event.timeMS, category: event.category,
+                    name: event.name, count: event.count
+                )
             }
             var request = try makeRequest(path: "/api/nexus/v1/statistics/events", method: "POST")
             request.httpBody = try JSONEncoder().encode(UploadBatch(schemaVersion: 1, deviceID: deviceID, events: events))
             status = "Uploading"
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await session.data(for: request)
             guard let http = response as? HTTPURLResponse else { throw SyncError.invalidResponse }
             guard (200..<300).contains(http.statusCode) else { throw SyncError.http(http.statusCode) }
             let confirmation = try JSONDecoder().decode(UploadConfirmation.self, from: data)
-            let submitted = Set(pending.map(\.id))
-            guard Set(confirmation.acceptedIDs).isSubset(of: submitted) else { throw SyncError.invalidResponse }
-            try store.markSynced(ids: confirmation.acceptedIDs, deviceID: deviceID)
+            guard let acknowledgedSourceIDs = plan.sourceIDs(
+                forAcknowledgedUploadIDs: confirmation.acceptedIDs
+            ) else { throw SyncError.invalidResponse }
+            // A server receipt for one aggregate acknowledges all and only
+            // the original local event IDs used to calculate that aggregate.
+            try store.markSynced(ids: acknowledgedSourceIDs, deviceID: deviceID)
             lastSync = Date()
             defaults.set(lastSync, forKey: "nexusSyncLastSuccess")
-            status = "Uploaded \(confirmation.acceptedIDs.count) records"
+            status = "Uploaded \(acknowledgedSourceIDs.count) local events in \(confirmation.acceptedIDs.count) aggregated records"
             appendLog(status)
         } catch { status = error.localizedDescription; appendLog(status) }
     }
@@ -280,7 +317,7 @@ final class NetworkSyncController: ObservableObject {
     }
 
     private func fetch<T: Decodable>(_ request: URLRequest) async throws -> T {
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw SyncError.invalidResponse }
         guard (200..<300).contains(http.statusCode) else { throw SyncError.http(http.statusCode) }
         return try JSONDecoder().decode(T.self, from: data)
@@ -292,7 +329,9 @@ final class NetworkSyncController: ObservableObject {
     }
 
     private func makeRequest(path: String, method: String) throws -> URLRequest {
-        guard let base = URL(string: serverAddress), base.scheme == "https", base.host != nil,
+        guard let base = URL(string: serverAddress), base.scheme == "https",
+              base.host != nil, base.user == nil, base.password == nil,
+              base.query == nil, base.fragment == nil,
               let token = token(), !token.isEmpty else { throw SyncError.configuration }
         guard let pathParts = URLComponents(string: path),
               var destination = URLComponents(url: base, resolvingAgainstBaseURL: false) else { throw SyncError.configuration }
