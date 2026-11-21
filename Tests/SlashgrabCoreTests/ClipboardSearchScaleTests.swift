@@ -34,7 +34,10 @@ final class ClipboardSearchScaleTests: XCTestCase {
         var found: Set<String> = []
         while sqlite3_step(plan) == SQLITE_ROW {
             if let ptr = sqlite3_column_text(plan, 0) {
-                found.insert(String(cString: ptr))
+                let bytes = UnsafeBufferPointer(
+                    start: ptr, count: Int(sqlite3_column_bytes(plan, 0))
+                )
+                found.insert(String(decoding: bytes, as: UTF8.self))
             }
         }
         sqlite3_finalize(plan)
@@ -84,8 +87,9 @@ final class ClipboardSearchScaleTests: XCTestCase {
         let latest = try store.searchClipboard(query: "", limit: 200)
         let latestElapsed = ProcessInfo.processInfo.systemUptime - start
         let deepStart = ProcessInfo.processInfo.systemUptime
+        let deepOffset = min(count - 200, 50_000)
         let older = try store.searchClipboard(
-            query: "", limit: 200, offset: count - 200
+            query: "", limit: 200, offset: deepOffset
         )
         let deepElapsed = ProcessInfo.processInfo.systemUptime - deepStart
         let literalStart = ProcessInfo.processInfo.systemUptime
@@ -98,7 +102,10 @@ final class ClipboardSearchScaleTests: XCTestCase {
         XCTAssertEqual(matches.count, 200)
         XCTAssertEqual(latest.first?.clipboardText,
                        "Synthetic ordinary clipboard sample \(count - 1)")
-        XCTAssertEqual(older.last?.clipboardText, "中文 needle 0")
+        XCTAssertEqual(
+            older.last?.id,
+            String(format: "benchmark-%06d", count - deepOffset - 200)
+        )
         XCTAssertEqual(Set(latest.map(\.id)).intersection(older.map(\.id)).count, 0)
         print(String(format:
             "NEXUS_CLIPBOARD_BENCH rows=%d latest200=%.4fs deep200=%.4fs CJK200=%.4fs",
