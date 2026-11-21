@@ -329,3 +329,6 @@
 "Operation uploads are off by default. Full paths and clipboard contents require separate consent even after metadata sync is enabled. Server-side deletion is controlled from Network sync." = "操作历史上传默认关闭。启用元数据同步后，完整路径与剪贴板内容仍需分别授权。云端数据删除请前往「网络同步」。";
 
 "Drag/drop copy" = "拖放并复制路径";
+
+"Delete all statistics" = "删除全部统计数据";
+"This deletes every locally stored input statistic. Existing cloud backups and uploads are not deleted." = "这将删除所有本地键盘鼠标统计。已有云端备份和先前上传的数据不会同步删除。";
