@@ -99,7 +99,7 @@ final class ClipboardHistorySearchTests: XCTestCase {
             try store.record(type: "text_copy", urls: [], sourceApplication: nil,
                              detectionMethod: "clipboard",
                              detectedTimeMS: Int64(index + 1),
-                             clipboardText: "history \\(index)")
+                             clipboardText: "history \(index)")
         }
         // A general operation timeline can be dominated by paste requests.
         // Those events must not consume the shelf's 200-card budget.
@@ -119,7 +119,7 @@ final class ClipboardHistorySearchTests: XCTestCase {
         XCTAssertTrue(shelf.allSatisfy { $0.type == "text_copy" })
         XCTAssertEqual(shelf.first?.clipboardText, "history 229")
         XCTAssertEqual(shelf.last?.clipboardText, "history 30")
-        XCTAssertEqual(Set(shelf.map(\\.id)).count, 200)
+        XCTAssertEqual(Set(shelf.map(\.id)).count, 200)
     }
 
 }
