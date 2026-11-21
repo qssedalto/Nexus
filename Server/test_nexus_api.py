@@ -45,6 +45,7 @@ class NexusAPITests(unittest.TestCase):
         self.assertTrue(hello["authenticated"])
         self.assertEqual(hello["schema_version"], 1)
         self.assertIn("statistics.events", hello["capabilities"])
+        self.assertIn("statistics.monotonic_aggregates", hello["capabilities"])
         self.assertIn("operations.events", hello["capabilities"])
         self.assertIn("operations.restore", hello["capabilities"])
 
