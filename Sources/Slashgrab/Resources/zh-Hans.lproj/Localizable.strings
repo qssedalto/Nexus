@@ -428,3 +428,5 @@
 "Load 200 older matching records" = "继续加载 200 条更早的匹配记录";
 
 "Restore cached cloud history to local shelf" = "将缓存的云端历史恢复到本地剪贴板面板";
+
+"RTF and safe HTML formatting retain only bold, italic and underline flags. Unsupported HTML, attachments, remote resources, fonts and original markup are never saved." = "RTF 和经过安全筛选的 HTML 只保留粗体、斜体与下划线。不会保存不受支持的 HTML、附件、远程资源、字体或原始标记内容。";

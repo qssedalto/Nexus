@@ -370,3 +370,5 @@
 "Load 200 older matching records" = "Load 200 older matching records";
 
 "Restore cached cloud history to local shelf" = "Restore cached cloud history to local shelf";
+
+"RTF and safe HTML formatting retain only bold, italic and underline flags. Unsupported HTML, attachments, remote resources, fonts and original markup are never saved." = "RTF and safe HTML formatting retain only bold, italic and underline flags. Unsupported HTML, attachments, remote resources, fonts and original markup are never saved.";

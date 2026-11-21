@@ -48,7 +48,7 @@ struct PrivacySettingsView: View {
                 Toggle(localized("Save safe RTF typography (opt-in)"),
                        isOn: $clipboard.richTextEnabled)
                     .disabled(!clipboard.textEnabled)
-                Text(localized("RTF formatting keeps only bold, italic and underline flags. Attachments, remote resources, fonts and original RTF data are never saved."))
+                Text(localized("RTF and safe HTML formatting retain only bold, italic and underline flags. Unsupported HTML, attachments, remote resources, fonts and original markup are never saved."))
                     .font(.caption).foregroundStyle(.secondary)
                 Toggle(localized("Save copied image pixels (opt-in, 8 MB maximum)"),
                        isOn: $clipboard.imageEnabled)
