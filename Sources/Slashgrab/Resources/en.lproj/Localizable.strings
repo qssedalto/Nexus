@@ -169,3 +169,23 @@
 "Shortcuts are off by default. If the shortcut is occupied, the previous setting is kept." = "Shortcuts are off by default. If the shortcut is occupied, the previous setting is kept.";
 "Paste into previous app" = "Paste into previous app";
 "Paste as plain text" = "Paste as plain text";
+
+"Permanent collection" = "Permanent collection";
+"All collections" = "All collections";
+"Create collection" = "Create collection";
+"Delete collection only" = "Delete collection only";
+"Collections protect their entries from history cleanup." = "Collections protect their entries from history cleanup.";
+"Create permanent collection" = "Create permanent collection";
+"Collection name" = "Collection name";
+"Create" = "Create";
+"Delete this collection?" = "Delete this collection?";
+"Delete collection" = "Delete collection";
+"The collection is removed; its saved clipboard operations remain in history." = "The collection is removed; its saved clipboard operations remain in history.";
+"Add to collection" = "Add to collection";
+"Remove from collection" = "Remove from collection";
+"Move toward beginning" = "Move toward beginning";
+"Move toward end" = "Move toward end";
+"Collection name is empty or already used" = "Collection name is empty or already used";
+"Collection removed; clipboard history preserved" = "Collection removed; clipboard history preserved";
+"Unable to delete collection" = "Unable to delete collection";
+"Added to permanent collection" = "Added to permanent collection";
