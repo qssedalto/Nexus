@@ -171,18 +171,28 @@ final class AppState: ObservableObject {
 
     @discardableResult
     private func copyOutput(_ output: String, successMessage: String, urls: [URL] = [], eventTimeMS: Int64? = nil) -> Bool {
+        let startedTimeMS = eventTimeMS ?? Int64(Date().timeIntervalSince1970 * 1000)
         do {
             try clipboardWriter.writeString(output)
             let completedTimeMS = Int64(Date().timeIntervalSince1970 * 1000)
+            // The dedicated Nexus operation is recorded below. Prevent the
+            // passive clipboard observer from adding a duplicate text event.
+            ClipboardMonitor.shared.ignoreCurrentChange()
             refreshHistory()
             history.add(output)
             persistHistory()
-            if !urls.isEmpty {
-                let operationStore = self.operationStore
-                Task.detached(priority: .utility) { [weak self] in
-                    try? operationStore?.record(type: "path_copy", urls: urls, sourceApplication: "Nexus", detectionMethod: "drop", eventTimeMS: eventTimeMS, completedTimeMS: completedTimeMS, clipboardText: output)
-                    await MainActor.run { self?.refreshOperations() }
-                }
+
+            let operationStore = self.operationStore
+            let operationType = urls.isEmpty ? "text_copy" : "path_copy"
+            let method = urls.isEmpty ? "app_recopy" : "drop"
+            Task.detached(priority: .utility) { [weak self] in
+                try? operationStore?.record(type: operationType, urls: urls,
+                                            sourceApplication: "Nexus", detectionMethod: method,
+                                            eventTimeMS: startedTimeMS,
+                                            detectedTimeMS: completedTimeMS,
+                                            completedTimeMS: completedTimeMS,
+                                            clipboardText: output)
+                await MainActor.run { self?.refreshOperations() }
             }
             let detail = urls.count == 1 ? urls[0].lastPathComponent : (urls.isEmpty ? nil : "\(urls.count) \(localized("items"))")
             showFeedback(.success(successMessage, detail: detail))
