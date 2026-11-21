@@ -20,6 +20,17 @@ final class ClipboardRetentionActivityPolicyTests: XCTestCase {
             retentionDays: 0, maximumHistoryRecords: 0))
     }
 
+    func testHistoryMasterSwitchStopsObservationButNotConfiguredExpiry() {
+        XCTAssertFalse(ClipboardRetentionActivityPolicy.shouldObserve(
+            paused: false, files: true, text: true, images: true,
+            historyEnabled: false))
+        XCTAssertTrue(ClipboardRetentionActivityPolicy.shouldObserve(
+            paused: false, files: true, text: false, images: false,
+            historyEnabled: true))
+        XCTAssertTrue(ClipboardRetentionActivityPolicy.shouldRunCleanup(
+            retentionDays: 30, maximumHistoryRecords: 100))
+    }
+
     func testActiveCaptureAndUnlimitedRetentionStayIndependent() {
         XCTAssertTrue(ClipboardRetentionActivityPolicy.shouldObserve(
             paused: false, files: false, text: true, images: false))

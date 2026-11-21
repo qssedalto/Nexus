@@ -27,7 +27,9 @@ struct PrivacySettingsView: View {
                         }
                     }
                 }
+                Toggle(localized("Enable keyboard and mouse statistics"), isOn: $statistics.enabled)
                 Toggle(localized("Pause statistics"), isOn: $statistics.paused)
+                    .disabled(!statistics.enabled)
                 HStack {
                     Text(localized("Accessibility permission for quick paste"))
                     Spacer()
@@ -44,29 +46,33 @@ struct PrivacySettingsView: View {
             }
 
             Section(localized("Clipboard history privacy")) {
+                Toggle(localized("Enable clipboard history monitoring"), isOn: $clipboard.historyEnabled)
                 Toggle(localized("Monitor file copies from the clipboard"), isOn: $clipboard.enabled)
+                    .disabled(!clipboard.historyEnabled)
                 Toggle(localized("Record clipboard text (opt-in)"), isOn: $clipboard.textEnabled)
+                    .disabled(!clipboard.historyEnabled)
                 Picker(localized("Identical plain-text copies"),
                        selection: $clipboard.textDuplicatePolicy) {
                     ForEach(ClipboardTextDuplicatePolicy.allCases, id: \.rawValue) { policy in
                         Text(localized(policy.title)).tag(policy)
                     }
                 }
-                .disabled(!clipboard.textEnabled)
+                .disabled(!clipboard.historyEnabled || !clipboard.textEnabled)
                 Text(localized("Default keeps every copy. Optional consolidation only refreshes the most recent identical plain-text entry within 10 minutes; files, images and formatted text break the sequence."))
                     .font(.caption).foregroundStyle(.secondary)
                 Toggle(localized("Save safe RTF typography (opt-in)"),
                        isOn: $clipboard.richTextEnabled)
-                    .disabled(!clipboard.textEnabled)
+                    .disabled(!clipboard.historyEnabled || !clipboard.textEnabled)
                 Text(localized("RTF and safe HTML formatting retain only bold, italic and underline flags. Unsupported HTML, attachments, remote resources, fonts and original markup are never saved."))
                     .font(.caption).foregroundStyle(.secondary)
                 Toggle(localized("Save clipboard-provided link titles (opt-in)"),
                        isOn: $clipboard.linkTitleEnabled)
-                    .disabled(!clipboard.textEnabled)
+                    .disabled(!clipboard.historyEnabled || !clipboard.textEnabled)
                 Text(localized("Only a title already present in the copied link's pasteboard is retained locally. Nexus never fetches the webpage, and titles are removed when their history entry is deleted."))
                     .font(.caption).foregroundStyle(.secondary)
                 Toggle(localized("Save copied image pixels (opt-in, 8 MB maximum)"),
                        isOn: $clipboard.imageEnabled)
+                    .disabled(!clipboard.historyEnabled)
                 Toggle(localized("Preview local copied files using Quick Look (opt-in)"),
                        isOn: $allowFilePreviews)
                 Text(localized("File previews read only local supported files up to 24 MB. Cloud-only files and File Provider folders show an icon, without a requested download."))
@@ -74,6 +80,7 @@ struct PrivacySettingsView: View {
                 Text(localized("Image capture is off by default. Stored image bytes stay local, share duplicate storage, and are removed when the last history reference is deleted. Oversized or unreadable images retain metadata only."))
                     .font(.caption).foregroundStyle(.secondary)
                 Toggle(localized("Pause clipboard history collection"), isOn: $clipboard.paused)
+                    .disabled(!clipboard.historyEnabled)
                 Toggle(localized("Observe Command+V paste requests (opt-in)"), isOn: $pasteObservation)
                 Text(localized("Only a shortcut request and event timestamp are saved. This cannot verify a successful paste, does not inspect the destination, and requires input-monitoring permission."))
                     .font(.caption).foregroundStyle(.secondary)
@@ -109,13 +116,17 @@ struct PrivacySettingsView: View {
             }
 
             Section(localized("Network consent")) {
+                Toggle(localized("Allow statistics upload to configured server"), isOn: $sync.statisticsUploadEnabled)
                 Toggle(localized("Automatic sync"), isOn: $sync.automatic)
                 Toggle(localized("Precise non-text events"), isOn: $sync.preciseEvents)
+                    .disabled(!sync.statisticsUploadEnabled)
                 Toggle(localized("Allow operation metadata sync"), isOn: $sync.operationSyncEnabled)
                 Toggle(localized("Include full source and target paths"), isOn: $sync.operationSyncPaths)
                     .disabled(!sync.operationSyncEnabled)
                 Toggle(localized("Include copied text contents"), isOn: $sync.operationSyncText)
                     .disabled(!sync.operationSyncEnabled)
+                Text(localized("Statistical uploads remain off until you enable their independent switch; disabling it stops scheduled and manual statistics uploads without deleting local records."))
+                    .font(.caption).foregroundStyle(.secondary)
                 Text(localized("Operation uploads are off by default. Full paths and clipboard contents require separate consent even after metadata sync is enabled. Server-side deletion is controlled from Network sync."))
                     .font(.caption).foregroundStyle(.secondary)
             }

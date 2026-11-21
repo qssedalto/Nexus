@@ -19,6 +19,18 @@ final class InputStatisticsController: ObservableObject {
     @Published var selectedCategory = ""
     @Published var selectedKeyName = ""
     @Published private(set) var permissionGranted = false
+    /// Defaults to on for existing users but remains under their control.
+    /// Turning this off stops the event tap and related diagnostics.
+    @Published var enabled: Bool {
+        didSet {
+            UserDefaults.standard.set(enabled, forKey: "nexusInputStatisticsEnabled")
+            if enabled { startIfPermitted() }
+            else {
+                diagnosticsEnabled = false
+                monitor?.stop()
+            }
+        }
+    }
     @Published var paused: Bool {
         didSet {
             UserDefaults.standard.set(paused, forKey: "nexusInputPaused")
@@ -36,6 +48,9 @@ final class InputStatisticsController: ObservableObject {
     private var wakeObserver: NSObjectProtocol?
 
     private init() {
+        enabled = (UserDefaults.standard.object(
+            forKey: "nexusInputStatisticsEnabled"
+        ) as? Bool) ?? true
         paused = UserDefaults.standard.bool(forKey: "nexusInputPaused")
         if let store { monitor = InputMonitor(store: store) }
         permissionTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
@@ -52,8 +67,9 @@ final class InputStatisticsController: ObservableObject {
     }
 
     private func configureDiagnostics() {
-        guard diagnosticsEnabled else {
+        guard diagnosticsEnabled, enabled, !paused else {
             monitor?.onDiagnostic = nil
+            diagnosticEvents.removeAll()
             return
         }
         diagnosticEvents.removeAll()
@@ -74,12 +90,18 @@ final class InputStatisticsController: ObservableObject {
 
     func startIfPermitted() {
         permissionGranted = monitor?.hasPermission ?? false
-        if permissionGranted && !paused { _ = monitor?.start() }
+        if PrivacyFeatureSwitchPolicy.shouldMonitorInput(
+            enabled: enabled, paused: paused, permissionGranted: permissionGranted
+        ) {
+            _ = monitor?.start()
+        } else {
+            monitor?.stop()
+        }
     }
 
     func requestPermission() {
         permissionGranted = CGRequestListenEventAccess()
-        if permissionGranted && !paused { _ = monitor?.start() }
+        startIfPermitted()
     }
 
     func refresh(from startMS: Int64, to endMS: Int64) {
@@ -170,11 +192,14 @@ struct InputStatisticsView: View {
                 Spacer()
                 if !controller.permissionGranted { Button(localized("Grant input permission")) { controller.requestPermission() } }
             }
+            Toggle(localized("Enable keyboard and mouse statistics"), isOn: $controller.enabled)
             Toggle(localized("Pause statistics"), isOn: $controller.paused)
+                .disabled(!controller.enabled)
             Toggle(localized("Count held-key repeats"), isOn: Binding(
                 get: { UserDefaults.standard.bool(forKey: "nexusCountKeyRepeats") },
                 set: { UserDefaults.standard.set($0, forKey: "nexusCountKeyRepeats") }
             ))
+                .disabled(!controller.enabled)
             Picker(localized("Time range"), selection: $selectedPreset) {
                 Text(localized("Today")).tag("today")
                 Text(localized("Yesterday")).tag("yesterday")
@@ -320,6 +345,7 @@ struct InputStatisticsView: View {
             DisclosureGroup(localized("Special key detection"),
                             isExpanded: $diagnosticsExpanded) {
                 Toggle(localized("Enable diagnostic key recognition"), isOn: $controller.diagnosticsEnabled)
+                    .disabled(!controller.enabled)
                 Text(localized("Diagnostics show only recognized functional keys and input categories. Unknown system key types are marked unsupported; ordinary text is never captured. Closing this section disables diagnostics."))
                     .font(.caption).foregroundStyle(.secondary)
                 if controller.diagnosticsEnabled {

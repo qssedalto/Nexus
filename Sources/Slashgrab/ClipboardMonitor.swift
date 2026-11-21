@@ -5,6 +5,17 @@ import SlashgrabCore
 final class ClipboardMonitor: ObservableObject {
     static let shared = ClipboardMonitor()
 
+    /// Master control: existing per-format choices are retained while all
+    /// clipboard observation is stopped. Disabling it never wipes history.
+    @Published var historyEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(
+                historyEnabled, forKey: "nexusClipboardHistoryEnabled"
+            )
+            configureTimer()
+        }
+    }
+
     @Published var enabled: Bool {
         didSet {
             UserDefaults.standard.set(enabled, forKey: "nexusMonitorFileCopies")
@@ -94,6 +105,9 @@ final class ClipboardMonitor: ObservableObject {
     private let maximumImageBytes = 8 * 1_024 * 1_024
 
     private init() {
+        historyEnabled = (UserDefaults.standard.object(
+            forKey: "nexusClipboardHistoryEnabled"
+        ) as? Bool) ?? true
         enabled = UserDefaults.standard.bool(forKey: "nexusMonitorFileCopies")
         textEnabled = UserDefaults.standard.bool(forKey: "nexusMonitorTextCopies")
         imageEnabled = UserDefaults.standard.bool(forKey: "nexusClipboardImageCapture")
@@ -127,7 +141,8 @@ final class ClipboardMonitor: ObservableObject {
         retentionTimer = nil
         lastChangeCount = NSPasteboard.general.changeCount
         if ClipboardRetentionActivityPolicy.shouldObserve(
-            paused: paused, files: enabled, text: textEnabled, images: imageEnabled
+            paused: paused, files: enabled, text: textEnabled,
+            images: imageEnabled, historyEnabled: historyEnabled
         ) {
             timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
                 MainActor.assumeIsolated { self?.checkPasteboard() }
@@ -197,6 +212,9 @@ final class ClipboardMonitor: ObservableObject {
     }
 
     private func checkPasteboard() {
+        // Guard again for a timer callback already queued when the user
+        // disabled clipboard observation.
+        guard historyEnabled, !paused else { return }
         let pasteboard = NSPasteboard.general
         let count = pasteboard.changeCount
         guard count != lastChangeCount else { return }
