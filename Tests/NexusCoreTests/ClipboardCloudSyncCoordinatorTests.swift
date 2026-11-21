@@ -1,6 +1,6 @@
 import Foundation
 import XCTest
-@testable import SlashgrabCore
+@testable import NexusCore
 
 private actor MockClipboardCloudTransport: ClipboardCloudTransport {
     enum Failure: Error { case upload, fetch }

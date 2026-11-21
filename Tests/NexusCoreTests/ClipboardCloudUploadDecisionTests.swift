@@ -1,5 +1,5 @@
 import XCTest
-@testable import SlashgrabCore
+@testable import NexusCore
 
 final class ClipboardCloudUploadDecisionTests: XCTestCase {
     private func version(_ counter: Int64, _ device: String = "mac-A",

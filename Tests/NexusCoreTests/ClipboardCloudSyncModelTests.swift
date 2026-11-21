@@ -1,6 +1,6 @@
 import Foundation
 import XCTest
-@testable import SlashgrabCore
+@testable import NexusCore
 
 final class ClipboardCloudSyncModelTests: XCTestCase {
     private func revision(_ counter: Int64, _ device: String) -> ClipboardCloudRevision {

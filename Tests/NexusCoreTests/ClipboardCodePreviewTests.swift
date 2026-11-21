@@ -1,5 +1,5 @@
 import XCTest
-@testable import SlashgrabCore
+@testable import NexusCore
 
 final class ClipboardCodePreviewTests: XCTestCase {
     private func fenced(_ lang: String, _ body: String) -> String {

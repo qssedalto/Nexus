@@ -1,7 +1,7 @@
 import Foundation
 import SQLite3
 import XCTest
-@testable import SlashgrabCore
+@testable import NexusCore
 
 final class ClipboardFullTextSearchTests: XCTestCase {
     private func fixture() throws -> (URL, OperationStore) {
