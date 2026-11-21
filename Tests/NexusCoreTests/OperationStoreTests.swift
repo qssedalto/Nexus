@@ -277,4 +277,76 @@ final class OperationStoreTests: XCTestCase {
         XCTAssertEqual(try store.query(from: 0, to: Int64.max).count, 240)
     }
 
+    func testBulkHistoryClearPreservesPinsCollectionsNewCopiesAndUnrelatedEvents() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let store = try OperationStore(url: directory.appendingPathComponent("bulk.sqlite"))
+        let cutoff: Int64 = 1_796_000_000_000
+        for index in 0..<13 {
+            try store.record(
+                type: "text_copy", urls: [], sourceApplication: nil,
+                detectionMethod: "clipboard", detectedTimeMS: cutoff - 1_000 + Int64(index),
+                clipboardText: "old-\(index)"
+            )
+        }
+        let old = try store.query(from: 0, to: cutoff)
+        let pinned = try XCTUnwrap(old.first { $0.clipboardText == "old-0" })
+        let permanentlySaved = try XCTUnwrap(old.first { $0.clipboardText == "old-1" })
+        let collection = try store.createCollection(named: "Do not delete")
+        XCTAssertTrue(try store.addOperation(id: permanentlySaved.id, toCollection: collection.id))
+
+        try store.record(
+            type: "text_copy", urls: [], sourceApplication: nil,
+            detectionMethod: "clipboard", detectedTimeMS: cutoff + 1,
+            clipboardText: "copied-after-confirmation"
+        )
+        try store.record(
+            type: "paste_request", urls: [], sourceApplication: nil,
+            detectionMethod: "user_request", detectedTimeMS: cutoff - 1_000
+        )
+
+        // Small batches exercise the same repeated-delete code as a huge DB.
+        let deleted = try await store.clearUnpinnedClipboardHistory(
+            olderThan: cutoff, protectedIDs: [pinned.id], batchSize: 2
+        )
+        XCTAssertEqual(deleted, 11)
+        let remaining = try store.query(from: 0, to: Int64.max)
+        XCTAssertEqual(remaining.count, 4)
+        XCTAssertTrue(remaining.contains { $0.id == pinned.id })
+        XCTAssertTrue(remaining.contains { $0.id == permanentlySaved.id })
+        XCTAssertTrue(remaining.contains { $0.clipboardText == "copied-after-confirmation" })
+        XCTAssertEqual(remaining.filter { $0.type == "paste_request" }.count, 1)
+        XCTAssertEqual(try store.collectionOperationIDs(collectionID: collection.id),
+                       [permanentlySaved.id])
+        let again = try await store.clearUnpinnedClipboardHistory(
+            olderThan: cutoff, protectedIDs: [pinned.id], batchSize: 2
+        )
+        XCTAssertEqual(again, 0)
+    }
+
+    func testBulkHistoryClearContinuesPastOneHundredTransactions() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let store = try OperationStore(url: directory.appendingPathComponent("many.sqlite"))
+        let cutoff: Int64 = 1_796_000_000_000
+        for index in 0..<105 {
+            try store.record(
+                type: "text_copy", urls: [], sourceApplication: nil,
+                detectionMethod: "clipboard", detectedTimeMS: cutoff - Int64(index + 1),
+                clipboardText: "batch-\(index)"
+            )
+        }
+        let deleted = try await store.clearUnpinnedClipboardHistory(
+            olderThan: cutoff, protectedIDs: [], batchSize: 1
+        )
+        XCTAssertEqual(deleted, 105)
+        XCTAssertTrue(try store.query(from: 0, to: Int64.max).isEmpty)
+    }
+
 }

@@ -24,6 +24,7 @@ struct ClipboardShelfView: View {
     @State private var searchPageCount = 1
     @State private var message: String?
     @State private var confirmClear = false
+    @State private var clearingUnpinnedHistory = false
     @State private var collections: [ClipboardCollection] = []
     @State private var selectedCollectionID = ""
     @State private var collectionMemberIDs: [String] = []
@@ -188,6 +189,13 @@ struct ClipboardShelfView: View {
                     confirmClear = true
                 } label: {
                     Label(localized("Clear unpinned local history"), systemImage: "trash")
+                }
+                .disabled(clearingUnpinnedHistory)
+                if clearingUnpinnedHistory {
+                    ProgressView()
+                        .controlSize(.small)
+                        .help(localized("Clearing local history…"))
+                        .accessibilityLabel(localized("Clearing local history…"))
                 }
                 Button {
                     refreshShelf()
@@ -972,28 +980,26 @@ struct ClipboardShelfView: View {
     }
 
     private func clearUnpinnedLocally() {
+        guard !clearingUnpinnedHistory else { return }
+        clearingUnpinnedHistory = true
         let keep = pinned
+        // Snapshot the time of the user's explicit action. Copies made while
+        // the cleanup runs must not be swept up by the next deletion batch.
+        let cutoffMS = Int64(Date().timeIntervalSince1970 * 1_000)
         let store = OperationStore.shared()
         Task {
-            let removed = await Task.detached(priority: .utility) {
-                var count = 0
+            let removed = await Task.detached(priority: .utility) { () async -> Int in
                 guard let store else { return -1 }
                 do {
-                    // Work is bounded to 1,000 deletions per SQLite transaction.
-                    // Large histories may need additional passes, but the UI
-                    // never blocks to recurse through files.
-                    for _ in 0..<100 {
-                        let batch = try store.pruneHistory(olderThan: Int64.max,
-                                                           protectedIDs: keep,
-                                                           maxDeletions: 1_000)
-                        count += batch
-                        if batch == 0 { break }
-                    }
-                    return count
+                    return try await store.clearUnpinnedClipboardHistory(
+                        olderThan: cutoffMS,
+                        protectedIDs: keep
+                    )
                 } catch {
                     return -1
                 }
             }.value
+            clearingUnpinnedHistory = false
             refreshShelf()
             message = removed >= 0
                 ? "\(removed) \(localized("local records deleted"))"

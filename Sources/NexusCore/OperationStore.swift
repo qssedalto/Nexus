@@ -1312,6 +1312,31 @@ public final class OperationStore: @unchecked Sendable {
         }
     }
 
+    /// Clear all unpinned clipboard history that existed before the user
+    /// requested deletion. Each SQLite transaction remains bounded, but there
+    /// is no silent 100,000-row ceiling. New copies after cutoffMS survive.
+    /// Permanent collections and unrelated operation types are preserved.
+    public func clearUnpinnedClipboardHistory(
+        olderThan cutoffMS: Int64,
+        protectedIDs: Set<String>,
+        batchSize: Int = 1_000
+    ) async throws -> Int {
+        let boundedBatchSize = max(1, min(batchSize, 1_000))
+        var deleted = 0
+        while true {
+            try Task.checkCancellation()
+            let count = try pruneHistory(
+                olderThan: cutoffMS,
+                protectedIDs: protectedIDs,
+                maxDeletions: boundedBatchSize
+            )
+            if count == 0 { return deleted }
+            deleted += count
+            // Do not monopolize the executor during large history cleanup.
+            await Task.yield()
+        }
+    }
+
     // Local-only, bounded queue: the same operation UUID is retried until a
     // server response explicitly acknowledges it. Nothing is deleted on error.
     public func pendingSync(limit: Int = 25) throws -> [RecordedOperation] {
