@@ -69,22 +69,20 @@ public actor ClipboardCloudKitPrivateTransport: ClipboardCloudTransport {
                 let server = try ClipboardCloudKitCodec.decode(
                     existing, expectedZoneID: zoneID
                 )
-                let winner = try ClipboardCloudMerge.winner(server, change)
-                if winner == server {
-                    if server == change {
-                        // Exact retry already landed. Acknowledge only the
-                        // same mutation and payload, never a newer remote edit.
-                        acknowledged.append(ClipboardCloudUploadAck(
-                            id: change.id, mutationID: change.mutationID
-                        ))
-                        continue
-                    }
-                    // The coordinator's upload ACK API does not yet carry
-                    // the winning server record. Do not falsely acknowledge
-                    // a local update and silently discard it before it can
-                    // be merged into the local journal. A later explicit
-                    // reconciliation/full fetch must resolve this conflict.
+                switch try ClipboardCloudUploadDecision.decide(
+                    local: change, server: server
+                ) {
+                case .acknowledgeExactRetry:
+                    acknowledged.append(ClipboardCloudUploadAck(
+                        id: change.id, mutationID: change.mutationID
+                    ))
+                    continue
+                case .requiresRemoteReconciliation:
+                    // Do not falsely acknowledge or drop the local mutation:
+                    // the winning server content must first reach the journal.
                     throw TransportError.remoteRevisionRequiresReconciliation
+                case .uploadNewVersion:
+                    break
                 }
                 let encoded = try ClipboardCloudKitCodec.encode(change, zoneID: zoneID)
                 for key in ["schemaVersion", "kind", "counter", "deviceID",
