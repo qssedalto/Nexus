@@ -347,7 +347,23 @@ struct ClipboardShelfView: View {
     private func card(for operation: RecordedOperation) -> some View {
         let first = operation.items.first
         let kind = first?.kind ?? "text"
-        let accent = color(for: kind)
+        let textPreview = operation.type == "text_copy"
+            ? ClipboardTextPreview.classify(operation.clipboardText ?? "")
+            : .plain
+        let accent: Color = {
+            switch textPreview {
+            case .webLink: return .blue
+            case .fencedCode: return .purple
+            case .plain: return color(for: kind)
+            }
+        }()
+        let previewSymbol: String = {
+            switch textPreview {
+            case .webLink: return "link"
+            case .fencedCode: return "chevron.left.forwardslash.chevron.right"
+            case .plain: return icon(for: kind)
+            }
+        }()
         let isPinned = pinned.contains(operation.id)
         let label = first?.name ?? localized("Text")
         let snippet = operation.type == "text_copy"
@@ -356,7 +372,7 @@ struct ClipboardShelfView: View {
 
         return VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Label(categoryTitle(for: operation), systemImage: icon(for: kind))
+                Label(categoryTitle(for: operation), systemImage: previewSymbol)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(accent)
                     .lineLimit(1)
@@ -380,20 +396,32 @@ struct ClipboardShelfView: View {
                     ClipboardFilePreview(sourcePath: first?.source,
                                          fallbackIcon: icon(for: kind))
                 } else {
-                    Image(systemName: icon(for: kind))
+                    Image(systemName: previewSymbol)
                         .font(.system(size: 31, weight: .ultraLight))
                         .foregroundStyle(accent)
                         .frame(maxWidth: .infinity, minHeight: 57)
                 }
             }
 
-            Text(operation.type == "text_copy" ? localized("Copied text") : label)
+            Text({
+                switch textPreview {
+                case .webLink(let host): return host
+                case .fencedCode: return localized("Copied code")
+                case .plain:
+                    return operation.type == "text_copy" ? localized("Copied text") : label
+                }
+            }())
                 .font(.subheadline.weight(.semibold))
                 .lineLimit(2)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             Text(snippet.isEmpty ? localized("Unknown source") : snippet)
-                .font(.caption)
+                .font({
+                    if case .fencedCode = textPreview {
+                        return Font.system(size: 11, design: .monospaced)
+                    }
+                    return Font.caption
+                }())
                 .foregroundStyle(.secondary)
                 .lineLimit(3)
                 .frame(maxWidth: .infinity, minHeight: 40, alignment: .topLeading)
@@ -705,7 +733,13 @@ struct ClipboardShelfView: View {
     }
 
     private func categoryTitle(for operation: RecordedOperation) -> String {
-        if operation.type == "text_copy" { return localized("Text") }
+        if operation.type == "text_copy" {
+            switch ClipboardTextPreview.classify(operation.clipboardText ?? "") {
+            case .webLink: return localized("Links")
+            case .fencedCode: return localized("Code")
+            case .plain: return localized("Text")
+            }
+        }
         if operation.type == "drop_copy" { return localized("Drag/drop copy") }
         let kind = operation.items.first?.kind
         if kind == "image" { return localized("Images") }
