@@ -105,6 +105,23 @@ final class ClipboardCloudJournalTests: XCTestCase {
         XCTAssertEqual(try macA.pendingCount(), 0)
     }
 
+    func testResettingExpiredChangeTokenRetainsPendingAndCachedEntries() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let journal = try ClipboardCloudJournal(url: root.appendingPathComponent("sync.sqlite"))
+        let change = record("keep", 4)
+        XCTAssertTrue(try journal.stageLocal(change))
+        _ = try journal.applyRemote(
+            [], zoneID: "private", changeToken: Data([0xA0, 0xB0])
+        )
+        XCTAssertNotNil(try journal.token(forZone: "private"))
+        try journal.resetChangeToken(forZone: "private")
+        XCTAssertNil(try journal.token(forZone: "private"))
+        XCTAssertEqual(try journal.pendingCount(), 1)
+        XCTAssertEqual(try journal.record(id: change.id), change)
+    }
+
     func testBoundedOutboxAndBadTokenNeverMutateState() throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
