@@ -119,8 +119,12 @@ final class ClipboardHotkeyController: ObservableObject {
         return true
     }
 
-    deinit {
+    /// The singleton lives until app shutdown. Carbon opaque pointers must
+    /// be released on the MainActor, not in a nonisolated Swift 6 deinit.
+    func shutdown() {
         if let hotKey { UnregisterEventHotKey(hotKey) }
         if let eventHandler { RemoveEventHandler(eventHandler) }
+        hotKey = nil
+        eventHandler = nil
     }
 }
