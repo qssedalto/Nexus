@@ -1,0 +1,35 @@
+name: Nexus API and Worker regression checks
+
+on:
+  pull_request:
+    paths:
+      - 'Server/**'
+      - '.github/workflows/nexus-api.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'Server/**'
+      - '.github/workflows/nexus-api.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  python-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Python reference API regression tests
+        run: python3 -m unittest discover -s Server -p 'test_nexus_api.py' -v
+
+  cloudflare-worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Cloudflare Worker and D1 regression tests
+        run: node --test Server/test_worker.mjs
