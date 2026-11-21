@@ -1821,7 +1821,7 @@ public final class OperationStore: @unchecked Sendable {
     private func integer(_ statement: OpaquePointer, _ column: Int32) -> Int64? {
         sqlite3_column_type(statement, column) == SQLITE_NULL ? nil : sqlite3_column_int64(statement, column)
     }
-    public enum StoreError: Error { case open, write }
+    public enum StoreError: Error { case open, read, write }
 }
 
 private extension RecordedItem {
