@@ -207,7 +207,8 @@ public final class OperationStore: @unchecked Sendable {
     @discardableResult
     public func recordRichText(
         _ preview: ClipboardRichTextPreview, detectedTimeMS: Int64,
-        observedForegroundBundleID: String? = nil
+        observedForegroundBundleID: String? = nil,
+        sourceFormat: String = "rtf"
     ) throws -> String {
         let document = try JSONEncoder().encode(preview)
         guard detectedTimeMS >= 0, document.count <= 128 * 1024 else {
@@ -222,12 +223,15 @@ public final class OperationStore: @unchecked Sendable {
                 INSERT INTO operations
                 (id,type,event_time_ms,detected_time_ms,completed_time_ms,
                  source_application,detection_method,status,target,duration_ms,clipboard_text)
-                VALUES(?,'text_copy',NULL,?,NULL,?,'clipboard_rtf_frontmost_observed','clipboard_detected',NULL,NULL,?)
+                VALUES(?,'text_copy',NULL,?,NULL,?,?,'clipboard_detected',NULL,NULL,?)
                 """)
             bind(id, to: 1, in: operation)
             bind(detectedTimeMS, to: 2, in: operation)
             bind(observedForegroundBundleID, to: 3, in: operation)
-            bind(preview.text, to: 4, in: operation)
+            bind(sourceFormat == "html"
+                ? "clipboard_html_frontmost_observed"
+                : "clipboard_rtf_frontmost_observed", to: 4, in: operation)
+            bind(preview.text, to: 5, in: operation)
             let inserted = sqlite3_step(operation) == SQLITE_DONE
             sqlite3_finalize(operation)
             guard inserted else { throw StoreError.write }
