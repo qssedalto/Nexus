@@ -45,6 +45,11 @@ struct PrivacySettingsView: View {
             Section(localized("Clipboard history privacy")) {
                 Toggle(localized("Monitor file copies from the clipboard"), isOn: $clipboard.enabled)
                 Toggle(localized("Record clipboard text (opt-in)"), isOn: $clipboard.textEnabled)
+                Toggle(localized("Save safe RTF typography (opt-in)"),
+                       isOn: $clipboard.richTextEnabled)
+                    .disabled(!clipboard.textEnabled)
+                Text(localized("RTF formatting keeps only bold, italic and underline flags. Attachments, remote resources, fonts and original RTF data are never saved."))
+                    .font(.caption).foregroundStyle(.secondary)
                 Toggle(localized("Save copied image pixels (opt-in, 8 MB maximum)"),
                        isOn: $clipboard.imageEnabled)
                 Toggle(localized("Preview local copied files using Quick Look (opt-in)"),
