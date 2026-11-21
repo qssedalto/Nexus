@@ -15,6 +15,14 @@ public struct InputCategoryCount: Sendable, Identifiable, Equatable {
     public var id: String { category + ":" + name }
 }
 
+public struct InputSourceCount: Sendable, Identifiable, Equatable {
+    public let source: String
+    public let category: String
+    public let count: Int64
+    public let lastTimeMS: Int64
+    public var id: String { source + ":" + category }
+}
+
 public struct InputTrendBucket: Sendable, Identifiable, Equatable {
     /// UTC start time in epoch milliseconds. The UI can display local time.
     public let startMS: Int64
@@ -197,6 +205,39 @@ public final class InputStatisticsStore: @unchecked Sendable {
             while sqlite3_step(statement) == SQLITE_ROW {
                 guard let rawName = sqlite3_column_text(statement, 0) else { continue }
                 result.append(InputCount(name: String(cString: rawName), count: sqlite3_column_int64(statement, 1)))
+            }
+            return result
+        }
+    }
+
+    /// Real device model/location metadata is recorded only if IOHID exposes
+    /// it. Quartz and AppKit source names remain channel labels, not devices.
+    public func sourceCounts(from startMS: Int64, to endMS: Int64) throws -> [InputSourceCount] {
+        try queue.sync {
+            try flushOnQueue()
+            var stmt: OpaquePointer?
+            let sql = """
+                SELECT source, category, SUM(count), MAX(time_ms)
+                FROM input_events
+                WHERE time_ms >= ? AND time_ms < ?
+                GROUP BY source, category
+                ORDER BY SUM(count) DESC, source, category
+                """
+            guard sqlite3_prepare_v2(database, sql, -1, &stmt, nil) == SQLITE_OK,
+                  let stmt else { throw InputStoreError.read }
+            defer { sqlite3_finalize(stmt) }
+            sqlite3_bind_int64(stmt, 1, startMS)
+            sqlite3_bind_int64(stmt, 2, endMS)
+            var result: [InputSourceCount] = []
+            while sqlite3_step(stmt) == SQLITE_ROW {
+                guard let source = sqlite3_column_text(stmt, 0),
+                      let category = sqlite3_column_text(stmt, 1) else { continue }
+                result.append(InputSourceCount(
+                    source: String(cString: source),
+                    category: String(cString: category),
+                    count: sqlite3_column_int64(stmt, 2),
+                    lastTimeMS: sqlite3_column_int64(stmt, 3)
+                ))
             }
             return result
         }
