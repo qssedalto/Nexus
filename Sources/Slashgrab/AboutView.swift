@@ -37,7 +37,7 @@ struct AboutView: View {
                             .font(.custom("Avenir Next", size: 26, relativeTo: .title).weight(.bold))
 
                         if buildInfo.isDevBuild {
-                            Text("DEV")
+                            Text(localized("DEV"))
                                 .font(.custom("Avenir Next", size: 9, relativeTo: .caption2).weight(.heavy))
                                 .foregroundStyle(.white)
                                 .padding(.horizontal, 6)
@@ -51,7 +51,10 @@ struct AboutView: View {
                 }
             }
 
-            Text("Drop files on the menu bar and copy clean filesystem paths instantly.")
+            Text("Your Mac. Your Control.")
+                .font(.headline)
+
+            Text(localized("Drop files on the menu bar and copy clean filesystem paths instantly."))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
 
@@ -63,7 +66,7 @@ struct AboutView: View {
                 }
             }
 
-            Button("Check for Updates", action: onCheckForUpdates)
+            Button(localized("Check for Updates"), action: onCheckForUpdates)
                 .disabled(!canCheckForUpdates)
 
             if let copyright {
@@ -84,9 +87,9 @@ struct AboutView: View {
             ),
             makeLink(
                 id: "website",
-                title: "Website",
+                title: localized("Website"),
                 systemImage: "globe",
-                rawURL: "https://slashgrab.app/"
+                rawURL: "https://qsseda.com/"
             ),
         ].compactMap { $0 }
     }
@@ -110,11 +113,11 @@ struct AboutView: View {
             return bundleName
         }
 
-        return "Slashgrab"
+        return "Nexus"
     }
 
     private var versionLine: String {
-        "Version \(shortVersion) (\(buildNumber))"
+        String.localizedStringWithFormat(localized("Version %@ (%@)"), shortVersion, buildNumber)
     }
 
     private var shortVersion: String {
@@ -126,6 +129,6 @@ struct AboutView: View {
     }
 
     private var copyright: String? {
-        Bundle.main.object(forInfoDictionaryKey: "NSHumanReadableCopyright") as? String
+        (Bundle.main.object(forInfoDictionaryKey: "NSHumanReadableCopyright") as? String).map { localized($0) }
     }
 }

@@ -94,6 +94,13 @@ enum URLDropReader {
         }
     }
 
+    static func fileURLs(fromRawValues values: [String]) -> [URL] {
+        var urls: [URL] = []
+        values.forEach { appendFileURLs(from: $0, to: &urls) }
+        var seenPaths = Set<String>()
+        return urls.map(\.standardizedFileURL).filter { seenPaths.insert($0.path).inserted }
+    }
+
     private static func fileURLs(from item: NSPasteboardItem) -> [URL] {
         var urls: [URL] = []
 

@@ -10,6 +10,7 @@ options:
 configs:
   Debug: debug
   Release: release
+  Local: release
 
 packages:
   Sparkle:
@@ -21,23 +22,31 @@ settings:
     SWIFT_VERSION: "6.0"
     MACOSX_DEPLOYMENT_TARGET: "13.0"
     ENABLE_HARDENED_RUNTIME: YES
+    OTHER_LDFLAGS: "$(inherited) -lsqlite3"
     MARKETING_VERSION: ${MARKETING_VERSION}
     CURRENT_PROJECT_VERSION: ${BUILD_NUMBER}
   configs:
     Debug:
-      APP_DISPLAY_NAME: Slashgrab Dev
+      APP_DISPLAY_NAME: Nexus Dev
       APP_BUNDLE_ID: com.prof18.slashgrab.dev
       APP_ICON_NAME: AppIconDev
       APP_GROUP_ID: $(DEVELOPMENT_TEAM).com.prof18.slashgrab.dev.shared
       FINDER_EXTENSION_BUNDLE_ID: com.prof18.slashgrab.dev.findersync
-      FINDER_EXTENSION_DISPLAY_NAME: Slashgrab Dev Finder Extension
+      FINDER_EXTENSION_DISPLAY_NAME: Nexus Dev Finder Extension
     Release:
-      APP_DISPLAY_NAME: Slashgrab
+      APP_DISPLAY_NAME: Nexus
       APP_BUNDLE_ID: com.prof18.slashgrab
       APP_ICON_NAME: AppIcon
       APP_GROUP_ID: $(DEVELOPMENT_TEAM).com.prof18.slashgrab.shared
       FINDER_EXTENSION_BUNDLE_ID: com.prof18.slashgrab.findersync
-      FINDER_EXTENSION_DISPLAY_NAME: Slashgrab Finder Extension
+      FINDER_EXTENSION_DISPLAY_NAME: Nexus Finder Extension
+    Local:
+      APP_DISPLAY_NAME: Nexus
+      APP_BUNDLE_ID: com.prof18.slashgrab.local
+      APP_ICON_NAME: AppIcon
+      APP_GROUP_ID: $(DEVELOPMENT_TEAM).com.prof18.slashgrab.local.shared
+      FINDER_EXTENSION_BUNDLE_ID: com.prof18.slashgrab.local.findersync
+      FINDER_EXTENSION_DISPLAY_NAME: Nexus Finder Extension
 
 targets:
   SlashgrabCore:

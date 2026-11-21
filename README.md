@@ -46,7 +46,15 @@ No command palette, no temporary shelf, and no extra window to manage.
 
 Slashgrab lives in the macOS menu bar. Click the icon to change the output format, copy recent paths again, open Settings, or quit. Launch-at-login, Finder integration, updates, and app information live in the Settings window.
 
-The bundled Finder extension adds **Copy Path** to Finder's contextual menu. It uses the same **Copy As** format selected in Slashgrab, including its multi-item separator. macOS requires Finder extensions to be enabled by the user: open Slashgrab's menu, choose **Settings…**, then open the Finder Extension settings from the General tab and enable Slashgrab.
+The bundled Finder extension adds a copy command named for the selection, such as **Copy Folder Path** or **Copy PDF document Path**. It copies the full path in the **Copy As** format selected in Slashgrab. Open **Settings… → Finder** to put Slashgrab’s commands in a submenu or manage the Finder extensions registered on your Mac.
+
+**简体中文使用说明**
+
+将 Slashgrab 拖入「应用程序」并打开。点击菜单栏的 Slashgrab 图标，选择「设置…」→「访达」→「打开系统扩展设置…」，在系统设置中启用 Slashgrab 的访达扩展。扩展随应用提供。
+
+「访达」设置页可刷新本机扩展列表、逐项启用或停用扩展，也可将 Slashgrab 的拷贝命令统一放进同名子菜单。右键单个文件时，菜单会尽量显示系统提供的文件类型名称，例如「拷贝 PDF 文稿路径」。
+
+默认在访达一级右键菜单显示拷贝命令。iCloud 云盘等位置是否显示该命令取决于访达是否在该目录加载扩展。
 
 The default workflow is intentionally small:
 

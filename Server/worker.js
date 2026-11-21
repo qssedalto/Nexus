@@ -1,0 +1,92 @@
+const allowed = {
+  ordinary: new Set(["character_total"]),
+  keyboard: new Set(["escape", "delete", "forward_delete", "return", "tab", "space", "left", "right", "up", "down", "home", "end", "page_up", "page_down"]),
+  modifier: new Set(["left_command", "right_command", "left_option", "right_option", "left_control", "right_control", "left_shift", "right_shift", "caps_lock", "fn"]),
+  shortcut: new Set(["command_c", "command_v", "command_x", "command_z", "command_shift_z", "command_tab", "command_space", "command_q", "control_command_q", "command_escape", "command_option_escape"]),
+  mouse: new Set(["mouse_left", "mouse_right", "mouse_middle", "mouse_back", "mouse_forward"]),
+  scroll: new Set(["scroll_up", "scroll_down", "scroll_left", "scroll_right"]),
+  system: new Set(["volume_up", "volume_down", "brightness_up", "brightness_down", "mute", "play_pause", "next", "previous", "fast_forward", "rewind", "keyboard_light_up", "keyboard_light_down", "keyboard_light_toggle", "caps_lock_on", "caps_lock_off"]),
+};
+
+function json(value, status = 200) {
+  return new Response(JSON.stringify(value), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
+}
+
+async function authorized(request, token) {
+  if (!token) return false;
+  const received = request.headers.get("Authorization") || "";
+  const expected = `Bearer ${token}`;
+  const [actualHash, expectedHash] = await Promise.all(
+    [received, expected].map(async value => new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value))))
+  );
+  let difference = 0;
+  for (let index = 0; index < expectedHash.length; index++) difference |= actualHash[index] ^ expectedHash[index];
+  return difference === 0;
+}
+
+function bounds(url) {
+  const start = Number(url.searchParams.get("start_ms"));
+  const end = Number(url.searchParams.get("end_ms"));
+  if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || end <= start) return null;
+  return { start, end, device: url.searchParams.get("device_id") };
+}
+
+function validEvent(event) {
+  if (!event || !Number.isSafeInteger(event.id) || event.id < 0 || !Number.isSafeInteger(event.time_ms) || event.time_ms < 0) return false;
+  if (!Number.isSafeInteger(event.count) || event.count < 1 || event.count > 1_000_000) return false;
+  if (typeof event.name !== "string") return false;
+  return allowed[event.category]?.has(event.name) ||
+    (event.category === "keyboard" && /^f(?:[1-9]|1\d|2[0-4])$/.test(event.name)) ||
+    (event.category === "mouse" && /^mouse_extra_\d{1,2}$/.test(event.name)) ||
+    (event.category === "shortcut" && /^fn_f(?:[1-9]|1\d|2[0-4])$/.test(event.name));
+}
+
+export default {
+  async fetch(request, env) {
+    try {
+      if (!(await authorized(request, env.API_TOKEN))) return json({ error: "unauthorized" }, 401);
+      const url = new URL(request.url);
+      const path = url.pathname;
+      if (path === "/api/nexus/v1/me" && request.method === "GET") return json({ authenticated: true });
+      if (path === "/api/nexus/v1/statistics/events" && request.method === "POST") {
+        const length = Number(request.headers.get("Content-Length"));
+        if (!Number.isSafeInteger(length) || length < 1 || length > 1_000_000) return json({ error: "invalid_size" }, 400);
+        const body = await request.json().catch(() => null);
+        if (body?.schema_version !== 1 || typeof body.device_id !== "string" || !body.device_id || body.device_id.length > 80 || !Array.isArray(body.events) || body.events.length > 500 || !body.events.every(validEvent)) return json({ error: "invalid_request" }, 400);
+        const statements = body.events.map(event => env.DB.prepare(
+          "INSERT INTO input_events(device_id, event_id, time_ms, category, name, count) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(device_id, event_id) DO NOTHING"
+        ).bind(body.device_id, event.id, event.time_ms, event.category, event.name, event.count));
+        if (statements.length) await env.DB.batch(statements);
+        return json({ accepted_ids: body.events.map(event => event.id) });
+      }
+      if (path === "/api/nexus/v1/statistics/summary" && request.method === "GET") {
+        const range = bounds(url);
+        if (!range) return json({ error: "invalid_range" }, 400);
+        const result = await env.DB.prepare(
+          "SELECT category, name, SUM(count) AS count FROM input_events WHERE time_ms >= ? AND time_ms < ? AND (? IS NULL OR device_id = ?) GROUP BY category, name ORDER BY category, name"
+        ).bind(range.start, range.end, range.device, range.device).all();
+        return json({ start_ms: range.start, end_ms: range.end, statistics: result.results });
+      }
+      if (path === "/api/nexus/v1/statistics/events" && request.method === "GET") {
+        const range = bounds(url);
+        if (!range) return json({ error: "invalid_range" }, 400);
+        const offset = Number(url.searchParams.get("offset") || 0);
+        if (!Number.isSafeInteger(offset) || offset < 0 || offset > 1_000_000) return json({ error: "invalid_offset" }, 400);
+        const result = await env.DB.prepare(
+          "SELECT device_id, event_id AS id, time_ms, category, name, count FROM input_events WHERE time_ms >= ? AND time_ms < ? AND (? IS NULL OR device_id = ?) ORDER BY time_ms, device_id, event_id LIMIT 1000 OFFSET ?"
+        ).bind(range.start, range.end, range.device, range.device, offset).all();
+        return json({ events: result.results, next_offset: result.results.length === 1000 ? offset + 1000 : null });
+      }
+      if (path === "/api/nexus/v1/statistics/events" && request.method === "DELETE") {
+        const device = url.searchParams.get("device_id");
+        if (!device) return json({ error: "device_id_required" }, 400);
+        const result = await env.DB.prepare("DELETE FROM input_events WHERE device_id = ?").bind(device).run();
+        return json({ deleted: result.meta.changes });
+      }
+      return json({ error: "not_found" }, 404);
+    } catch (error) {
+      console.error(JSON.stringify({ event: "nexus_api_error", message: String(error) }));
+      return json({ error: "internal_error" }, 500);
+    }
+  },
+};

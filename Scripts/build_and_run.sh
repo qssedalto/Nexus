@@ -18,7 +18,7 @@ Usage: Scripts/build_and_run.sh [--debug] [--release] [--dev] [--production] [--
 Options:
   --debug       Build a debug app bundle. Default.
   --release     Build a release app bundle.
-  --dev         Run Slashgrab Dev.app with com.prof18.slashgrab.dev. Default.
+  --dev         Run Nexus Dev.app with com.prof18.slashgrab.dev. Default.
   --production  Run Slashgrab.app with com.prof18.slashgrab.
   --verify      Build and validate the app bundle without launching it.
   --test        Run unit tests before packaging.
@@ -54,11 +54,11 @@ fi
 
 case "$APP_VARIANT" in
   dev)
-    DEFAULT_APP_NAME="Slashgrab Dev"
+    DEFAULT_APP_NAME="Nexus Dev"
     DEFAULT_BUNDLE_ID="com.prof18.slashgrab.dev"
     ;;
   production)
-    DEFAULT_APP_NAME="Slashgrab"
+    DEFAULT_APP_NAME="Nexus"
     DEFAULT_BUNDLE_ID="com.prof18.slashgrab"
     ;;
   *)

@@ -18,10 +18,10 @@ struct RecentPathRow: View {
                 onCopy()
             } label: {
                 Image(systemName: "doc.on.doc")
-                    .accessibilityLabel("Copy")
+                    .accessibilityLabel(localized("Copy"))
             }
             .buttonStyle(.borderless)
-            .help("Copy again")
+            .help(localized("Copy again"))
         }
         .padding(.vertical, 5)
         .padding(.horizontal, 7)

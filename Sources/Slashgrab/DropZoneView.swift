@@ -52,7 +52,7 @@ final class DropZoneNSView: NSView {
         (hovering ? NSColor.controlAccentColor : NSColor.separatorColor).setStroke()
         border.stroke()
 
-        let title = hovering ? "Release to copy path" : "Drop files or folders here"
+        let title = hovering ? localized("Release to copy path") : localized("Drop files or folders here")
         let attributes: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: 12, weight: .semibold),
             .foregroundColor: hovering ? NSColor.controlAccentColor : NSColor.secondaryLabelColor,
@@ -103,6 +103,6 @@ final class DropZoneNSView: NSView {
     private func commonInit() {
         registerForDraggedTypes(URLDropReader.readableTypes)
         setAccessibilityRole(.button)
-        setAccessibilityLabel("Slashgrab popover drop target")
+        setAccessibilityLabel(localized("Nexus popover drop target"))
     }
 }

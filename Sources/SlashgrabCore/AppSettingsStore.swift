@@ -5,6 +5,8 @@ public final class AppSettingsStore: @unchecked Sendable {
         static let historyEntries = "historyEntries"
         static let historyLimit = "historyLimit"
         static let launchAtLoginEnabled = "launchAtLoginEnabled"
+        static let useFinderSubmenu = "useFinderSubmenu"
+        static let feedbackDuration = "nexusFeedbackDuration"
     }
 
     static let selectedFormatKey = "selectedPathFormat"
@@ -45,6 +47,19 @@ public final class AppSettingsStore: @unchecked Sendable {
         set {
             defaults.set(newValue, forKey: Key.launchAtLoginEnabled)
         }
+    }
+
+    public var useFinderSubmenu: Bool {
+        get { defaults.bool(forKey: Key.useFinderSubmenu) }
+        set { defaults.set(newValue, forKey: Key.useFinderSubmenu) }
+    }
+
+    public var feedbackDuration: Double {
+        get {
+            guard defaults.object(forKey: Key.feedbackDuration) != nil else { return 0.9 }
+            return defaults.double(forKey: Key.feedbackDuration)
+        }
+        set { defaults.set(newValue, forKey: Key.feedbackDuration) }
     }
 
     public func loadHistory() -> PathHistory {

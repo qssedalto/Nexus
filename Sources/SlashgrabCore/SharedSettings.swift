@@ -2,6 +2,7 @@ import Foundation
 
 public enum SharedSettings {
     public static let appGroupIdentifierInfoKey = "SlashgrabAppGroupIdentifier"
+    public static let finderCopyNotification = Notification.Name("com.prof18.slashgrab.finderCopyCompleted")
 
     public static func makeStore(bundle: Bundle = .main) -> AppSettingsStore? {
         makeStore(appGroupIdentifier: appGroupIdentifier(in: bundle))

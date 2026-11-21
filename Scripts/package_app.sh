@@ -49,13 +49,13 @@ esac
 
 case "$APP_VARIANT" in
   dev)
-    DEFAULT_APP_NAME="Slashgrab Dev"
+    DEFAULT_APP_NAME="Nexus Dev"
     DEFAULT_BUNDLE_ID="com.prof18.slashgrab.dev"
     APP_ICON_NAME=AppIconDev
     DEFAULT_ENABLE_SPARKLE_AUTOMATIC_CHECKS=false
     ;;
   production)
-    DEFAULT_APP_NAME="Slashgrab"
+    DEFAULT_APP_NAME="Nexus"
     DEFAULT_BUNDLE_ID="com.prof18.slashgrab"
     APP_ICON_NAME=AppIcon
     DEFAULT_ENABLE_SPARKLE_AUTOMATIC_CHECKS=true

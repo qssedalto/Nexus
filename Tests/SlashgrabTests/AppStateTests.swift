@@ -90,7 +90,7 @@ struct AppStateTests {
         #expect(clipboard.writtenStrings.isEmpty)
         #expect(appState.history.entries.isEmpty)
         #expect(appState.feedback?.kind == .failure)
-        #expect(appState.feedback?.message == "Unsupported drop")
+        #expect(appState.feedback?.message == localized("Unsupported drop"))
     }
 
     @Test("Clipboard failures do not persist history")
@@ -112,7 +112,7 @@ struct AppStateTests {
         #expect(appState.history.entries.isEmpty)
         #expect(settings.loadHistory().entries.isEmpty)
         #expect(appState.feedback?.kind == .failure)
-        #expect(appState.feedback?.message == "Clipboard write failed")
+        #expect(appState.feedback?.message == localized("Clipboard write failed"))
     }
 
     @Test("Launch at login writes actual controller state")
@@ -131,7 +131,7 @@ struct AppStateTests {
         #expect(appState.launchAtLoginEnabled)
         #expect(settings.launchAtLoginEnabled)
         #expect(appState.feedback?.kind == .success)
-        #expect(appState.feedback?.message == "Launch at login on")
+        #expect(appState.feedback?.message == localized("Launch at login on"))
 
         controller.errorToThrow = TestError.expected
         controller.isEnabled = false
@@ -140,7 +140,7 @@ struct AppStateTests {
         #expect(!appState.launchAtLoginEnabled)
         #expect(!settings.launchAtLoginEnabled)
         #expect(appState.feedback?.kind == .failure)
-        #expect(appState.feedback?.message == "Launch at login failed")
+        #expect(appState.feedback?.message == localized("Launch at login failed"))
     }
 
     @Test("Launch at login refresh uses the live service state")
@@ -183,6 +183,25 @@ struct AppStateTests {
 
         #expect(appState.finderExtensionEnabled)
         #expect(finderController.showManagementInterfaceCallCount == 1)
+    }
+
+    @Test("Finder submenu preference is saved for the extension")
+    func finderSubmenuPreferenceIsShared() {
+        let settings = AppSettingsStore(defaults: makeDefaults())
+        let sharedSettings = AppSettingsStore(defaults: makeDefaults())
+        sharedSettings.useFinderSubmenu = true
+        let appState = AppState(
+            settings: settings,
+            sharedSettings: sharedSettings,
+            clipboardWriter: SpyClipboardWriter(),
+            launchAtLoginController: FakeLaunchAtLoginController(),
+            finderExtensionController: FakeFinderExtensionController()
+        )
+
+        #expect(appState.useFinderSubmenu)
+        appState.setUseFinderSubmenu(false)
+        #expect(!appState.useFinderSubmenu)
+        #expect(!sharedSettings.useFinderSubmenu)
     }
 
     private func makeDefaults() -> UserDefaults {

@@ -18,8 +18,8 @@ struct DropReadyPopoverView: View {
         StatusPopoverContentView(
             systemImage: "arrow.down.circle.fill",
             iconColor: .accentColor,
-            title: "Ready to drop",
-            detail: "Release to copy path"
+            title: localized("Ready to drop"),
+            detail: localized("Release to copy path")
         )
     }
 }

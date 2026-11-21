@@ -8,14 +8,19 @@ final class AppState: ObservableObject {
     @Published var selectedFormat: PathFormat
     @Published private(set) var launchAtLoginEnabled: Bool
     @Published private(set) var finderExtensionEnabled: Bool
+    @Published private(set) var useFinderSubmenu: Bool
+    @Published private(set) var feedbackDuration: Double
+    @Published private(set) var operations: [RecordedOperation] = []
 
     private let settings: AppSettingsStore
     private let sharedSettings: AppSettingsStore?
     private let formatter: PathFormatter
     private let clipboardWriter: ClipboardWriting
+    private let operationStore: OperationStore?
     private let launchAtLoginController: LaunchAtLoginControlling
     private let finderExtensionController: FinderExtensionManaging
     private var feedbackTask: Task<Void, Never>?
+    private var operationQueryID = UUID()
 
     init(
         settings: AppSettingsStore,
@@ -23,12 +28,14 @@ final class AppState: ObservableObject {
         formatter: PathFormatter = PathFormatter(),
         clipboardWriter: ClipboardWriting = AppKitClipboardWriter(),
         launchAtLoginController: LaunchAtLoginControlling = LaunchAtLoginController(),
-        finderExtensionController: FinderExtensionManaging = FinderExtensionController()
+        finderExtensionController: FinderExtensionManaging = FinderExtensionController(),
+        operationStore: OperationStore? = nil
     ) {
         self.settings = settings
         self.sharedSettings = sharedSettings
         self.formatter = formatter
         self.clipboardWriter = clipboardWriter
+        self.operationStore = operationStore
         self.launchAtLoginController = launchAtLoginController
         self.finderExtensionController = finderExtensionController
         let storedFormat = settings.selectedFormat
@@ -42,16 +49,18 @@ final class AppState: ObservableObject {
         let currentLaunchAtLoginEnabled = launchAtLoginController.isEnabled
         launchAtLoginEnabled = currentLaunchAtLoginEnabled
         finderExtensionEnabled = finderExtensionController.isEnabled
+        useFinderSubmenu = (sharedSettings ?? settings).useFinderSubmenu
+        feedbackDuration = settings.feedbackDuration
         settings.launchAtLoginEnabled = currentLaunchAtLoginEnabled
         persistHistory()
+        refreshOperations()
     }
 
     static func production() -> AppState {
-        let bundleIdentifier = Bundle.main.bundleIdentifier ?? "com.prof18.slashgrab.dev"
-        let defaults = UserDefaults(suiteName: bundleIdentifier) ?? .standard
         return AppState(
-            settings: AppSettingsStore(defaults: defaults),
-            sharedSettings: SharedSettings.makeStore()
+            settings: AppSettingsStore(defaults: .standard),
+            sharedSettings: SharedSettings.makeStore(),
+            operationStore: OperationStore.shared()
         )
     }
 
@@ -68,19 +77,21 @@ final class AppState: ObservableObject {
     @discardableResult
     func handleDroppedURLs(_ urls: [URL]) -> Bool {
         guard !urls.isEmpty else {
-            showFeedback(.failure("Unsupported drop"))
+            showFeedback(.failure(localized("Unsupported drop")))
             return false
         }
 
+        let eventTimeMS = Int64(Date().timeIntervalSince1970 * 1000)
         let output = formatter.format(urls: urls, as: selectedFormat)
-        return copyOutput(output, successMessage: "Path copied")
+        return copyOutput(output, successMessage: localized("Path copied"), urls: urls, eventTimeMS: eventTimeMS)
     }
 
     func copyAgain(_ output: String) {
-        copyOutput(output, successMessage: "Copied again")
+        copyOutput(output, successMessage: localized("Copied again"))
     }
 
     func refreshHistory() {
+        refreshOperations()
         guard let sharedSettings else {
             history = settings.loadHistory()
             return
@@ -99,6 +110,24 @@ final class AppState: ObservableObject {
         persistHistory()
     }
 
+    func finderCopyDidSucceed() {
+        refreshHistory()
+        showFeedback(.success(localized("Path copied")))
+    }
+
+    func refreshOperations(from startMS: Int64 = 0, to endMS: Int64 = Int64.max) {
+        let queryID = UUID()
+        operationQueryID = queryID
+        let store = operationStore
+        Task.detached(priority: .utility) { [weak self] in
+            let results = (try? store?.query(from: startMS, to: endMS)) ?? []
+            await MainActor.run {
+                guard self?.operationQueryID == queryID else { return }
+                self?.operations = results
+            }
+        }
+    }
+
     func clearHistory() {
         history.clear()
         persistHistory()
@@ -109,16 +138,26 @@ final class AppState: ObservableObject {
             try launchAtLoginController.setEnabled(enabled)
             launchAtLoginEnabled = launchAtLoginController.isEnabled
             settings.launchAtLoginEnabled = launchAtLoginEnabled
-            showFeedback(launchAtLoginEnabled ? .success("Launch at login on") : .success("Launch at login off"))
+            showFeedback(launchAtLoginEnabled ? .success(localized("Launch at login on")) : .success(localized("Launch at login off")))
         } catch {
             launchAtLoginEnabled = launchAtLoginController.isEnabled
             settings.launchAtLoginEnabled = launchAtLoginEnabled
-            showFeedback(.failure("Launch at login failed"))
+            showFeedback(.failure(localized("Launch at login failed")))
         }
     }
 
     func refreshFinderExtensionStatus() {
         finderExtensionEnabled = finderExtensionController.isEnabled
+    }
+
+    func setUseFinderSubmenu(_ enabled: Bool) {
+        (sharedSettings ?? settings).useFinderSubmenu = enabled
+        useFinderSubmenu = enabled
+    }
+
+    func setFeedbackDuration(_ duration: Double) {
+        feedbackDuration = duration
+        settings.feedbackDuration = duration
     }
 
     func refreshLaunchAtLoginStatus() {
@@ -131,25 +170,35 @@ final class AppState: ObservableObject {
     }
 
     @discardableResult
-    private func copyOutput(_ output: String, successMessage: String) -> Bool {
+    private func copyOutput(_ output: String, successMessage: String, urls: [URL] = [], eventTimeMS: Int64? = nil) -> Bool {
         do {
             try clipboardWriter.writeString(output)
+            let completedTimeMS = Int64(Date().timeIntervalSince1970 * 1000)
             refreshHistory()
             history.add(output)
             persistHistory()
-            showFeedback(.success(successMessage, detail: output))
+            if !urls.isEmpty {
+                let operationStore = self.operationStore
+                Task.detached(priority: .utility) { [weak self] in
+                    try? operationStore?.record(type: "path_copy", urls: urls, sourceApplication: "Nexus", detectionMethod: "drop", eventTimeMS: eventTimeMS, completedTimeMS: completedTimeMS, clipboardText: output)
+                    await MainActor.run { self?.refreshOperations() }
+                }
+            }
+            let detail = urls.count == 1 ? urls[0].lastPathComponent : (urls.isEmpty ? nil : "\(urls.count) \(localized("items"))")
+            showFeedback(.success(successMessage, detail: detail))
             return true
         } catch {
-            showFeedback(.failure("Clipboard write failed"))
+            showFeedback(.failure(localized("Clipboard write failed")))
             return false
         }
     }
 
     private func showFeedback(_ feedback: DropFeedback) {
         feedbackTask?.cancel()
+        guard feedbackDuration > 0 else { self.feedback = nil; return }
         self.feedback = feedback
         feedbackTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(1.7))
+            try? await Task.sleep(for: .seconds(self?.feedbackDuration ?? 0.9))
             await MainActor.run {
                 if !Task.isCancelled {
                     self?.feedback = nil

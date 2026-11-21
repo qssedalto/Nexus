@@ -27,11 +27,11 @@ xcodebuild \
   -destination "platform=macOS,arch=$(uname -m)" \
   CODE_SIGNING_ALLOWED=NO \
   ENABLE_DEBUG_DYLIB=NO \
-  APP_DISPLAY_NAME="Slashgrab Dev" \
+  APP_DISPLAY_NAME="Nexus Dev" \
   APP_BUNDLE_ID=com.prof18.slashgrab.dev \
   APP_ICON_NAME=AppIconDev \
   FINDER_EXTENSION_BUNDLE_ID=com.prof18.slashgrab.dev.findersync \
-  FINDER_EXTENSION_DISPLAY_NAME="Slashgrab Dev Finder Extension" \
+  FINDER_EXTENSION_DISPLAY_NAME="Nexus Dev Finder Extension" \
   MARKETING_VERSION="$MARKETING_VERSION" \
   CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
   test \

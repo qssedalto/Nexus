@@ -17,7 +17,7 @@ struct AppBuildInfo: Equatable {
     static func current(bundle: Bundle = .main) -> AppBuildInfo {
         let displayName = bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
             ?? bundle.object(forInfoDictionaryKey: "CFBundleName") as? String
-            ?? "Slashgrab"
+            ?? "Nexus"
 
         return AppBuildInfo(
             bundleIdentifier: bundle.bundleIdentifier ?? "com.prof18.slashgrab",

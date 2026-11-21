@@ -27,8 +27,8 @@ final class StatusItemController {
         statusItem.length = buildInfo.isDevBuild ? NSStatusItem.variableLength : NSStatusItem.squareLength
         button.image = StatusIconProvider.image(for: .idle)
         button.image?.size = NSSize(width: 22, height: 22)
-        button.title = buildInfo.isDevBuild ? " DEV" : ""
-        button.toolTip = buildInfo.isDevBuild ? "Slashgrab Dev Build" : "Slashgrab"
+        button.title = buildInfo.isDevBuild ? localized(" DEV") : ""
+        button.toolTip = buildInfo.isDevBuild ? localized("Nexus Dev Build") : "Nexus"
         button.imagePosition = buildInfo.isDevBuild ? .imageLeft : .imageOnly
         button.contentTintColor = nil
 
@@ -170,7 +170,7 @@ final class StatusItemController {
         }
 
         feedbackDismissTask = Task { [weak feedbackPopover] in
-            try? await Task.sleep(for: .seconds(1.7))
+            try? await Task.sleep(for: .seconds(appState.feedbackDuration))
             await MainActor.run {
                 if !Task.isCancelled {
                     feedbackPopover?.performClose(nil)

@@ -120,7 +120,7 @@ final class DropTargetStatusView: NSView {
         layer?.zPosition = 999
         registerForDraggedTypes(URLDropReader.readableTypes)
         setAccessibilityRole(.button)
-        setAccessibilityLabel("Slashgrab path drop target")
+        setAccessibilityLabel(localized("Nexus path drop target"))
     }
 
     private func configureStatusButton() {

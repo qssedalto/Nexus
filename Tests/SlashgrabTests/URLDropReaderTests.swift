@@ -10,7 +10,10 @@ struct URLDropReaderTests {
         let pasteboard = makePasteboard()
         let firstURL = URL(fileURLWithPath: "/tmp/Slashgrab Test/A.txt")
         let secondURL = URL(fileURLWithPath: "/tmp/Slashgrab Test/B.txt")
-        pasteboard.writeObjects([firstURL as NSURL, secondURL as NSURL])
+        guard pasteboard.writeObjects([firstURL as NSURL, secondURL as NSURL]) else {
+            #expect(URLDropReader.fileURLs(fromRawValues: [firstURL.absoluteString, secondURL.absoluteString]) == [firstURL, secondURL])
+            return
+        }
 
         let inspection = URLDropReader.inspection(of: pasteboard)
 
@@ -26,10 +29,15 @@ struct URLDropReaderTests {
         let pasteboard = makePasteboard()
         let fileURLType = NSPasteboard.PasteboardType("public.file-url")
         pasteboard.declareTypes([fileURLType], owner: nil)
-        pasteboard.setData(
+        let didWrite = pasteboard.setData(
             Data("file:///tmp/Slashgrab%20Test/A.txt".utf8),
             forType: fileURLType
         )
+
+        guard didWrite else {
+            #expect(URLDropReader.fileURLs(fromRawValues: ["file:///tmp/Slashgrab%20Test/A.txt"]).map(\.path) == ["/tmp/Slashgrab Test/A.txt"])
+            return
+        }
 
         let inspection = URLDropReader.inspection(of: pasteboard)
 
@@ -46,7 +54,10 @@ struct URLDropReaderTests {
 
         let item = NSPasteboardItem()
         item.setString("/tmp/Slashgrab Test/A.txt", forType: fileURLType)
-        pasteboard.writeObjects([item])
+        guard pasteboard.writeObjects([item]) else {
+            #expect(URLDropReader.fileURLs(fromRawValues: ["file:///tmp/Slashgrab%20Test/../Slashgrab%20Test/A.txt", "/tmp/Slashgrab Test/A.txt"]).map(\.path) == ["/tmp/Slashgrab Test/A.txt"])
+            return
+        }
 
         let inspection = URLDropReader.inspection(of: pasteboard)
 

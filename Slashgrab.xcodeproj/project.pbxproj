@@ -1,0 +1,1166 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		03E5A09A97B2D62296BEED92 /* PathFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8B12BC0AEB404FEA420631F /* PathFormat.swift */; };
+		0623269B73680E7A2A47A699 /* AppSettingsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FD17EC25F201121D8893384 /* AppSettingsStoreTests.swift */; };
+		0C820E49347A4B94EF3FCA16 /* SparkleUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BA89171F30DEB9CFF420617 /* SparkleUpdater.swift */; };
+		10BBAC82E4B4150D1762FB9E /* DropZoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FB3C43BCF381CB862BFC53F /* DropZoneView.swift */; };
+		14653E66C823381B5C29ACCB /* SlashgrabStatusSuccessTemplate.png in Resources */ = {isa = PBXBuildFile; fileRef = F2408A315E8C3BA07B2FC375 /* SlashgrabStatusSuccessTemplate.png */; };
+		14D73976DD8073C5410D4D2D /* AppStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3361D05B27300417E70A67 /* AppStateTests.swift */; };
+		159FA3F83E129E8AFFB26B89 /* FinderSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CE76D61F70EB6B45BBF6148 /* FinderSync.swift */; };
+		1D0D3B9078D5E137B4E67DAB /* SlashgrabStatusSuccessTemplate@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 91C012A0E834E2813CEF0CDA /* SlashgrabStatusSuccessTemplate@2x.png */; };
+		203CD9289213E4FBC55D5663 /* DropTargetStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C3A440DA410151305CB0E /* DropTargetStatusView.swift */; };
+		2731169BBC049EE045FE7E83 /* SlashgrabStatusIdle.svg in Resources */ = {isa = PBXBuildFile; fileRef = FEE4FAC1F6AC1EE1182AE3B2 /* SlashgrabStatusIdle.svg */; };
+		2A241EBC12789586A1F9D331 /* FinderExtensionRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF85D1DCCC976C5C8B55F7B2 /* FinderExtensionRegistry.swift */; };
+		30AA1FB6DC6575390B404CA6 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BAD4A499035B92935D803A /* AppDelegate.swift */; };
+		326F0106A82FE7F0DA93F52D /* FinderExtensionMigrationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24CD16C2072EE95A043C65A8 /* FinderExtensionMigrationController.swift */; };
+		32E62280E7A8FA1D31093B96 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02053019567BBCD9272FA890 /* AppState.swift */; };
+		395F97A93599AB24C876B71B /* SlashgrabStatusActiveTemplate@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 7F468B8CB61DF25946752FCD /* SlashgrabStatusActiveTemplate@3x.png */; };
+		4107795AED46F5A69E2262D4 /* SlashgrabStatusActiveTemplate.png in Resources */ = {isa = PBXBuildFile; fileRef = 8B8CA3D42590C59FFD6CB5BE /* SlashgrabStatusActiveTemplate.png */; };
+		4170D5E3B50075C5EF26DA20 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0F97FFA2A4D84F1368DE663D /* InfoPlist.strings */; };
+		538687532E50DA1C004BE48D /* SlashgrabApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F5C252F970625C7E51DA10F /* SlashgrabApp.swift */; };
+		5709F76395D0EA54672E60C2 /* FinderExtensionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35443E504172B2256A8B7CDA /* FinderExtensionController.swift */; };
+		590FF5FE669A7D318396B972 /* AppKitClipboardWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E1606CC71339F799B1C024C /* AppKitClipboardWriter.swift */; };
+		591581BE477532587F89B6A5 /* SlashgrabStatusActiveTemplate@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 11AB93DB773ADB4737FA607E /* SlashgrabStatusActiveTemplate@2x.png */; };
+		595CD8FE5D77535E275CC3A4 /* URLDropReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B0D1A8DB0FC5BC8E9438234 /* URLDropReader.swift */; };
+		5CFF9768C241F3CF9E869E7E /* libSlashgrabCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 948A289AEB27C91F75854B19 /* libSlashgrabCore.a */; };
+		5F4699163AB014C0896ADB8F /* MenuPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CE9AB57DEAEAA2FCA8394A2 /* MenuPopoverView.swift */; };
+		6D394C1F3C93CD1C780A2BF9 /* SharedSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE235382BF8FD4A45C936F3C /* SharedSettings.swift */; };
+		6E9834685A8D402F424D7194 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = FEC73C675B1D6B9F09BF9105 /* Sparkle */; };
+		739DC00883939B79F8FB12BE /* PathFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC954E6A7D28C9705C5B9EC /* PathFormatterTests.swift */; };
+		79BD5A92D528829E34C88934 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 81F038A4DA375E69FF419925 /* Localizable.strings */; };
+		7B4D4C2931FB6E8B42EBA990 /* PathCopyActionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB2ADD5C7E884CCEDDD5BB9B /* PathCopyActionTests.swift */; };
+		8472A3274EEE2AF969F1BEFF /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4220F2C6189F3FCC7CDCBC66 /* Localization.swift */; };
+		87A4F03D681F5AC0B16E6B58 /* SlashgrabStatusSuccess.svg in Resources */ = {isa = PBXBuildFile; fileRef = 730DAB348F1B45F6ECA5D84C /* SlashgrabStatusSuccess.svg */; };
+		8B3065EC2EA32D68327B488A /* libSlashgrabCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 948A289AEB27C91F75854B19 /* libSlashgrabCore.a */; };
+		8C4A4665FF5D8741BF220CCE /* StatusItemController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAE2E0F0F48A6AA04B26FEF2 /* StatusItemController.swift */; };
+		8C52B471AE6A8EFF3A2D134D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BA812B6070D33F822475ED1 /* SettingsView.swift */; };
+		8E900B2E3C373F1A40186776 /* FinderSync.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CE40AEBFBCEAD630570FD36 /* FinderSync.framework */; };
+		A08EFB5DDE49EDDB19D35152 /* libSlashgrabCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 948A289AEB27C91F75854B19 /* libSlashgrabCore.a */; };
+		A87F5A6FCF29FB92F888E0BD /* URLDropReaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A338925A788BF66151DACC62 /* URLDropReaderTests.swift */; };
+		AAD0E5ED4E8383163DB1B384 /* LaunchAtLoginController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A03420C2C711F975AE46DDC8 /* LaunchAtLoginController.swift */; };
+		AE0ECC0A0CD5265D22CCEA87 /* SlashgrabStatusIdleTemplate@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 3605173BD4994CA98BC56083 /* SlashgrabStatusIdleTemplate@2x.png */; };
+		BAD81625C782C7A42F982240 /* AppIconProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58DA2E3C8E4CB65B70849186 /* AppIconProvider.swift */; };
+		BB9B352A07C9C946C9BA2D66 /* FinderExtensionRegistryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FDD5A4964105ABE2BAA7BF7 /* FinderExtensionRegistryTests.swift */; };
+		BD39369064E32AE51F746116 /* StatusIconProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9B3754BE92EE7861906E41F /* StatusIconProvider.swift */; };
+		BD8CC093886242AC90E7832E /* PathCopyAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE25408AE6ABFFD0B0C481B6 /* PathCopyAction.swift */; };
+		C1913A8A26BB67717CB40857 /* FinderSync.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CE40AEBFBCEAD630570FD36 /* FinderSync.framework */; };
+		C498D3160A4B0C27AF083EA5 /* AppIconDev.icon in Resources */ = {isa = PBXBuildFile; fileRef = DE1FE00EC22958370680F84A /* AppIconDev.icon */; };
+		C8449EDBA5BB391BFD96D7E7 /* SlashgrabStatusIdleTemplate.png in Resources */ = {isa = PBXBuildFile; fileRef = 853A8FFA576BB6840531DE14 /* SlashgrabStatusIdleTemplate.png */; };
+		C8FCD72C5262BB19ED5316C3 /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F161A2FEB03DFA07404D237 /* AppKit.framework */; };
+		C9F35EFAE8185E3DD5746C39 /* SlashgrabStatusIdleTemplate@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 7E77B50758754DAD91942EAD /* SlashgrabStatusIdleTemplate@3x.png */; };
+		CA33814799F2BC44A9E51AAC /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 780F73E05058090727A33135 /* Localizable.strings */; };
+		D0F5DC1FF9FFB68FA3C7ABD4 /* AppBuildInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F686E3E6F3481A522C34CECF /* AppBuildInfo.swift */; };
+		D2D45DCDE5BB34BFA15AF9A0 /* ClipboardWriting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 261CA6D615E6A3AD6318385D /* ClipboardWriting.swift */; };
+		D64F65788CEFB48DEDF71C1B /* AppSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37D5C1E17F78130AF2B16AE8 /* AppSettingsStore.swift */; };
+		D99E4E0981D66F40FA400C3E /* ResourceBundleLocator.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE2353C412D08A52ABBBE22B /* ResourceBundleLocator.swift */; };
+		E0F3530926F262D99441B924 /* PathFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 520793E18FEC0244139B65E7 /* PathFormatter.swift */; };
+		E6EDB45DCBD3E4A63CA20AF3 /* FeedbackPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDD95A5C04775746B38BAF0F /* FeedbackPopoverView.swift */; };
+		EAC42B6ECE9D0B59D5D19AAC /* FinderSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0947B7DBA55BA576DB0CB44 /* FinderSettingsView.swift */; };
+		EC93AEDAFFDB4B220C016011 /* PathHistoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9768F96CACFD2C00656B22E8 /* PathHistoryTests.swift */; };
+		ECE7ABBA381F3456D7E72BE3 /* PathHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3B8AFF52C504B2489CEC476 /* PathHistory.swift */; };
+		EDA857053F99A0B9CD04DC15 /* SlashgrabStatusSuccessTemplate@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 7511140AEC09B7E96EB9F2F2 /* SlashgrabStatusSuccessTemplate@3x.png */; };
+		EFE8456FF3C2979D466C5437 /* FinderExtensionMigrationControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94F2647388444EA8D131ECA7 /* FinderExtensionMigrationControllerTests.swift */; };
+		F09F4D664B5120B659D67659 /* SlashgrabFinderSync.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = C753CA21DD19F2A604E3C2C6 /* SlashgrabFinderSync.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		F1100F78289B856517F3A128 /* RecentPathRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8E1EA6EAA1AB8D328D8C6BC /* RecentPathRow.swift */; };
+		F6165722D9A07D7972D7FFBB /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 477A7E0C8E1A707EF59780E2 /* AboutView.swift */; };
+		F62E8CCEBD23E7E0D6401A3B /* SlashgrabStatusActive.svg in Resources */ = {isa = PBXBuildFile; fileRef = 3B9BF055D6BCEC6FD6C1AC03 /* SlashgrabStatusActive.svg */; };
+		FB2C9AE89548A16A51E6A246 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 204AAA7E668CAFCAD298F99F /* AppIcon.icon */; };
+		FE01C538B68B156B7B837EFC /* libSlashgrabCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 948A289AEB27C91F75854B19 /* libSlashgrabCore.a */; };
+		B77000000000000000000000 /* OperationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77000000000000000000000 /* OperationStore.swift */; };
+		B77000000000000000000001 /* OperationTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77000000000000000000001 /* OperationTimelineView.swift */; };
+		B77000000000000000000002 /* OperationStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77000000000000000000002 /* OperationStoreTests.swift */; };
+		B77000000000000000000003 /* NexusServiceProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77000000000000000000003 /* NexusServiceProvider.swift */; };
+		B77000000000000000000004 /* InputStatisticsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77000000000000000000004 /* InputStatisticsStore.swift */; };
+		B77000000000000000000005 /* InputMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77000000000000000000005 /* InputMonitor.swift */; };
+		B77000000000000000000006 /* InputStatisticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77000000000000000000006 /* InputStatisticsView.swift */; };
+		B77000000000000000000007 /* InputStatisticsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77000000000000000000007 /* InputStatisticsStoreTests.swift */; };
+		B77000000000000000000008 /* NetworkSyncView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77000000000000000000008 /* NetworkSyncView.swift */; };
+		B77000000000000000000009 /* SystemServicesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77000000000000000000009 /* SystemServicesView.swift */; };
+		B77000000000000000000010 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = A77000000000000000000010 /* InfoPlist.strings */; };
+		B77000000000000000000011 /* ClipboardMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77000000000000000000011 /* ClipboardMonitor.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		36C9F05A084524FF558A7F70 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 22C639B72E02EA312BF69658 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7F01D3E4AAC00660AA377414;
+			remoteInfo = SlashgrabCore;
+		};
+		40EFAFA3CC8E2ECF187932FA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 22C639B72E02EA312BF69658 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7F01D3E4AAC00660AA377414;
+			remoteInfo = SlashgrabCore;
+		};
+		737531542591B5EF16BD7C23 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 22C639B72E02EA312BF69658 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1EBF27416FFBAD492304355B;
+			remoteInfo = Slashgrab;
+		};
+		9F8A550EA402256A02B8B618 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 22C639B72E02EA312BF69658 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7F01D3E4AAC00660AA377414;
+			remoteInfo = SlashgrabCore;
+		};
+		CAF6C34621F42273CCAC997A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 22C639B72E02EA312BF69658 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 29D42AAF0A6B0855D8C30FE0;
+			remoteInfo = SlashgrabFinderSync;
+		};
+		F8D8860D9A4571F04504AEA8 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 22C639B72E02EA312BF69658 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7F01D3E4AAC00660AA377414;
+			remoteInfo = SlashgrabCore;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		500357D42DD6C940AE84D0C6 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				F09F4D664B5120B659D67659 /* SlashgrabFinderSync.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		02053019567BBCD9272FA890 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		0F97FFA2A4D84F1368DE663D /* InfoPlist.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = InfoPlist.strings; path = "zh-Hans.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		11AB93DB773ADB4737FA607E /* SlashgrabStatusActiveTemplate@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "SlashgrabStatusActiveTemplate@2x.png"; sourceTree = "<group>"; };
+		11BAD4A499035B92935D803A /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		1B0D1A8DB0FC5BC8E9438234 /* URLDropReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLDropReader.swift; sourceTree = "<group>"; };
+		1CE76D61F70EB6B45BBF6148 /* FinderSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderSync.swift; sourceTree = "<group>"; };
+		204AAA7E668CAFCAD298F99F /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
+		24CD16C2072EE95A043C65A8 /* FinderExtensionMigrationController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderExtensionMigrationController.swift; sourceTree = "<group>"; };
+		261CA6D615E6A3AD6318385D /* ClipboardWriting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardWriting.swift; sourceTree = "<group>"; };
+		2BA89171F30DEB9CFF420617 /* SparkleUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkleUpdater.swift; sourceTree = "<group>"; };
+		2FD17EC25F201121D8893384 /* AppSettingsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsStoreTests.swift; sourceTree = "<group>"; };
+		2FDD5A4964105ABE2BAA7BF7 /* FinderExtensionRegistryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderExtensionRegistryTests.swift; sourceTree = "<group>"; };
+		35443E504172B2256A8B7CDA /* FinderExtensionController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderExtensionController.swift; sourceTree = "<group>"; };
+		3605173BD4994CA98BC56083 /* SlashgrabStatusIdleTemplate@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "SlashgrabStatusIdleTemplate@2x.png"; sourceTree = "<group>"; };
+		37D5C1E17F78130AF2B16AE8 /* AppSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsStore.swift; sourceTree = "<group>"; };
+		3B9BF055D6BCEC6FD6C1AC03 /* SlashgrabStatusActive.svg */ = {isa = PBXFileReference; path = SlashgrabStatusActive.svg; sourceTree = "<group>"; };
+		3FF27331C449675FAA56F734 /* SlashgrabCoreTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SlashgrabCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		4220F2C6189F3FCC7CDCBC66 /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
+		477A7E0C8E1A707EF59780E2 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
+		4BC954E6A7D28C9705C5B9EC /* PathFormatterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathFormatterTests.swift; sourceTree = "<group>"; };
+		4CE40AEBFBCEAD630570FD36 /* FinderSync.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FinderSync.framework; path = System/Library/Frameworks/FinderSync.framework; sourceTree = SDKROOT; };
+		4F161A2FEB03DFA07404D237 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
+		520793E18FEC0244139B65E7 /* PathFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathFormatter.swift; sourceTree = "<group>"; };
+		58DA2E3C8E4CB65B70849186 /* AppIconProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIconProvider.swift; sourceTree = "<group>"; };
+		5CE9AB57DEAEAA2FCA8394A2 /* MenuPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuPopoverView.swift; sourceTree = "<group>"; };
+		730DAB348F1B45F6ECA5D84C /* SlashgrabStatusSuccess.svg */ = {isa = PBXFileReference; path = SlashgrabStatusSuccess.svg; sourceTree = "<group>"; };
+		7511140AEC09B7E96EB9F2F2 /* SlashgrabStatusSuccessTemplate@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "SlashgrabStatusSuccessTemplate@3x.png"; sourceTree = "<group>"; };
+		780F73E05058090727A33135 /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Localizable.strings; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		7BA812B6070D33F822475ED1 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		7E77B50758754DAD91942EAD /* SlashgrabStatusIdleTemplate@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "SlashgrabStatusIdleTemplate@3x.png"; sourceTree = "<group>"; };
+		7F468B8CB61DF25946752FCD /* SlashgrabStatusActiveTemplate@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "SlashgrabStatusActiveTemplate@3x.png"; sourceTree = "<group>"; };
+		81F038A4DA375E69FF419925 /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Localizable.strings; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		853A8FFA576BB6840531DE14 /* SlashgrabStatusIdleTemplate.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = SlashgrabStatusIdleTemplate.png; sourceTree = "<group>"; };
+		8B8CA3D42590C59FFD6CB5BE /* SlashgrabStatusActiveTemplate.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = SlashgrabStatusActiveTemplate.png; sourceTree = "<group>"; };
+		8E1606CC71339F799B1C024C /* AppKitClipboardWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppKitClipboardWriter.swift; sourceTree = "<group>"; };
+		8F5C252F970625C7E51DA10F /* SlashgrabApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlashgrabApp.swift; sourceTree = "<group>"; };
+		8FB3C43BCF381CB862BFC53F /* DropZoneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropZoneView.swift; sourceTree = "<group>"; };
+		91C012A0E834E2813CEF0CDA /* SlashgrabStatusSuccessTemplate@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "SlashgrabStatusSuccessTemplate@2x.png"; sourceTree = "<group>"; };
+		93B90C3411784397EFBF752A /* Slashgrab.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Slashgrab.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		948A289AEB27C91F75854B19 /* libSlashgrabCore.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libSlashgrabCore.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		94F2647388444EA8D131ECA7 /* FinderExtensionMigrationControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderExtensionMigrationControllerTests.swift; sourceTree = "<group>"; };
+		9768F96CACFD2C00656B22E8 /* PathHistoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathHistoryTests.swift; sourceTree = "<group>"; };
+		A03420C2C711F975AE46DDC8 /* LaunchAtLoginController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginController.swift; sourceTree = "<group>"; };
+		A338925A788BF66151DACC62 /* URLDropReaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLDropReaderTests.swift; sourceTree = "<group>"; };
+		AB2ADD5C7E884CCEDDD5BB9B /* PathCopyActionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathCopyActionTests.swift; sourceTree = "<group>"; };
+		B8B12BC0AEB404FEA420631F /* PathFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathFormat.swift; sourceTree = "<group>"; };
+		BE2353C412D08A52ABBBE22B /* ResourceBundleLocator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResourceBundleLocator.swift; sourceTree = "<group>"; };
+		C753CA21DD19F2A604E3C2C6 /* SlashgrabFinderSync.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SlashgrabFinderSync.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		C9B3754BE92EE7861906E41F /* StatusIconProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusIconProvider.swift; sourceTree = "<group>"; };
+		CB3361D05B27300417E70A67 /* AppStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateTests.swift; sourceTree = "<group>"; };
+		D15C3A440DA410151305CB0E /* DropTargetStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropTargetStatusView.swift; sourceTree = "<group>"; };
+		D8E1EA6EAA1AB8D328D8C6BC /* RecentPathRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentPathRow.swift; sourceTree = "<group>"; };
+		DAE2E0F0F48A6AA04B26FEF2 /* StatusItemController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusItemController.swift; sourceTree = "<group>"; };
+		DE1FE00EC22958370680F84A /* AppIconDev.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIconDev.icon; sourceTree = "<group>"; };
+		DE235382BF8FD4A45C936F3C /* SharedSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedSettings.swift; sourceTree = "<group>"; };
+		DF8A70B8B3247E025B12C045 /* SlashgrabTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SlashgrabTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		F0947B7DBA55BA576DB0CB44 /* FinderSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderSettingsView.swift; sourceTree = "<group>"; };
+		F2408A315E8C3BA07B2FC375 /* SlashgrabStatusSuccessTemplate.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = SlashgrabStatusSuccessTemplate.png; sourceTree = "<group>"; };
+		F3B8AFF52C504B2489CEC476 /* PathHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathHistory.swift; sourceTree = "<group>"; };
+		F686E3E6F3481A522C34CECF /* AppBuildInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppBuildInfo.swift; sourceTree = "<group>"; };
+		FDD95A5C04775746B38BAF0F /* FeedbackPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackPopoverView.swift; sourceTree = "<group>"; };
+		FE25408AE6ABFFD0B0C481B6 /* PathCopyAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathCopyAction.swift; sourceTree = "<group>"; };
+		FEE4FAC1F6AC1EE1182AE3B2 /* SlashgrabStatusIdle.svg */ = {isa = PBXFileReference; path = SlashgrabStatusIdle.svg; sourceTree = "<group>"; };
+		FF85D1DCCC976C5C8B55F7B2 /* FinderExtensionRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderExtensionRegistry.swift; sourceTree = "<group>"; };
+		A77000000000000000000000 /* OperationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperationStore.swift; sourceTree = "<group>"; };
+		A77000000000000000000001 /* OperationTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperationTimelineView.swift; sourceTree = "<group>"; };
+		A77000000000000000000002 /* OperationStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperationStoreTests.swift; sourceTree = "<group>"; };
+		A77000000000000000000003 /* NexusServiceProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NexusServiceProvider.swift; sourceTree = "<group>"; };
+		A77000000000000000000004 /* InputStatisticsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputStatisticsStore.swift; sourceTree = "<group>"; };
+		A77000000000000000000005 /* InputMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputMonitor.swift; sourceTree = "<group>"; };
+		A77000000000000000000006 /* InputStatisticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputStatisticsView.swift; sourceTree = "<group>"; };
+		A77000000000000000000007 /* InputStatisticsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputStatisticsStoreTests.swift; sourceTree = "<group>"; };
+		A77000000000000000000008 /* NetworkSyncView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkSyncView.swift; sourceTree = "<group>"; };
+		A77000000000000000000009 /* SystemServicesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemServicesView.swift; sourceTree = "<group>"; };
+		A77000000000000000000010 /* InfoPlist.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = InfoPlist.strings; path = "zh-Hans.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		A77000000000000000000011 /* ClipboardMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardMonitor.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		04F75ED53ED3AF5B28042672 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5CFF9768C241F3CF9E869E7E /* libSlashgrabCore.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0E43003049B44CC2A758ECB5 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FE01C538B68B156B7B837EFC /* libSlashgrabCore.a in Frameworks */,
+				6E9834685A8D402F424D7194 /* Sparkle in Frameworks */,
+				C1913A8A26BB67717CB40857 /* FinderSync.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		28279ED9D7F55224F7ED2543 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A08EFB5DDE49EDDB19D35152 /* libSlashgrabCore.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4940F1D964C1231827FCD0B8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8B3065EC2EA32D68327B488A /* libSlashgrabCore.a in Frameworks */,
+				C8FCD72C5262BB19ED5316C3 /* AppKit.framework in Frameworks */,
+				8E900B2E3C373F1A40186776 /* FinderSync.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		072BC619064DD0560604556A /* SlashgrabCore */ = {
+			isa = PBXGroup;
+			children = (
+				37D5C1E17F78130AF2B16AE8 /* AppSettingsStore.swift */,
+				261CA6D615E6A3AD6318385D /* ClipboardWriting.swift */,
+				FE25408AE6ABFFD0B0C481B6 /* PathCopyAction.swift */,
+				B8B12BC0AEB404FEA420631F /* PathFormat.swift */,
+				520793E18FEC0244139B65E7 /* PathFormatter.swift */,
+				F3B8AFF52C504B2489CEC476 /* PathHistory.swift */,
+				DE235382BF8FD4A45C936F3C /* SharedSettings.swift */,
+				A77000000000000000000004 /* InputStatisticsStore.swift */,
+				A77000000000000000000000 /* OperationStore.swift */,
+			);
+			name = SlashgrabCore;
+			path = Sources/SlashgrabCore;
+			sourceTree = "<group>";
+		};
+		30717CF12BE75C9A8CAE8161 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				4F161A2FEB03DFA07404D237 /* AppKit.framework */,
+				4CE40AEBFBCEAD630570FD36 /* FinderSync.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		4FCD9BE5A4B1F28B9CFDFA79 /* Assets */ = {
+			isa = PBXGroup;
+			children = (
+				DE1FE00EC22958370680F84A /* AppIconDev.icon */,
+			);
+			name = Assets;
+			path = Scripts/Assets;
+			sourceTree = "<group>";
+		};
+		521FFB1C740B36B2B2CD8C34 /* Slashgrab */ = {
+			isa = PBXGroup;
+			children = (
+				477A7E0C8E1A707EF59780E2 /* AboutView.swift */,
+				F686E3E6F3481A522C34CECF /* AppBuildInfo.swift */,
+				11BAD4A499035B92935D803A /* AppDelegate.swift */,
+				58DA2E3C8E4CB65B70849186 /* AppIconProvider.swift */,
+				8E1606CC71339F799B1C024C /* AppKitClipboardWriter.swift */,
+				02053019567BBCD9272FA890 /* AppState.swift */,
+				D15C3A440DA410151305CB0E /* DropTargetStatusView.swift */,
+				8FB3C43BCF381CB862BFC53F /* DropZoneView.swift */,
+				FDD95A5C04775746B38BAF0F /* FeedbackPopoverView.swift */,
+				35443E504172B2256A8B7CDA /* FinderExtensionController.swift */,
+				24CD16C2072EE95A043C65A8 /* FinderExtensionMigrationController.swift */,
+				FF85D1DCCC976C5C8B55F7B2 /* FinderExtensionRegistry.swift */,
+				F0947B7DBA55BA576DB0CB44 /* FinderSettingsView.swift */,
+				A03420C2C711F975AE46DDC8 /* LaunchAtLoginController.swift */,
+				4220F2C6189F3FCC7CDCBC66 /* Localization.swift */,
+				5CE9AB57DEAEAA2FCA8394A2 /* MenuPopoverView.swift */,
+				A77000000000000000000011 /* ClipboardMonitor.swift */,
+				A77000000000000000000009 /* SystemServicesView.swift */,
+				A77000000000000000000008 /* NetworkSyncView.swift */,
+				A77000000000000000000006 /* InputStatisticsView.swift */,
+				A77000000000000000000005 /* InputMonitor.swift */,
+				A77000000000000000000003 /* NexusServiceProvider.swift */,
+				A77000000000000000000001 /* OperationTimelineView.swift */,
+				D8E1EA6EAA1AB8D328D8C6BC /* RecentPathRow.swift */,
+				BE2353C412D08A52ABBBE22B /* ResourceBundleLocator.swift */,
+				7BA812B6070D33F822475ED1 /* SettingsView.swift */,
+				8F5C252F970625C7E51DA10F /* SlashgrabApp.swift */,
+				2BA89171F30DEB9CFF420617 /* SparkleUpdater.swift */,
+				C9B3754BE92EE7861906E41F /* StatusIconProvider.swift */,
+				DAE2E0F0F48A6AA04B26FEF2 /* StatusItemController.swift */,
+				1B0D1A8DB0FC5BC8E9438234 /* URLDropReader.swift */,
+				E2E9CB6930295B6F33431710 /* Resources */,
+			);
+			name = Slashgrab;
+			path = Sources/Slashgrab;
+			sourceTree = "<group>";
+		};
+		60470B06B141542696F8E47D /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				948A289AEB27C91F75854B19 /* libSlashgrabCore.a */,
+				93B90C3411784397EFBF752A /* Slashgrab.app */,
+				3FF27331C449675FAA56F734 /* SlashgrabCoreTests.xctest */,
+				C753CA21DD19F2A604E3C2C6 /* SlashgrabFinderSync.appex */,
+				DF8A70B8B3247E025B12C045 /* SlashgrabTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		7BA95BCD56CBF6D8AEA669EA /* SlashgrabTests */ = {
+			isa = PBXGroup;
+			children = (
+				CB3361D05B27300417E70A67 /* AppStateTests.swift */,
+				94F2647388444EA8D131ECA7 /* FinderExtensionMigrationControllerTests.swift */,
+				2FDD5A4964105ABE2BAA7BF7 /* FinderExtensionRegistryTests.swift */,
+				A338925A788BF66151DACC62 /* URLDropReaderTests.swift */,
+			);
+			name = SlashgrabTests;
+			path = Tests/SlashgrabTests;
+			sourceTree = "<group>";
+		};
+		9A2C2B5B771A3BBA303354DD /* StatusIcons */ = {
+			isa = PBXGroup;
+			children = (
+				3B9BF055D6BCEC6FD6C1AC03 /* SlashgrabStatusActive.svg */,
+				8B8CA3D42590C59FFD6CB5BE /* SlashgrabStatusActiveTemplate.png */,
+				11AB93DB773ADB4737FA607E /* SlashgrabStatusActiveTemplate@2x.png */,
+				7F468B8CB61DF25946752FCD /* SlashgrabStatusActiveTemplate@3x.png */,
+				FEE4FAC1F6AC1EE1182AE3B2 /* SlashgrabStatusIdle.svg */,
+				853A8FFA576BB6840531DE14 /* SlashgrabStatusIdleTemplate.png */,
+				3605173BD4994CA98BC56083 /* SlashgrabStatusIdleTemplate@2x.png */,
+				7E77B50758754DAD91942EAD /* SlashgrabStatusIdleTemplate@3x.png */,
+				730DAB348F1B45F6ECA5D84C /* SlashgrabStatusSuccess.svg */,
+				F2408A315E8C3BA07B2FC375 /* SlashgrabStatusSuccessTemplate.png */,
+				91C012A0E834E2813CEF0CDA /* SlashgrabStatusSuccessTemplate@2x.png */,
+				7511140AEC09B7E96EB9F2F2 /* SlashgrabStatusSuccessTemplate@3x.png */,
+			);
+			path = StatusIcons;
+			sourceTree = "<group>";
+		};
+		A1C4888217F40FC5EC1BCD73 /* SlashgrabFinderSync */ = {
+			isa = PBXGroup;
+			children = (
+				1CE76D61F70EB6B45BBF6148 /* FinderSync.swift */,
+				0F97FFA2A4D84F1368DE663D /* InfoPlist.strings */,
+				81F038A4DA375E69FF419925 /* Localizable.strings */,
+			);
+			name = SlashgrabFinderSync;
+			path = Sources/SlashgrabFinderSync;
+			sourceTree = "<group>";
+		};
+		CBD949A7FD99A02C5E43C8E7 /* SlashgrabCoreTests */ = {
+			isa = PBXGroup;
+			children = (
+				2FD17EC25F201121D8893384 /* AppSettingsStoreTests.swift */,
+				AB2ADD5C7E884CCEDDD5BB9B /* PathCopyActionTests.swift */,
+				4BC954E6A7D28C9705C5B9EC /* PathFormatterTests.swift */,
+				9768F96CACFD2C00656B22E8 /* PathHistoryTests.swift */,
+				A77000000000000000000007 /* InputStatisticsStoreTests.swift */,
+				A77000000000000000000002 /* OperationStoreTests.swift */,
+			);
+			name = SlashgrabCoreTests;
+			path = Tests/SlashgrabCoreTests;
+			sourceTree = "<group>";
+		};
+		D33C9AA4B5D21676A5EC4D55 = {
+			isa = PBXGroup;
+			children = (
+				4FCD9BE5A4B1F28B9CFDFA79 /* Assets */,
+				521FFB1C740B36B2B2CD8C34 /* Slashgrab */,
+				072BC619064DD0560604556A /* SlashgrabCore */,
+				CBD949A7FD99A02C5E43C8E7 /* SlashgrabCoreTests */,
+				A1C4888217F40FC5EC1BCD73 /* SlashgrabFinderSync */,
+				7BA95BCD56CBF6D8AEA669EA /* SlashgrabTests */,
+				30717CF12BE75C9A8CAE8161 /* Frameworks */,
+				60470B06B141542696F8E47D /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		E2E9CB6930295B6F33431710 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				204AAA7E668CAFCAD298F99F /* AppIcon.icon */,
+				780F73E05058090727A33135 /* Localizable.strings */,
+				A77000000000000000000010 /* InfoPlist.strings */,
+				9A2C2B5B771A3BBA303354DD /* StatusIcons */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		1EBF27416FFBAD492304355B /* Slashgrab */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4A54FCCA3F589ABF7D812D27 /* Build configuration list for PBXNativeTarget "Slashgrab" */;
+			buildPhases = (
+				0DAA3848FDD6082A87710C7C /* Sources */,
+				3C2F8B7EDF56CDDD5716E54E /* Resources */,
+				0E43003049B44CC2A758ECB5 /* Frameworks */,
+				500357D42DD6C940AE84D0C6 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				FE8C7BB1654EDA44D99FEB01 /* PBXTargetDependency */,
+				8A627F7F62C2D0DF2D51469D /* PBXTargetDependency */,
+			);
+			name = Slashgrab;
+			packageProductDependencies = (
+				FEC73C675B1D6B9F09BF9105 /* Sparkle */,
+			);
+			productName = Slashgrab;
+			productReference = 93B90C3411784397EFBF752A /* Slashgrab.app */;
+			productType = "com.apple.product-type.application";
+		};
+		29D42AAF0A6B0855D8C30FE0 /* SlashgrabFinderSync */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 211BE446D5DA2146F3EE80F7 /* Build configuration list for PBXNativeTarget "SlashgrabFinderSync" */;
+			buildPhases = (
+				BE92881774EAC8ACDABBCA4F /* Sources */,
+				CF1E1E6017657D27EC8D19E4 /* Resources */,
+				4940F1D964C1231827FCD0B8 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				71CC1159FB119ED61EC9B2F6 /* PBXTargetDependency */,
+			);
+			name = SlashgrabFinderSync;
+			packageProductDependencies = (
+			);
+			productName = SlashgrabFinderSync;
+			productReference = C753CA21DD19F2A604E3C2C6 /* SlashgrabFinderSync.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		7F01D3E4AAC00660AA377414 /* SlashgrabCore */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 148E6F99A9572868EB0A3036 /* Build configuration list for PBXNativeTarget "SlashgrabCore" */;
+			buildPhases = (
+				3068B971B576F413989EEDAA /* Sources */,
+				CA892B7FE321EFDB01835597 /* Copy Swift Objective-C Interface Header */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SlashgrabCore;
+			packageProductDependencies = (
+			);
+			productName = SlashgrabCore;
+			productReference = 948A289AEB27C91F75854B19 /* libSlashgrabCore.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+		8072BCFC6A8B92ED9F0C163B /* SlashgrabTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 55FDB521A7050A00CE0BF027 /* Build configuration list for PBXNativeTarget "SlashgrabTests" */;
+			buildPhases = (
+				102AFB6455AA0548ADDB3EED /* Sources */,
+				28279ED9D7F55224F7ED2543 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				04714E89343E47D46FEDD4AA /* PBXTargetDependency */,
+				43CE73EB1F758C44298225A2 /* PBXTargetDependency */,
+			);
+			name = SlashgrabTests;
+			packageProductDependencies = (
+			);
+			productName = SlashgrabTests;
+			productReference = DF8A70B8B3247E025B12C045 /* SlashgrabTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		AD97FCB1E71A1E3D07B58C7F /* SlashgrabCoreTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 24977C9AAB0E643C442A93EF /* Build configuration list for PBXNativeTarget "SlashgrabCoreTests" */;
+			buildPhases = (
+				343DDFB926C834F76E0CD351 /* Sources */,
+				04F75ED53ED3AF5B28042672 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				6268BB554776A33B6A0D9316 /* PBXTargetDependency */,
+			);
+			name = SlashgrabCoreTests;
+			packageProductDependencies = (
+			);
+			productName = SlashgrabCoreTests;
+			productReference = 3FF27331C449675FAA56F734 /* SlashgrabCoreTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		22C639B72E02EA312BF69658 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = 86B20690D2CB29CB1902F0BA /* Build configuration list for PBXProject "Slashgrab" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+				"zh-Hans",
+			);
+			mainGroup = D33C9AA4B5D21676A5EC4D55;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				68FB8F27C4AEF8D75566CF89 /* XCRemoteSwiftPackageReference "Sparkle" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 60470B06B141542696F8E47D /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				7F01D3E4AAC00660AA377414 /* SlashgrabCore */,
+				29D42AAF0A6B0855D8C30FE0 /* SlashgrabFinderSync */,
+				1EBF27416FFBAD492304355B /* Slashgrab */,
+				AD97FCB1E71A1E3D07B58C7F /* SlashgrabCoreTests */,
+				8072BCFC6A8B92ED9F0C163B /* SlashgrabTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		3C2F8B7EDF56CDDD5716E54E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FB2C9AE89548A16A51E6A246 /* AppIcon.icon in Resources */,
+				C498D3160A4B0C27AF083EA5 /* AppIconDev.icon in Resources */,
+				CA33814799F2BC44A9E51AAC /* Localizable.strings in Resources */,
+				B77000000000000000000010 /* InfoPlist.strings in Resources */,
+				F62E8CCEBD23E7E0D6401A3B /* SlashgrabStatusActive.svg in Resources */,
+				4107795AED46F5A69E2262D4 /* SlashgrabStatusActiveTemplate.png in Resources */,
+				591581BE477532587F89B6A5 /* SlashgrabStatusActiveTemplate@2x.png in Resources */,
+				395F97A93599AB24C876B71B /* SlashgrabStatusActiveTemplate@3x.png in Resources */,
+				2731169BBC049EE045FE7E83 /* SlashgrabStatusIdle.svg in Resources */,
+				C8449EDBA5BB391BFD96D7E7 /* SlashgrabStatusIdleTemplate.png in Resources */,
+				AE0ECC0A0CD5265D22CCEA87 /* SlashgrabStatusIdleTemplate@2x.png in Resources */,
+				C9F35EFAE8185E3DD5746C39 /* SlashgrabStatusIdleTemplate@3x.png in Resources */,
+				87A4F03D681F5AC0B16E6B58 /* SlashgrabStatusSuccess.svg in Resources */,
+				14653E66C823381B5C29ACCB /* SlashgrabStatusSuccessTemplate.png in Resources */,
+				1D0D3B9078D5E137B4E67DAB /* SlashgrabStatusSuccessTemplate@2x.png in Resources */,
+				EDA857053F99A0B9CD04DC15 /* SlashgrabStatusSuccessTemplate@3x.png in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CF1E1E6017657D27EC8D19E4 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4170D5E3B50075C5EF26DA20 /* InfoPlist.strings in Resources */,
+				79BD5A92D528829E34C88934 /* Localizable.strings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		CA892B7FE321EFDB01835597 /* Copy Swift Objective-C Interface Header */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(DERIVED_SOURCES_DIR)/$(SWIFT_OBJC_INTERFACE_HEADER_NAME)",
+			);
+			name = "Copy Swift Objective-C Interface Header";
+			outputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/include/$(PRODUCT_MODULE_NAME)/$(SWIFT_OBJC_INTERFACE_HEADER_NAME)",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "ditto \"${SCRIPT_INPUT_FILE_0}\" \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		0DAA3848FDD6082A87710C7C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F6165722D9A07D7972D7FFBB /* AboutView.swift in Sources */,
+				D0F5DC1FF9FFB68FA3C7ABD4 /* AppBuildInfo.swift in Sources */,
+				30AA1FB6DC6575390B404CA6 /* AppDelegate.swift in Sources */,
+				BAD81625C782C7A42F982240 /* AppIconProvider.swift in Sources */,
+				590FF5FE669A7D318396B972 /* AppKitClipboardWriter.swift in Sources */,
+				32E62280E7A8FA1D31093B96 /* AppState.swift in Sources */,
+				203CD9289213E4FBC55D5663 /* DropTargetStatusView.swift in Sources */,
+				10BBAC82E4B4150D1762FB9E /* DropZoneView.swift in Sources */,
+				E6EDB45DCBD3E4A63CA20AF3 /* FeedbackPopoverView.swift in Sources */,
+				5709F76395D0EA54672E60C2 /* FinderExtensionController.swift in Sources */,
+				326F0106A82FE7F0DA93F52D /* FinderExtensionMigrationController.swift in Sources */,
+				2A241EBC12789586A1F9D331 /* FinderExtensionRegistry.swift in Sources */,
+				EAC42B6ECE9D0B59D5D19AAC /* FinderSettingsView.swift in Sources */,
+				AAD0E5ED4E8383163DB1B384 /* LaunchAtLoginController.swift in Sources */,
+				8472A3274EEE2AF969F1BEFF /* Localization.swift in Sources */,
+				5F4699163AB014C0896ADB8F /* MenuPopoverView.swift in Sources */,
+				B77000000000000000000011 /* ClipboardMonitor.swift in Sources */,
+				B77000000000000000000009 /* SystemServicesView.swift in Sources */,
+				B77000000000000000000008 /* NetworkSyncView.swift in Sources */,
+				B77000000000000000000006 /* InputStatisticsView.swift in Sources */,
+				B77000000000000000000005 /* InputMonitor.swift in Sources */,
+				B77000000000000000000003 /* NexusServiceProvider.swift in Sources */,
+				B77000000000000000000001 /* OperationTimelineView.swift in Sources */,
+				F1100F78289B856517F3A128 /* RecentPathRow.swift in Sources */,
+				D99E4E0981D66F40FA400C3E /* ResourceBundleLocator.swift in Sources */,
+				8C52B471AE6A8EFF3A2D134D /* SettingsView.swift in Sources */,
+				538687532E50DA1C004BE48D /* SlashgrabApp.swift in Sources */,
+				0C820E49347A4B94EF3FCA16 /* SparkleUpdater.swift in Sources */,
+				BD39369064E32AE51F746116 /* StatusIconProvider.swift in Sources */,
+				8C4A4665FF5D8741BF220CCE /* StatusItemController.swift in Sources */,
+				595CD8FE5D77535E275CC3A4 /* URLDropReader.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		102AFB6455AA0548ADDB3EED /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				14D73976DD8073C5410D4D2D /* AppStateTests.swift in Sources */,
+				EFE8456FF3C2979D466C5437 /* FinderExtensionMigrationControllerTests.swift in Sources */,
+				BB9B352A07C9C946C9BA2D66 /* FinderExtensionRegistryTests.swift in Sources */,
+				A87F5A6FCF29FB92F888E0BD /* URLDropReaderTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3068B971B576F413989EEDAA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D64F65788CEFB48DEDF71C1B /* AppSettingsStore.swift in Sources */,
+				D2D45DCDE5BB34BFA15AF9A0 /* ClipboardWriting.swift in Sources */,
+				BD8CC093886242AC90E7832E /* PathCopyAction.swift in Sources */,
+				03E5A09A97B2D62296BEED92 /* PathFormat.swift in Sources */,
+				E0F3530926F262D99441B924 /* PathFormatter.swift in Sources */,
+				ECE7ABBA381F3456D7E72BE3 /* PathHistory.swift in Sources */,
+				6D394C1F3C93CD1C780A2BF9 /* SharedSettings.swift in Sources */,
+				B77000000000000000000004 /* InputStatisticsStore.swift in Sources */,
+				B77000000000000000000000 /* OperationStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		343DDFB926C834F76E0CD351 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0623269B73680E7A2A47A699 /* AppSettingsStoreTests.swift in Sources */,
+				7B4D4C2931FB6E8B42EBA990 /* PathCopyActionTests.swift in Sources */,
+				739DC00883939B79F8FB12BE /* PathFormatterTests.swift in Sources */,
+				EC93AEDAFFDB4B220C016011 /* PathHistoryTests.swift in Sources */,
+				B77000000000000000000007 /* InputStatisticsStoreTests.swift in Sources */,
+				B77000000000000000000002 /* OperationStoreTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BE92881774EAC8ACDABBCA4F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				159FA3F83E129E8AFFB26B89 /* FinderSync.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		04714E89343E47D46FEDD4AA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1EBF27416FFBAD492304355B /* Slashgrab */;
+			targetProxy = 737531542591B5EF16BD7C23 /* PBXContainerItemProxy */;
+		};
+		43CE73EB1F758C44298225A2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7F01D3E4AAC00660AA377414 /* SlashgrabCore */;
+			targetProxy = 9F8A550EA402256A02B8B618 /* PBXContainerItemProxy */;
+		};
+		6268BB554776A33B6A0D9316 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7F01D3E4AAC00660AA377414 /* SlashgrabCore */;
+			targetProxy = F8D8860D9A4571F04504AEA8 /* PBXContainerItemProxy */;
+		};
+		71CC1159FB119ED61EC9B2F6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7F01D3E4AAC00660AA377414 /* SlashgrabCore */;
+			targetProxy = 36C9F05A084524FF558A7F70 /* PBXContainerItemProxy */;
+		};
+		8A627F7F62C2D0DF2D51469D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 29D42AAF0A6B0855D8C30FE0 /* SlashgrabFinderSync */;
+			targetProxy = CAF6C34621F42273CCAC997A /* PBXContainerItemProxy */;
+		};
+		FE8C7BB1654EDA44D99FEB01 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7F01D3E4AAC00660AA377414 /* SlashgrabCore */;
+			targetProxy = 40EFAFA3CC8E2ECF187932FA /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		11DF00EA603D159B6301535C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		11E174094BBF517C8F11BAC2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_NAME = SlashgrabCore;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+		54477B7684449CB2F2C2089A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/$(APP_DISPLAY_NAME).app/Contents/MacOS/$(APP_DISPLAY_NAME)";
+			};
+			name = Release;
+		};
+		5BD3D48ABB4C24A83BFC3D02 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				APP_BUNDLE_ID = com.prof18.slashgrab.dev;
+				APP_DISPLAY_NAME = "Slashgrab Dev";
+				APP_GROUP_ID = "$(DEVELOPMENT_TEAM).com.prof18.slashgrab.dev.shared";
+				APP_ICON_NAME = AppIconDev;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 5;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				FINDER_EXTENSION_BUNDLE_ID = com.prof18.slashgrab.dev.findersync;
+				FINDER_EXTENSION_DISPLAY_NAME = "Slashgrab Dev Finder Extension";
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 0.0.5;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		792C00A1111A97579B9D1482 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "$(APP_ICON_NAME)";
+				CODE_SIGN_ENTITLEMENTS = Config/Slashgrab.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = "Config/Slashgrab-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_ID)";
+				PRODUCT_MODULE_NAME = Slashgrab;
+				PRODUCT_NAME = "$(APP_DISPLAY_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		89DF0BE5089D75264D5965D2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "$(APP_ICON_NAME)";
+				CODE_SIGN_ENTITLEMENTS = Config/Slashgrab.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = "Config/Slashgrab-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_ID)";
+				PRODUCT_MODULE_NAME = Slashgrab;
+				PRODUCT_NAME = "$(APP_DISPLAY_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		8A3472E8CF7ACF6EC8552554 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = Config/SlashgrabFinderSync.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = "Config/SlashgrabFinderSync-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FINDER_EXTENSION_BUNDLE_ID)";
+				PRODUCT_NAME = SlashgrabFinderSync;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+		907A265CF052D99DE204318B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				APP_BUNDLE_ID = com.prof18.slashgrab;
+				APP_DISPLAY_NAME = Slashgrab;
+				APP_GROUP_ID = "$(DEVELOPMENT_TEAM).com.prof18.slashgrab.shared";
+				APP_ICON_NAME = AppIcon;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 5;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				FINDER_EXTENSION_BUNDLE_ID = com.prof18.slashgrab.findersync;
+				FINDER_EXTENSION_DISPLAY_NAME = "Slashgrab Finder Extension";
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 0.0.5;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		9706FE3F7F5ECF068CE407BC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_NAME = SlashgrabCore;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		DC0BFF425CAB5C1BE89A1A2D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/$(APP_DISPLAY_NAME).app/Contents/MacOS/$(APP_DISPLAY_NAME)";
+			};
+			name = Debug;
+		};
+		DE788E44195F93CD9CCADACB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		F0EBF3C41C167EF2306ACAB0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = Config/SlashgrabFinderSync.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = "Config/SlashgrabFinderSync-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FINDER_EXTENSION_BUNDLE_ID)";
+				PRODUCT_NAME = SlashgrabFinderSync;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		148E6F99A9572868EB0A3036 /* Build configuration list for PBXNativeTarget "SlashgrabCore" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9706FE3F7F5ECF068CE407BC /* Debug */,
+				11E174094BBF517C8F11BAC2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		211BE446D5DA2146F3EE80F7 /* Build configuration list for PBXNativeTarget "SlashgrabFinderSync" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F0EBF3C41C167EF2306ACAB0 /* Debug */,
+				8A3472E8CF7ACF6EC8552554 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		24977C9AAB0E643C442A93EF /* Build configuration list for PBXNativeTarget "SlashgrabCoreTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				11DF00EA603D159B6301535C /* Debug */,
+				DE788E44195F93CD9CCADACB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		4A54FCCA3F589ABF7D812D27 /* Build configuration list for PBXNativeTarget "Slashgrab" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				792C00A1111A97579B9D1482 /* Debug */,
+				89DF0BE5089D75264D5965D2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		55FDB521A7050A00CE0BF027 /* Build configuration list for PBXNativeTarget "SlashgrabTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DC0BFF425CAB5C1BE89A1A2D /* Debug */,
+				54477B7684449CB2F2C2089A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		86B20690D2CB29CB1902F0BA /* Build configuration list for PBXProject "Slashgrab" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5BD3D48ABB4C24A83BFC3D02 /* Debug */,
+				907A265CF052D99DE204318B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		68FB8F27C4AEF8D75566CF89 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = exactVersion;
+				version = 2.9.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		FEC73C675B1D6B9F09BF9105 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 68FB8F27C4AEF8D75566CF89 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 22C639B72E02EA312BF69658 /* Project object */;
+}

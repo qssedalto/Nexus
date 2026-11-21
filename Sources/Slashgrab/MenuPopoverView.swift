@@ -12,19 +12,19 @@ struct MenuPopoverView: View {
         VStack(alignment: .leading, spacing: 14) {
             header
 
-            Picker("Copy As", selection: Binding(
+            Picker(localized("Copy As"), selection: Binding(
                 get: { appState.selectedFormat },
                 set: { appState.setSelectedFormat($0) }
             )) {
                 ForEach(PathFormat.allCases) { format in
-                    Text(format.displayName).tag(format)
+                    Text(localized(format.displayName)).tag(format)
                 }
             }
             .pickerStyle(.menu)
 
             if let output = appState.lastCopiedOutput {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Last copied")
+                    Text(localized("Last copied"))
                         .font(.custom("Avenir Next", size: 11).weight(.semibold))
                         .foregroundStyle(.secondary)
                     RecentPathRow(output: output) {
@@ -47,7 +47,7 @@ struct MenuPopoverView: View {
                 Button(role: .destructive) {
                     onQuit()
                 } label: {
-                    Label("Quit", systemImage: "power")
+                    Label(localized("Quit"), systemImage: "power")
                 }
             }
         }
@@ -62,7 +62,7 @@ struct MenuPopoverView: View {
             OpenSettingsButton(onBeforeOpen: onPrepareSettings)
         } else {
             Button(action: onOpenLegacySettings) {
-                Label("Settings…", systemImage: "gearshape")
+                Label(localized("Settings…"), systemImage: "gearshape")
             }
         }
     }
@@ -70,9 +70,9 @@ struct MenuPopoverView: View {
     private var historyMenu: some View {
         Menu {
             if appState.history.entries.isEmpty {
-                Text("No copied paths yet")
+                Text(localized("No copied paths yet"))
             } else {
-                Section("Copy again") {
+                Section(localized("Copy again")) {
                     ForEach(appState.history.entries, id: \.self) { output in
                         Button {
                             appState.copyAgain(output)
@@ -88,12 +88,12 @@ struct MenuPopoverView: View {
                 Button(role: .destructive) {
                     appState.clearHistory()
                 } label: {
-                    Label("Clear History", systemImage: "trash")
+                    Label(localized("Clear History"), systemImage: "trash")
                 }
             }
         } label: {
             HStack(spacing: 8) {
-                Label("Recently grabbed", systemImage: "clock.arrow.circlepath")
+                Label(localized("Recently grabbed"), systemImage: "clock.arrow.circlepath")
                     .font(.custom("Avenir Next", size: 12).weight(.semibold))
                 Spacer()
                 Text(historyCountTitle)
@@ -114,7 +114,7 @@ struct MenuPopoverView: View {
 
     private var historyCountTitle: String {
         let count = appState.history.entries.count
-        return count == 1 ? "1 item" : "\(count) items"
+        return count == 1 ? localized("1 item") : String.localizedStringWithFormat(localized("%lld items"), Int64(count))
     }
 
     private func historyMenuTitle(for output: String) -> String {
@@ -140,11 +140,11 @@ struct MenuPopoverView: View {
 
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 6) {
-                    Text("Slashgrab")
+                    Text("Nexus")
                         .font(.custom("Avenir Next", size: 16).weight(.bold))
 
                     if buildInfo.isDevBuild {
-                        Text("DEV")
+                        Text(localized("DEV"))
                             .font(.custom("Avenir Next", size: 9).weight(.heavy))
                             .foregroundStyle(.white)
                             .padding(.horizontal, 5)
@@ -152,7 +152,7 @@ struct MenuPopoverView: View {
                             .background(.orange, in: RoundedRectangle(cornerRadius: 4))
                     }
                 }
-                Text(buildInfo.isDevBuild ? "Development build" : "Drop files. Grab paths.")
+                Text(buildInfo.isDevBuild ? localized("Development build") : localized("Drop files. Grab paths."))
                     .font(.custom("Avenir Next", size: 11))
                     .foregroundStyle(.secondary)
             }
@@ -182,7 +182,7 @@ private struct OpenSettingsButton: View {
             onBeforeOpen()
             openSettings()
         } label: {
-            Label("Settings…", systemImage: "gearshape")
+            Label(localized("Settings…"), systemImage: "gearshape")
         }
     }
 }
