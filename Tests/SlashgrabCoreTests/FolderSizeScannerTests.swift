@@ -37,6 +37,8 @@ final class FolderSizeScannerTests: XCTestCase {
                          sourceApplication: nil, detectionMethod: "clipboard",
                          detectedTimeMS: 500)
         let operation = try XCTUnwrap(store.query(from: 500, to: 501).first)
+        try store.markSynced(operationIDs: [operation.id])
+        XCTAssertTrue(try store.pendingSync().isEmpty)
         XCTAssertFalse(try store.updateComputedSize(operationID: operation.id,
                                                    position: 0, expectedSource: "/incorrect",
                                                    bytes: 999))
@@ -48,6 +50,13 @@ final class FolderSizeScannerTests: XCTestCase {
                                                   bytes: 456))
         let reread = try XCTUnwrap(store.query(from: 500, to: 501).first)
         XCTAssertEqual(reread.items[0].size, 456)
+        // A revised size must be upserted on the server under the same UUID.
+        XCTAssertEqual(try store.pendingSync().map(\.id), [operation.id])
+        try store.markSynced(operationIDs: [operation.id])
+        XCTAssertFalse(try store.updateComputedSize(operationID: operation.id,
+                                                   position: 0, expectedSource: folder.path,
+                                                   bytes: 456))
+        XCTAssertTrue(try store.pendingSync().isEmpty)
         XCTAssertEqual(reread.items[0].source, folder.path)
         XCTAssertEqual(reread.items[1].size, 64)
         XCTAssertNil(reread.completedTimeMS)
