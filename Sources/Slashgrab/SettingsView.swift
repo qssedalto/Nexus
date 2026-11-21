@@ -1,11 +1,18 @@
 import AppKit
 import SwiftUI
+import SlashgrabCore
 
 struct SettingsView<Updater: UpdaterControlling>: View {
     @ObservedObject var appState: AppState
     let buildInfo: AppBuildInfo
     @ObservedObject var updater: Updater
     @ObservedObject private var clipboardHotkey = ClipboardHotkeyController.shared
+    @State private var editingCustomShortcut = false
+    @State private var customKey: ClipboardShortcutKey = .v
+    @State private var customControl = true
+    @State private var customOption = true
+    @State private var customShift = false
+    @State private var customCommand = false
 
     var body: some View {
         TabView {
@@ -78,6 +85,19 @@ struct SettingsView<Updater: UpdaterControlling>: View {
                 }
                 Text(localized("Shortcuts are off by default. If the shortcut is occupied, the previous setting is kept."))
                     .font(.caption).foregroundStyle(.secondary)
+                HStack {
+                    Button(localized("Configure custom shortcut…")) {
+                        loadCustomShortcut()
+                        editingCustomShortcut = true
+                    }
+                    if let current = clipboardHotkey.customShortcut {
+                        Text(current.displayName)
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Text(localized("Custom shortcuts require two or more modifiers. Keys use physical keyboard positions; system conflicts are rejected without losing the previous shortcut."))
+                    .font(.caption).foregroundStyle(.secondary)
                 Text(clipboardHotkey.status).font(.caption).foregroundStyle(.secondary)
             }
             Section(localized("Copy feedback")) {
@@ -94,5 +114,62 @@ struct SettingsView<Updater: UpdaterControlling>: View {
         }
         .formStyle(.grouped)
         .padding(.horizontal, 8)
+        .sheet(isPresented: $editingCustomShortcut) {
+            customShortcutEditor
+        }
+    }
+
+    private var customShortcutEditor: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(localized("Custom clipboard shortcut"))
+                .font(.headline)
+            Picker(localized("Key"), selection: $customKey) {
+                ForEach(ClipboardShortcutKey.allCases) { key in
+                    Text(key.displayName).tag(key)
+                }
+            }
+            .frame(maxWidth: 260)
+            HStack(spacing: 14) {
+                Toggle("⌃ Control", isOn: $customControl)
+                Toggle("⌥ Option", isOn: $customOption)
+                Toggle("⇧ Shift", isOn: $customShift)
+                Toggle("⌘ Command", isOn: $customCommand)
+            }
+            .toggleStyle(.checkbox)
+            Text(localized("Choose at least two modifiers. If macOS already uses the combination, Nexus keeps the previous shortcut."))
+                .font(.caption).foregroundStyle(.secondary)
+            Text(clipboardHotkey.status)
+                .font(.caption).foregroundStyle(.secondary)
+            HStack {
+                Spacer()
+                Button(localized("Cancel")) { editingCustomShortcut = false }
+                Button(localized("Apply shortcut")) {
+                    var modifiers = Set<ClipboardShortcutModifier>()
+                    if customControl { modifiers.insert(.control) }
+                    if customOption { modifiers.insert(.option) }
+                    if customShift { modifiers.insert(.shift) }
+                    if customCommand { modifiers.insert(.command) }
+                    let candidate = ClipboardShortcutSpecification(
+                        key: customKey, modifiers: modifiers
+                    )
+                    if clipboardHotkey.setCustomShortcut(candidate) {
+                        editingCustomShortcut = false
+                    }
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(22)
+        .frame(minWidth: 520)
+    }
+
+    private func loadCustomShortcut() {
+        let candidate = clipboardHotkey.customShortcut ??
+            ClipboardShortcutSpecification(key: .v, modifiers: [.control, .option])
+        customKey = candidate.key
+        customControl = candidate.modifiers.contains(.control)
+        customOption = candidate.modifiers.contains(.option)
+        customShift = candidate.modifiers.contains(.shift)
+        customCommand = candidate.modifiers.contains(.command)
     }
 }
