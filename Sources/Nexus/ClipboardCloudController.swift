@@ -339,7 +339,7 @@ final class ClipboardCloudController: ObservableObject {
     func prepareLocalPage() async {
         guard !running else { return }
         guard enabled else {
-            status = localized("Enable iCloud clipboard consent first")
+            status = localized("Enable sync first")
             return
         }
         guard let store, let journal else {
@@ -422,7 +422,7 @@ final class ClipboardCloudController: ObservableObject {
 
     func syncNow(automaticRun: Bool = false) async {
         guard !running else { return }
-        guard enabled else { status = localized("Enable iCloud clipboard consent first"); return }
+        guard enabled else { status = localized("Enable sync first"); return }
         guard containerConfigured, folderPrepared, pairingKeyConfigured else {
             status = localized("Generate a pairing key, prepare your chosen folder, then enable sync.")
             return
@@ -456,8 +456,9 @@ final class ClipboardCloudController: ObservableObject {
                 }
             }
             refreshLocalCache()
-            status = "Uploaded \(report.uploaded), received \(report.downloaded), pending \(report.pending)" +
-                (report.moreComing ? " — more cloud pages available" : "")
+            status = String(format: localized("Saved %d, received %d, remaining %d"),
+                            report.uploaded, report.downloaded, report.pending) +
+                (report.moreComing ? localized(" — more records on the next sync") : "")
         } catch {
             status = "Folder sync failed: \(error.localizedDescription)"
         }
@@ -469,7 +470,7 @@ final class ClipboardCloudController: ObservableObject {
         guard !running, enabled, let journal else { return }
         do {
             try journal.resetChangeToken(forZone: folderTokenNamespace)
-            status = localized("Cloud sync cursor reset. The next manual sync replays the zone.")
+            status = localized("Sync position reset. The next manual sync will recheck the folder.")
             refreshLocalCache()
         } catch {
             status = "Could not reset sync cursor: \(error.localizedDescription)"
@@ -562,7 +563,7 @@ final class ClipboardCloudController: ObservableObject {
             try await Self.discardLocalCloudData(journal: journal, store: store)
             resetCloudPreferencesAfterPurge()
             refreshLocalCache()
-            status = localized("Local iCloud clipboard cache cleared; original local history preserved")
+            status = localized("Local sync cache cleared; original clipboard history preserved")
         } catch {
             status = localized("Local cloud cache removal failed") + ": "
                 + error.localizedDescription
@@ -595,7 +596,7 @@ final class ClipboardCloudController: ObservableObject {
             )
             resetCloudPreferencesAfterPurge()
             refreshLocalCache()
-            status = localized("NexusClipboardSync documents deleted. Disable sync on other devices to prevent re-upload.")
+            status = localized("Nexus sync records deleted from this folder. Other devices may add them again.")
         } catch {
             status = localized("Folder deletion failed; sync remains disabled and local recovery data may remain")
                 + ": " + error.localizedDescription
