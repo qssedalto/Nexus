@@ -56,9 +56,7 @@ final class InputStatisticsController: ObservableObject {
         permissionTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self else { return }
-                let granted = self.monitor?.hasPermission ?? false
-                if !granted { self.monitor?.stop() }
-                self.permissionGranted = granted
+                self.refreshPermissionStatus()
             }
         }
         wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
@@ -90,24 +88,51 @@ final class InputStatisticsController: ObservableObject {
 
     func startIfPermitted() {
         permissionGranted = monitor?.hasPermission ?? false
+        guard let monitor else {
+            dataStatus = localized("Local statistics database unavailable")
+            return
+        }
         if PrivacyFeatureSwitchPolicy.shouldMonitorInput(
             enabled: enabled, paused: paused, permissionGranted: permissionGranted
         ) {
-            _ = monitor?.start()
+            if !monitor.isRunning, !monitor.start() {
+                dataStatus = localized("Input permission is enabled, but event monitoring could not start. Please reopen Nexus Drive after checking macOS Privacy settings.")
+            }
         } else {
+            monitor.stop()
+        }
+    }
+
+    /// Called when System Settings returns to the foreground and by the
+    /// permission timer. A newly granted permission must start the tap;
+    /// simply updating a Boolean leaves the app unable to count events.
+    func refreshPermissionStatus() {
+        let granted = monitor?.hasPermission ?? false
+        if !granted {
             monitor?.stop()
+            permissionGranted = false
+            return
+        }
+        permissionGranted = true
+        if enabled && !paused && monitor?.isRunning != true {
+            startIfPermitted()
+        }
+    }
+
+    func openInputMonitoringSettings() {
+        if let url = URL(string:
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent") {
+            NSWorkspace.shared.open(url)
         }
     }
 
     func requestPermission() {
         permissionGranted = CGRequestListenEventAccess()
         startIfPermitted()
-        if !permissionGranted,
-           let settingsURL = URL(string:
-               "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent") {
-            // macOS still owns the permission decision; opening Settings cannot
-            // bypass consent or grant access automatically.
-            NSWorkspace.shared.open(settingsURL)
+        if !permissionGranted {
+            // The OS may not show a second prompt after an earlier denial.
+            // Bring up the real Input Monitoring page for manual approval.
+            openInputMonitoringSettings()
         }
     }
 
