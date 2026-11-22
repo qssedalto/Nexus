@@ -84,6 +84,7 @@ jobs:
           INFO="$APP/Contents/Info.plist"
           EXT="$APP/Contents/PlugIns/NexusFinderSync.appex"
           test -d "$APP" && test -d "$EXT"
+          test -s "$APP/Contents/Resources/NexusWebsite.html"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$INFO")" = "com.qssedalto.nexus.drive.dev"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$EXT/Contents/Info.plist")" = "com.qssedalto.nexus.drive.dev.findersync"
           test "$(/usr/libexec/PlistBuddy -c 'Print :NexusBuildVariant' "$INFO")" = "dev"
