@@ -40,7 +40,7 @@ struct SettingsView<Updater: UpdaterControlling>: View {
                 .tabItem { Label(localized("Network sync"), systemImage: "arrow.triangle.2.circlepath") }
 
             ClipboardCloudSettingsView()
-                .tabItem { Label(localized("iCloud Clipboard"), systemImage: "icloud") }
+                .tabItem { Label(localized("iCloud Drive sync"), systemImage: "folder.badge.gearshape") }
 
             PrivacySettingsView()
                 .tabItem { Label(localized("Privacy and Permissions"), systemImage: "hand.raised") }
