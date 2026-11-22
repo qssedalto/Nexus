@@ -78,6 +78,8 @@ targets:
     settings:
       base:
         PRODUCT_NAME: NexusCore
+    dependencies:
+      - sdk: CloudKit.framework
 
   NexusFinderSync:
     type: app-extension
