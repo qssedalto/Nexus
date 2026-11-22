@@ -38,10 +38,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 case .copy:
                     // While history is paused there is no pasteboard read or write.
                     if !ClipboardMonitor.shared.isCollectingHistory {
-                        appState.clipboardDidChange("Copy shortcut detected")
+                        self.appState.clipboardDidChange("Copy shortcut detected")
                     }
-                case .paste: appState.clipboardDidChange("Paste detected")
-                case .pasteRecorded: appState.refreshOperations()
+                case .paste: self.appState.clipboardDidChange("Paste detected")
+                case .pasteRecorded: self.appState.refreshOperations()
                 }
             }
         }
