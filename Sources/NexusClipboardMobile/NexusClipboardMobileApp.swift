@@ -122,6 +122,21 @@ struct MobileHomeView: View {
 
             NavigationStack {
                 Form {
+                    Section("Encrypted folder pairing") {
+                        if cloud.pairingKeyConfigured {
+                            Label("Encryption key saved in Keychain", systemImage: "lock.shield")
+                        } else {
+                            Text("Enter the 64-character encryption key generated on your Mac. The secret is never written to iCloud Drive.")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                        SecureField("64-character pairing key", text: $cloud.pairingKeyEntry)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                        Button("Save pairing key") {
+                            cloud.savePairingKey()
+                        }
+                        .disabled(cloud.pairingKeyEntry.isEmpty)
+                    }
                     Section("iCloud Drive folder sync") {
                         Button("Choose NexusClipboardSync folder…") {
                             showFolderPicker = true
@@ -130,7 +145,7 @@ struct MobileHomeView: View {
                             LabeledContent("Selected folder", value: cloud.selectedFolderLabel)
                         }
                         Toggle("Enable folder sync", isOn: $cloud.cloudEnabled)
-                            .disabled(!cloud.containerConfigured)
+                            .disabled(!cloud.containerConfigured || !cloud.pairingKeyConfigured)
                         Toggle("Sync iCloud clipboard when Nexus becomes active",
                                isOn: $cloud.foregroundSyncEnabled)
                             .disabled(!cloud.cloudEnabled || !cloud.containerConfigured)
@@ -154,7 +169,7 @@ struct MobileHomeView: View {
                         Button("Prepare selected folder") {
                             Task { await cloud.prepareSelectedFolder() }
                         }
-                        .disabled(!cloud.cloudEnabled || !cloud.containerConfigured || cloud.running)
+                        .disabled(!cloud.cloudEnabled || !cloud.containerConfigured || !cloud.pairingKeyConfigured || cloud.running)
                         Button("Sync now") {
                             Task { await cloud.syncNow() }
                         }
