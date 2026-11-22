@@ -135,7 +135,7 @@ final class InputDashboardTests: XCTestCase {
         let store = try InputStatisticsStore(url: root.appendingPathComponent("input.sqlite"))
         let formatter = ISO8601DateFormatter()
         let transitions = [
-            ["2026-03-08T09:59:59Z", "2026-03-08T10:00:00Z"],
+            ["2026-03-08T08:59:59Z", "2026-03-08T09:00:00Z"],
             ["2026-11-01T07:59:59Z", "2026-11-01T08:00:00Z"],
         ]
         var local = Calendar(identifier: .gregorian)
