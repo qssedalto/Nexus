@@ -98,6 +98,14 @@ struct PrivacySettingsView: View {
             }
 
             Section(localized("Clipboard history privacy")) {
+                if !clipboard.storageAvailable {
+                    Label(localized("Local clipboard storage could not be opened. Restart Nexus Drive after rebuilding the app."),
+                          systemImage: "exclamationmark.triangle")
+                        .foregroundStyle(.orange)
+                } else if !clipboard.enabled && !clipboard.textEnabled && !clipboard.imageEnabled {
+                    Text(localized("No clipboard types are selected. Enable Record clipboard text, file copying, or images below to begin collecting new entries."))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 Toggle(localized("Enable clipboard history monitoring"), isOn: $clipboard.historyEnabled)
                 Toggle(localized("Monitor file copies from the clipboard"), isOn: $clipboard.enabled)
                     .disabled(!clipboard.historyEnabled)
