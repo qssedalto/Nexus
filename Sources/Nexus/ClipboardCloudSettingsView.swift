@@ -1,69 +1,86 @@
 import SwiftUI
 import NexusCore
 
-/// User-selected folder synchronization. Opening Settings never reads files,
-/// uploads clipboard data, or starts a background task.
+/// A single, progressive sync workflow. No folder reads or uploads occur just
+/// by opening this tab. Every destination and content type is opt-in.
 @MainActor
 struct ClipboardCloudSettingsView: View {
     @ObservedObject private var cloud = ClipboardCloudController.shared
     @State private var confirmLocalCacheRemoval = false
     @State private var showFolderEraseSheet = false
     @State private var eraseConfirmation = ""
+    @State private var pairingExpanded = false
+    @State private var advancedExpanded = false
+
+    private var hasSyncSelection: Bool {
+        cloud.includeText || cloud.includeNames || cloud.includePaths
+    }
+
+    private var readyToBegin: Bool {
+        cloud.containerConfigured && cloud.pairingKeyConfigured
+            && hasSyncSelection && !cloud.running
+    }
 
     var body: some View {
         Form {
-            if !cloud.pairingKeyConfigured {
-                Section(localized("Step 1: Create pairing key")) {
-                    Label(localized("Create a pairing key before enabling folder sync."),
-                          systemImage: "key")
-                    Button(localized("Generate encryption pairing key")) {
-                        cloud.generatePairingKey()
-                    }
-                    Text(localized("The pairing key is saved in Keychain. Other devices must use the same key."))
-                        .font(.caption).foregroundStyle(.secondary)
+            Section(localized("Sync location")) {
+                Picker(localized("Save in"), selection: Binding(
+                    get: { cloud.storage },
+                    set: { cloud.changeStorage(to: $0) }
+                )) {
+                    Text(localized("iCloud Drive")).tag(NexusSyncStorage.iCloudDrive)
+                    Text(localized("Local folder")).tag(NexusSyncStorage.localFolder)
                 }
-            }
-            Section(localized("iCloud Drive clipboard folder")) {
-                Button(localized("Choose NexusClipboardSync folder…")) {
-                    cloud.chooseSyncFolder()
-                }
-                if cloud.containerConfigured {
-                    Text(cloud.selectedFolderPath)
-                        .font(.caption)
-                        .textSelection(.enabled)
-                } else {
-                    Text(localized("Select your existing NexusClipboardSync folder in iCloud Drive. No developer subscription is needed."))
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-                Text(localized(cloud.pairingKeyConfigured
-                    ? (cloud.folderPrepared
-                        ? "Folder is ready. You can enable sync."
-                        : "Step 2: Click Prepare selected folder before enabling sync.")
-                    : "Step 1: Generate a pairing key using the button above. Sync controls remain unavailable until then."))
-                    .font(.callout)
+                .pickerStyle(.segmented)
+
+                Text(localized(cloud.storage == .iCloudDrive
+                    ? "iCloud Drive keeps the folder available on your Apple devices. Select the existing NexusClipboardSync folder."
+                    : "Local storage saves encrypted copies to this Mac or a folder you choose. It does not automatically sync to other devices."))
+                    .font(.caption)
                     .foregroundStyle(.secondary)
-                Toggle(localized("Enable folder clipboard synchronization"), isOn: $cloud.enabled)
-                    .disabled(!cloud.containerConfigured || !cloud.pairingKeyConfigured || !cloud.folderPrepared)
-                Toggle(localized("Automatically synchronize every 5 minutes"), isOn: $cloud.automaticSyncEnabled)
-                    .disabled(!cloud.enabled || !cloud.containerConfigured || !cloud.folderPrepared)
-                Text(localized("Synchronization is off by default. Nexus only reads and writes the folder you select, when authorized. Apple Files synchronizes it between devices independently."))
-                    .font(.caption).foregroundStyle(.secondary)
-                Text(localized("Folder sync v2 encrypts records with AES-256-GCM. Keep your pairing key private and verify your other devices use the same key."))
-                    .font(.caption).foregroundStyle(.secondary)
+
+                if cloud.containerConfigured {
+                    LabeledContent(localized("Selected folder")) {
+                        Text(cloud.selectedFolderPath)
+                            .font(.caption)
+                            .lineLimit(3)
+                            .textSelection(.enabled)
+                    }
+                    Button(localized("Change folder…")) {
+                        cloud.chooseSyncFolder()
+                    }
+                } else {
+                    Button(localized("Select folder…")) {
+                        cloud.chooseSyncFolder()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
             }
 
-            Section(localized("End-to-end encryption and device pairing")) {
+            Section(localized("Device pairing")) {
                 if cloud.pairingKeyConfigured {
-                    Label(localized("Encryption key is stored in this device's Keychain"),
-                          systemImage: "lock.shield")
-                    Button(localized("Reveal pairing key for another device")) {
-                        cloud.revealPairingKey()
+                    Label(localized("Encryption pairing key is ready"),
+                          systemImage: "checkmark.shield.fill")
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text(localized("Generate a key once to protect your synced data. Other devices use this same key."))
+                        .font(.callout)
+                    Button(localized("Generate pairing key")) {
+                        cloud.generatePairingKey()
                     }
-                    if !cloud.revealedPairingKey.isEmpty {
-                        Text(cloud.revealedPairingKey)
-                            .font(.system(.caption, design: .monospaced))
-                            .textSelection(.enabled)
-                        HStack {
+                    .buttonStyle(.borderedProminent)
+                }
+
+                if cloud.pairingKeyConfigured {
+                    DisclosureGroup(localized("View or enter pairing key"),
+                                    isExpanded: $pairingExpanded) {
+                        Button(localized("Show pairing key")) {
+                            cloud.revealPairingKey()
+                        }
+                        if !cloud.revealedPairingKey.isEmpty {
+                            Text(cloud.revealedPairingKey)
+                                .font(.system(.caption, design: .monospaced))
+                                .textSelection(.enabled)
                             Button(localized("Copy pairing key")) {
                                 cloud.copyPairingKey()
                             }
@@ -71,110 +88,132 @@ struct ClipboardCloudSettingsView: View {
                                 cloud.hidePairingKey()
                             }
                         }
+                        Text(localized("Only give the key to your own trusted devices."))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 } else {
-                    Button(localized("Generate encryption pairing key")) {
-                        cloud.generatePairingKey()
+                    DisclosureGroup(localized("Already have a pairing key?")) {
+                        SecureField(localized("Enter a 64-character pairing key"),
+                                    text: $cloud.pairingKeyEntry)
+                            .textFieldStyle(.roundedBorder)
+                        Button(localized("Use existing key")) {
+                            cloud.installPairingKey()
+                        }
+                        .disabled(cloud.pairingKeyEntry.isEmpty)
                     }
-                    Text(localized("Use the same 64-character key on each paired device. It is never stored in iCloud Drive."))
-                        .font(.caption).foregroundStyle(.secondary)
                 }
-                SecureField(localized("Enter a 64-character pairing key"), text: $cloud.pairingKeyEntry)
-                    .textFieldStyle(.roundedBorder)
-                Button(localized("Save entered key in Keychain")) {
-                    cloud.installPairingKey()
-                }
-                .disabled(cloud.pairingKeyEntry.isEmpty)
-                Text(localized("Never send this key through an untrusted channel. Losing it makes existing encrypted sync files unreadable."))
-                    .font(.caption).foregroundStyle(.secondary)
             }
 
-            Section(localized("Select which clipboard data may be synchronized")) {
-                Toggle(localized("Include copied text"), isOn: $cloud.includeText)
-                    .disabled(!cloud.enabled)
-                Toggle(localized("Include names and collection titles"), isOn: $cloud.includeNames)
-                    .disabled(!cloud.enabled)
-                Toggle(localized("Include original local file paths"), isOn: $cloud.includePaths)
-                    .disabled(!cloud.enabled)
-                Text(localized("Original image and file bytes are not yet supported in folder synchronization. Paths on another device are descriptive only."))
-                    .font(.caption).foregroundStyle(.secondary)
+            Section(localized("What to synchronize")) {
+                Toggle(localized("Clipboard text"), isOn: $cloud.includeText)
+                Toggle(localized("Favorites and collection names"), isOn: $cloud.includeNames)
+                Toggle(localized("Original file paths"), isOn: $cloud.includePaths)
+                if !hasSyncSelection {
+                    Text(localized("Choose at least one content type to start. Nothing is uploaded by default."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Text(localized("Pictures and file contents are not included yet."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
-            Section(localized("Folder synchronization controls")) {
-                HStack(spacing: 12) {
-                    Button(localized("Prepare selected folder")) {
-                        Task { await cloud.prepareSelectedFolder() }
+            Section(localized("Sync status")) {
+                if !cloud.containerConfigured {
+                    Label(localized("First select a folder above."), systemImage: "folder")
+                        .foregroundStyle(.secondary)
+                } else if !cloud.pairingKeyConfigured {
+                    Label(localized("Generate a pairing key above to continue."), systemImage: "key")
+                        .foregroundStyle(.secondary)
+                } else if !hasSyncSelection {
+                    Label(localized("Select the content you want to synchronize."),
+                          systemImage: "checklist")
+                        .foregroundStyle(.secondary)
+                } else if !cloud.enabled {
+                    Button(localized("Start syncing")) {
+                        Task { await cloud.startSync() }
                     }
-                    .disabled(!cloud.containerConfigured || !cloud.pairingKeyConfigured || cloud.running)
-                    Button(localized("Prepare next 200 records")) {
-                        Task { await cloud.prepareLocalPage() }
-                    }
-                    .disabled(!cloud.enabled || cloud.running)
+                    .buttonStyle(.borderedProminent)
+                    .disabled(!readyToBegin)
+                    Text(localized("Nexus will prepare the folder and synchronize in one step."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Toggle(localized("Sync automatically every 5 minutes"),
+                           isOn: $cloud.automaticSyncEnabled)
                     Button(localized("Sync now")) {
-                        Task { await cloud.syncNow() }
+                        Task { await cloud.syncIncludingLocalHistory() }
                     }
-                    .disabled(!cloud.enabled || !cloud.containerConfigured || !cloud.pairingKeyConfigured || !cloud.folderPrepared || cloud.running)
+                    .buttonStyle(.borderedProminent)
+                    .disabled(cloud.running)
+                    Button(localized("Stop syncing")) {
+                        cloud.automaticSyncEnabled = false
+                        cloud.enabled = false
+                    }
+                    .disabled(cloud.running)
                 }
-                HStack {
+                if cloud.running {
+                    ProgressView()
+                        .controlSize(.small)
+                }
+                Text(cloud.status)
+                    .font(.caption)
+                    .textSelection(.enabled)
+                if let previous = cloud.lastSuccessfulSync {
+                    LabeledContent(localized("Last sync"),
+                                   value: Date(timeIntervalSince1970:
+                                    TimeInterval(previous.finishedTimeMS) / 1000).formatted())
+                }
+                if cloud.pendingCount > 0 {
+                    LabeledContent(localized("Pending updates"),
+                                   value: String(cloud.pendingCount))
+                }
+            }
+
+            Section {
+                DisclosureGroup(localized("Advanced sync tools"), isExpanded: $advancedExpanded) {
                     Button(localized("Import synced records into local history")) {
                         Task { await cloud.restoreCachedHistory() }
+                    }
+                    .disabled(!cloud.enabled || cloud.running)
+                    Button(localized("Prepare next 200 records")) {
+                        Task { await cloud.prepareLocalPage() }
                     }
                     .disabled(!cloud.enabled || cloud.running)
                     Button(localized("Replay all folder changes")) {
                         cloud.resetServerCursor()
                     }
                     .disabled(!cloud.enabled || cloud.running)
-                }
-                if !cloud.pairingKeyConfigured {
-                    Text(localized("These controls require a pairing key. Use Generate encryption pairing key at the top of this page."))
-                        .font(.caption).foregroundStyle(.secondary)
-                } else if !cloud.folderPrepared {
-                    Text(localized("Click Prepare selected folder first. The remaining buttons unlock after the folder is ready and sync is enabled."))
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-                HStack {
-                    Text(localized("Pending updates"))
-                    Text(String(cloud.pendingCount)).monospacedDigit()
-                    Spacer()
-                    if let previous = cloud.lastSuccessfulSync {
-                        Text(Date(timeIntervalSince1970:
-                            TimeInterval(previous.finishedTimeMS) / 1000), style: .relative)
+                    Divider()
+                    Button(localized("Clear local sync cache…"), role: .destructive) {
+                        confirmLocalCacheRemoval = true
                     }
+                    .disabled(cloud.running)
+                    Button(localized("Delete synchronized Nexus folder records…"),
+                           role: .destructive) {
+                        eraseConfirmation = ""
+                        showFolderEraseSheet = true
+                    }
+                    .disabled(cloud.running || !cloud.containerConfigured)
                 }
-                .font(.caption).foregroundStyle(.secondary)
-                Text(cloud.status)
-                    .font(.callout)
-                    .textSelection(.enabled)
-            }
-
-            Section(localized("Remove folder synchronization data")) {
-                Text(localized("Local cache reset preserves independently saved history. Deleting synchronized records removes only Nexus-owned JSON files from the selected folder. Other devices can upload old records again."))
-                    .font(.caption).foregroundStyle(.secondary)
-                Button(localized("Clear local sync cache…"), role: .destructive) {
-                    confirmLocalCacheRemoval = true
-                }
-                .disabled(cloud.running)
-                Button(localized("Delete synchronized Nexus folder records…"), role: .destructive) {
-                    eraseConfirmation = ""
-                    showFolderEraseSheet = true
-                }
-                .disabled(cloud.running || !cloud.containerConfigured)
             }
         }
         .formStyle(.grouped)
         .confirmationDialog(localized("Clear only the local folder sync cache?"),
-                            isPresented: $confirmLocalCacheRemoval, titleVisibility: .visible) {
+                            isPresented: $confirmLocalCacheRemoval,
+                            titleVisibility: .visible) {
             Button(localized("Clear local cache"), role: .destructive) {
                 Task { await cloud.clearLocalCloudData() }
             }
         } message: {
-            Text(localized("Original local clipboard history is preserved. Files in iCloud Drive are not deleted."))
+            Text(localized("Original local clipboard history is preserved. Files in the selected folder are not deleted."))
         }
         .sheet(isPresented: $showFolderEraseSheet) {
             VStack(alignment: .leading, spacing: 14) {
                 Text(localized("Delete Nexus folder sync data"))
                     .font(.headline)
-                Text(localized("This deletes Nexus-owned sync JSON documents in your selected folder, not the entire folder or unrelated iCloud Drive data. Disable synchronization on other devices first. Type DELETE to confirm."))
+                Text(localized("Only Nexus encrypted sync records are deleted from the selected folder. Your other files and original clipboard history are preserved. Type DELETE to confirm."))
                     .font(.callout)
                 TextField("DELETE", text: $eraseConfirmation)
                     .textFieldStyle(.roundedBorder)
