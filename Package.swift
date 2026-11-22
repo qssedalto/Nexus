@@ -29,7 +29,7 @@ let package = Package(
         .target(
             name: "NexusCore",
             path: "Sources/NexusCore",
-            linkerSettings: [.linkedLibrary("sqlite3"), .linkedFramework("CloudKit")]
+            linkerSettings: [.linkedLibrary("sqlite3")]
         ),
         .testTarget(
             name: "NexusCoreTests",
