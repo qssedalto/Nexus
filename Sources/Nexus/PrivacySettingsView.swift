@@ -63,9 +63,14 @@ struct PrivacySettingsView: View {
                     Text(localized(AXIsProcessTrusted() ? "Granted" : "Not granted"))
                         .foregroundStyle(.secondary)
                     Button(localized("Request access…")) {
-                        _ = AXIsProcessTrustedWithOptions([
+                        let granted = AXIsProcessTrustedWithOptions([
                             "AXTrustedCheckOptionPrompt": true
                         ] as CFDictionary)
+                        if !granted,
+                           let url = URL(string:
+                               "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+                            NSWorkspace.shared.open(url)
+                        }
                     }
                 }
                 Text(localized("Nexus never reads typed text, password fields, or browser pages. Statistical key categories are stored locally unless you explicitly configure network sync."))
