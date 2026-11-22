@@ -84,12 +84,7 @@ final class ClipboardCloudController: ObservableObject {
             defaults.set(newID, forKey: "nexusFolderClipboardDeviceID")
         }
         store = OperationStore.shared()
-        if let group = Bundle.main.object(
-            forInfoDictionaryKey: SharedSettings.appGroupIdentifierInfoKey
-        ) as? String,
-           let home = FileManager.default.containerURL(
-               forSecurityApplicationGroupIdentifier: group
-           ) {
+        if let home = SharedSettings.localDatabaseDirectory() {
             journal = try? ClipboardCloudJournal(
                 url: home.appendingPathComponent("NexusClipboardFolderJournal.sqlite")
             )
