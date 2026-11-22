@@ -26,6 +26,15 @@ if [[ -f "$ROOT_DIR/.env" ]]; then
   set +a
 fi
 
+# The folder edition must never accidentally receive paid CloudKit entitlements.
+# A provisioned CloudKit test build belongs to feat/cloudkit-provisioned-track.
+if [[ -n "${NEXUS_CLOUDKIT_CONTAINER_ID:-}" ||
+      -n "${NEXUS_CLOUDKIT_PROVISIONING_PROFILE:-}" ]]; then
+  echo "ERROR: CloudKit provisioning is not available in the free folder-sync edition." >&2
+  echo "Use the separate feat/cloudkit-provisioned-track branch instead." >&2
+  exit 1
+fi
+
 CONFIGURATION=${CONFIGURATION:-release}
 APP_VARIANT=${APP_VARIANT:-dev}
 
