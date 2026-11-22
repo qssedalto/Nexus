@@ -407,7 +407,10 @@ struct ClipboardShelfView: View {
             }
         }
         .padding(18)
-        .frame(minWidth: 820, idealWidth: 1080, minHeight: 580, idealHeight: 680)
+        // The NSPanel adapts its minimum size to the visible display. The
+        // hosted SwiftUI content must also be compressible, or AppKit will
+        // shrink the window while the controls still overflow internally.
+        .frame(minWidth: 320, idealWidth: 1080, minHeight: 300, idealHeight: 680)
         .background(.regularMaterial)
         .focusable()
         .focused($shelfFocused)
@@ -438,7 +441,7 @@ struct ClipboardShelfView: View {
                 }
                 .padding(22)
             }
-            .frame(minWidth: 480, minHeight: 300)
+            .frame(minWidth: 300, idealWidth: 480, minHeight: 220, idealHeight: 300)
         }
         .onChange(of: filterFingerprint) { _ in searchPageCount = 1 }
         .task(id: searchFingerprint) {
