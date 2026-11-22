@@ -106,8 +106,9 @@ public final class InputStatisticsStore: @unchecked Sendable {
     private var timer: DispatchSourceTimer?
 
     public static func shared(bundle: Bundle = .main) -> InputStatisticsStore? {
-        guard let group = bundle.object(forInfoDictionaryKey: SharedSettings.appGroupIdentifierInfoKey) as? String,
-              let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: group) else { return nil }
+        guard let container = SharedSettings.localDatabaseDirectory(bundle: bundle) else {
+            return nil
+        }
         return try? InputStatisticsStore(url: container.appendingPathComponent("NexusStatistics.sqlite"))
     }
 
