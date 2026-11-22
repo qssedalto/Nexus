@@ -12,6 +12,7 @@ struct PrivacySettingsView: View {
     @AppStorage("nexusMonitorPasteRequests") private var pasteObservation = false
     @AppStorage("nexusClipboardFileThumbnailPreviews") private var allowFilePreviews = false
     @AppStorage("nexusClipboardRemoteTitlesEnabled") private var allowRemoteTitles = false
+    @State private var accessibilityGranted = AXIsProcessTrusted()
     @State private var fullTextEnabled = false
     @State private var fullTextBusy = false
     @State private var fullTextStatus = ""
@@ -52,6 +53,9 @@ struct PrivacySettingsView: View {
                         Button(localized("Grant input permission")) {
                             statistics.requestPermission()
                         }
+                        Button(localized("Open Input Monitoring settings")) {
+                            statistics.openInputMonitoringSettings()
+                        }
                     }
                 }
                 Toggle(localized("Enable keyboard and mouse statistics"), isOn: $statistics.enabled)
@@ -60,18 +64,34 @@ struct PrivacySettingsView: View {
                 HStack {
                     Text(localized("Accessibility permission for quick paste"))
                     Spacer()
-                    Text(localized(AXIsProcessTrusted() ? "Granted" : "Not granted"))
+                    Text(localized(accessibilityGranted ? "Granted" : "Not granted"))
                         .foregroundStyle(.secondary)
-                    Button(localized("Request access…")) {
-                        let granted = AXIsProcessTrustedWithOptions([
-                            "AXTrustedCheckOptionPrompt": true
-                        ] as CFDictionary)
-                        if !granted,
-                           let url = URL(string:
-                               "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
-                            NSWorkspace.shared.open(url)
+                    if !accessibilityGranted {
+                        Button(localized("Request access…")) {
+                            accessibilityGranted = AXIsProcessTrustedWithOptions([
+                                "AXTrustedCheckOptionPrompt": true
+                            ] as CFDictionary)
+                            if !accessibilityGranted,
+                               let url = URL(string:
+                                   "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+                                NSWorkspace.shared.open(url)
+                            }
                         }
                     }
+                    Button(localized("Refresh permissions")) {
+                        statistics.refreshPermissionStatus()
+                        accessibilityGranted = AXIsProcessTrusted()
+                    }
+                }
+                if !statistics.permissionGranted {
+                    Text(localized("If you already approved access, confirm Nexus Drive is enabled in macOS Input Monitoring, then return here and refresh. Permissions for a previously installed Nexus app do not automatically transfer."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                if !statistics.dataStatus.isEmpty {
+                    Text(statistics.dataStatus)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
                 Text(localized("Nexus never reads typed text, password fields, or browser pages. Statistical key categories are stored locally unless you explicitly configure network sync."))
                     .font(.caption).foregroundStyle(.secondary)
@@ -182,6 +202,16 @@ struct PrivacySettingsView: View {
                 Text(localized("Operation uploads are off by default. Full paths and clipboard contents require separate consent even after metadata sync is enabled. Server-side deletion is controlled from Network sync."))
                     .font(.caption).foregroundStyle(.secondary)
             }
+        }
+        .onAppear {
+            statistics.refreshPermissionStatus()
+            accessibilityGranted = AXIsProcessTrusted()
+        }
+        .onReceive(NotificationCenter.default.publisher(
+            for: NSApplication.didBecomeActiveNotification
+        )) { _ in
+            statistics.refreshPermissionStatus()
+            accessibilityGranted = AXIsProcessTrusted()
         }
         .formStyle(.grouped)
         .padding(.horizontal, 8)
