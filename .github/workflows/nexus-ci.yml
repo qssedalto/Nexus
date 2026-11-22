@@ -74,13 +74,13 @@ jobs:
       # Pull-request artifact: distinct identity and isolated local data.
       # This is an Ad Hoc signed preview, not a notarized release or a
       # provisioning-profile-backed Finder Sync distribution.
-      - name: Build separately installable Nexus Drive Dev (Release)
+      - name: Build independently installable Nexus Drive (Release)
         if: github.event_name == 'pull_request' && github.head_ref == 'feat/icloud-drive-folder-sync'
         shell: bash
         run: |
           set -euo pipefail
           ARCHES=arm64 bash Scripts/build_drive_dev.sh --release --verify
-          APP="Nexus Drive Dev.app"
+          APP="Nexus Drive.app"
           INFO="$APP/Contents/Info.plist"
           EXT="$APP/Contents/PlugIns/NexusFinderSync.appex"
           test -d "$APP" && test -d "$EXT"
@@ -99,28 +99,28 @@ jobs:
             echo "::error::Free Drive build unexpectedly has CloudKit entitlement."
             exit 1
           fi
-          test "$(/usr/bin/lipo -archs "$APP/Contents/MacOS/Nexus Drive Dev")" = arm64
+          test "$(/usr/bin/lipo -archs "$APP/Contents/MacOS/Nexus Drive")" = arm64
           mkdir -p "$RUNNER_TEMP/nexus-drive-dist"
-          ZIP="$RUNNER_TEMP/nexus-drive-dist/Nexus-Drive-Dev-macOS-arm64.zip"
+          ZIP="$RUNNER_TEMP/nexus-drive-dist/Nexus-Drive-macOS-arm64.zip"
           /usr/bin/ditto --norsrc -c -k --keepParent "$APP" "$ZIP"
           /usr/bin/unzip -tq "$ZIP"
           test -s "$ZIP"
           {
-            echo "## Nexus Drive Dev (free iCloud Drive prototype)"
+            echo "## Nexus Drive (iCloud Drive edition)"
             echo ""
-            echo "- Download: **Nexus-Drive-Dev-macOS-arm64-${GITHUB_RUN_NUMBER}** (Artifacts below)"
+            echo "- Download: **Nexus-Drive-macOS-arm64-${GITHUB_RUN_NUMBER}** (Artifacts below)"
             echo "- Release configuration, arm64, Ad Hoc signed, not notarized"
             echo "- Application and Finder extension included; extension activation may require compatible developer provisioning"
             echo "- CloudKit entitlement deliberately absent; folder sync must be enabled manually"
-            echo "- Experimental build: do not overwrite Nexus.app"
+            echo "- Independent build: does not overwrite Nexus.app; sync features remain under evaluation"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload Nexus Drive Dev app ZIP
+      - name: Upload Nexus Drive app ZIP
         if: github.event_name == 'pull_request' && github.head_ref == 'feat/icloud-drive-folder-sync'
         uses: actions/upload-artifact@v4
         with:
-          name: Nexus-Drive-Dev-macOS-arm64-${{ github.run_number }}
-          path: ${{ runner.temp }}/nexus-drive-dist/Nexus-Drive-Dev-macOS-arm64.zip
+          name: Nexus-Drive-macOS-arm64-${{ github.run_number }}
+          path: ${{ runner.temp }}/nexus-drive-dist/Nexus-Drive-macOS-arm64.zip
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
