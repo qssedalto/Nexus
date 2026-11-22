@@ -28,10 +28,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // Newly installed users only; respect a persisted disabled preference.
             appState.setLaunchAtLoginEnabled(true)
         }
-        // Observing Command-V is not proof that the target pasted anything.
-        // The input timeline may record requests, but never show a misleading
-        // success popup over the destination application.
-        InputStatisticsController.shared.setPasteRequestHandler { _ in }
+        // Command-V only proves a request was seen, never destination success.
+        // Reuse the existing short feedback popover when the user has explicitly
+        // enabled paste-request observation.
+        InputStatisticsController.shared.setPasteRequestHandler { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.appState.clipboardDidChange("Paste request observed")
+            }
+        }
         InputStatisticsController.shared.startIfPermitted()
         _ = InputCloudBackupController.shared
         _ = NetworkSyncController.shared
