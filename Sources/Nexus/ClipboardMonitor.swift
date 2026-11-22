@@ -193,7 +193,8 @@ final class ClipboardMonitor: ObservableObject {
         }
     }
 
-    private func persist(_ write: @escaping @Sendable () throws -> Void) {
+    private func persist(feedbackKey: String? = nil,
+                         _ write: @escaping @Sendable () throws -> Void) {
         Task { [weak self] in
             let committed = await Task.detached(priority: .utility) { () -> Bool in
                 do {
@@ -207,6 +208,9 @@ final class ClipboardMonitor: ObservableObject {
             // text and image bytes never travel through notifications.
             if committed {
                 self?.savedRevision &+= 1
+                // Only notify after the history entry is durable. Detection
+                // alone must not be represented as a successfully saved copy.
+                if let feedbackKey { self?.onDetected?(feedbackKey) }
             }
         }
     }
@@ -242,8 +246,7 @@ final class ClipboardMonitor: ObservableObject {
         let urls = URLDropReader.fileURLs(from: pasteboard)
         if !urls.isEmpty {
             guard enabled, let store else { return }
-            onDetected?("Clipboard files detected")
-            persist {
+            persist(feedbackKey: "Clipboard files detected") {
                 try store.record(type: "copy", urls: urls,
                                  sourceApplication: observedForegroundID,
                                  detectionMethod: "clipboard_frontmost_observed",
@@ -266,12 +269,11 @@ final class ClipboardMonitor: ObservableObject {
         let imageDeclared = encodedImageType != nil
             || pasteboard.types?.contains(where: { $0.rawValue == "public.image" }) == true
         if (enabled || imageEnabled), imageDeclared, let store {
-            onDetected?("Clipboard image detected")
             if imageEnabled, let encodedImageType,
                let data = pasteboard.data(forType: encodedImageType),
                data.count > 0 && data.count <= maximumImageBytes {
                 let type = encodedImageType.rawValue
-                persist {
+                persist(feedbackKey: "Clipboard image detected") {
                     if let thumbnail = ClipboardThumbnailMaker.jpegPreview(from: data) {
                         do {
                             try store.recordClipboardImage(
@@ -290,7 +292,7 @@ final class ClipboardMonitor: ObservableObject {
                                      detectedTimeMS: detected)
                 }
             } else {
-                persist {
+                persist(feedbackKey: "Clipboard image detected") {
                     try store.record(type: "image_copy", urls: [],
                                      sourceApplication: observedForegroundID,
                                      detectionMethod: "clipboard_frontmost_observed",
@@ -304,7 +306,6 @@ final class ClipboardMonitor: ObservableObject {
               let text = pasteboard.string(forType: .string),
               !text.isEmpty,
               text.utf8.count <= maximumTextBytes else { return }
-        onDetected?("Clipboard text detected")
         // RTF and HTML formatting both require the existing independent
         // typography opt-in. HTML is parsed offline with a strict tag
         // allowlist, never rendered as a webpage or loaded by WebKit.
@@ -314,7 +315,7 @@ final class ClipboardMonitor: ObservableObject {
             ? pasteboard.string(forType: NSPasteboard.PasteboardType("public.url-name"))
             : nil
         let duplicatePolicy = textDuplicatePolicy
-        persist {
+        persist(feedbackKey: "Clipboard text detected") {
             let original = text.trimmingCharacters(in: .whitespacesAndNewlines)
             var sanitized: ClipboardRichTextPreview?
             var format = "rtf"
