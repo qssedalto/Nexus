@@ -684,17 +684,39 @@ struct NetworkSyncView: View {
 
     var body: some View {
         Form {
-            TextField(localized("API server"), text: $controller.serverAddress)
-            SecureField(localized("API token"), text: $token)
-            HStack {
-                Button(localized("Save token")) { if controller.saveToken(token) { token = "" } }
-                Button(localized("Remove token")) { controller.removeToken() }
+            Section(localized("API connection setup")) {
+                Text(localized("Network sync needs a separately deployed Nexus API and an access token. The address below is not guaranteed to be a working Nexus server. Clipboard history stays on this Mac until you authorize a transfer."))
+                    .font(.callout).foregroundStyle(.secondary)
+                TextField(localized("API server"), text: $controller.serverAddress)
+                    .textContentType(.URL)
+                SecureField(localized("API token"), text: $token)
+                HStack {
+                    Button(localized("Save token")) { if controller.saveToken(token) { token = "" } }
+                        .disabled(token.isEmpty)
+                    Button(localized("Remove token")) { controller.removeToken() }
+                        .disabled(!controller.hasToken)
+                    Button(localized("Test connection")) {
+                        Task { await controller.testConnection() }
+                    }
+                        .disabled(!controller.hasToken)
+                }
+                if !controller.hasToken {
+                    Text(localized("No API token saved. Set up your own Nexus server before enabling uploads."))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Text(localized(controller.status))
+                    .font(.caption).textSelection(.enabled)
             }
-            Toggle(localized("Allow statistics upload to configured server"), isOn: $controller.statisticsUploadEnabled)
-            Toggle(localized("Automatic sync"), isOn: $controller.automatic)
-            Toggle(localized("Precise non-text events"), isOn: $controller.preciseEvents)
-                .disabled(!controller.statisticsUploadEnabled)
-
+            Section(localized("Statistics upload permissions")) {
+                Toggle(localized("Allow statistics upload to configured server"), isOn: $controller.statisticsUploadEnabled)
+                Toggle(localized("Automatic sync"), isOn: $controller.automatic)
+                    .disabled(!controller.statisticsUploadEnabled || !controller.hasToken)
+                Toggle(localized("Precise non-text events"), isOn: $controller.preciseEvents)
+                    .disabled(!controller.statisticsUploadEnabled)
+                Text(localized("All uploads are off by default. Never enable them until the server and token have been verified."))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Section(localized("Copy history transfer")) {
             DisclosureGroup(localized("Copy history cloud sync (separate consent)"), isExpanded: $showOperationSync) {
                 Toggle(localized("Allow operation metadata sync"), isOn: $controller.operationSyncEnabled)
                 Toggle(localized("Include full source and target paths"), isOn: $controller.operationSyncPaths)
@@ -722,31 +744,42 @@ struct NetworkSyncView: View {
                 Text(localized("Remote deletion is available even when operation uploads are disabled. Automatic sync and operation upload permissions are turned off before deletion."))
                     .font(.caption).foregroundStyle(.secondary)
                 Text(controller.operationPreview).font(.caption).textSelection(.enabled)
-                LabeledContent(localized("Operation sync status"), value: controller.operationSyncStatus)
+                LabeledContent(localized("Operation sync status"), value: localized(controller.operationSyncStatus))
             }
-            HStack {
-                Button(localized("Test connection")) { Task { await controller.testConnection() } }
-                Button(localized("Upload now")) { Task { await controller.syncNow() } }
-                    .disabled(!controller.statisticsUploadEnabled)
-                Button(localized("Preview upload")) { controller.preview() }
             }
-            Text(controller.uploadPreview).font(.caption)
-            HStack {
+            Section(localized("Transfer and recovery")) {
+                HStack {
+                    Button(localized("Upload now")) {
+                        Task { await controller.syncNow() }
+                    }
+                        .disabled(!controller.statisticsUploadEnabled || !controller.hasToken)
+                    Button(localized("Preview upload")) { controller.preview() }
+                }
+                Text(controller.uploadPreview)
+                    .font(.caption).textSelection(.enabled)
                 DatePicker(localized("From"), selection: $start)
-                DatePicker(localized("To"), selection: $end)
-            }
-            HStack {
-                Button(localized("Query remote")) { Task { await controller.queryRemote(from: lower, to: upper) } }
-                Button(localized("Restore remote")) { Task { await controller.restore(from: lower, to: upper) } }
-                Button(localized("Delete remote device data"), role: .destructive) { confirmRemoteDelete = true }
-            }
-            ForEach(controller.remoteSummary.sorted(by: { $0.key < $1.key }), id: \.key) { row in
-                LabeledContent(row.key, value: row.value.formatted())
-            }
-            ForEach(controller.log, id: \.self) { Text($0).font(.caption).foregroundStyle(.secondary) }
-            LabeledContent(localized("Sync status"), value: controller.status)
-            if let lastSync = controller.lastSync {
-                LabeledContent(localized("Last sync"), value: lastSync.formatted())
+                DatePicker(localized("To"), selection: $end, in: start...)
+                HStack {
+                    Button(localized("Query remote")) {
+                        Task { await controller.queryRemote(from: lower, to: upper) }
+                    }.disabled(!controller.hasToken)
+                    Button(localized("Restore remote")) {
+                        Task { await controller.restore(from: lower, to: upper) }
+                    }.disabled(!controller.hasToken)
+                    Button(localized("Delete remote device data"), role: .destructive) {
+                        confirmRemoteDelete = true
+                    }.disabled(!controller.hasToken)
+                }
+                ForEach(controller.remoteSummary.sorted(by: { $0.key < $1.key }), id: \.key) { row in
+                    LabeledContent(row.key, value: row.value.formatted())
+                }
+                ForEach(controller.log, id: \.self) {
+                    Text($0).font(.caption).foregroundStyle(.secondary)
+                }
+                LabeledContent(localized("Sync status"), value: localized(controller.status))
+                if let lastSync = controller.lastSync {
+                    LabeledContent(localized("Last sync"), value: lastSync.formatted())
+                }
             }
         }
         .formStyle(.grouped)
