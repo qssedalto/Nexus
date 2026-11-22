@@ -28,17 +28,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // Newly installed users only; respect a persisted disabled preference.
             appState.setLaunchAtLoginEnabled(true)
         }
-        let state = appState
-        InputStatisticsController.shared.setPasteRequestHandler { _ in
-            Task { @MainActor in
-                state.clipboardDidChange("Paste request detected")
-            }
-        }
+        // Observing Command-V is not proof that the target pasted anything.
+        // The input timeline may record requests, but never show a misleading
+        // success popup over the destination application.
+        InputStatisticsController.shared.setPasteRequestHandler { _ in }
         InputStatisticsController.shared.startIfPermitted()
         _ = InputCloudBackupController.shared
         _ = NetworkSyncController.shared
-        if UserDefaults.standard.bool(forKey: "nexusCloudClipboardEnabled"),
-           UserDefaults.standard.bool(forKey: "nexusCloudClipboardAutomaticSync") {
+        if UserDefaults.standard.bool(forKey: "nexusFolderClipboardEnabled"),
+           UserDefaults.standard.bool(forKey: "nexusFolderClipboardAutomaticSync") {
             _ = ClipboardCloudController.shared
         }
         ClipboardMonitor.shared.onDetected = { [weak self] key in
