@@ -142,15 +142,25 @@ final class ClipboardMonitor: ObservableObject {
         savedRevision &+= 1
     }
 
+    /// Re-evaluate opt-in observation whenever sync formats or destination
+    /// become enabled/disabled, without altering saved clipboard history.
+    func refreshObservationConfiguration() {
+        configureTimer()
+    }
+
     private func configureTimer() {
         timer?.invalidate()
         retentionTimer?.invalidate()
         timer = nil
         retentionTimer = nil
         lastChangeCount = NSPasteboard.general.changeCount
+        let sync = ClipboardCloudController.shared
         if ClipboardRetentionActivityPolicy.shouldObserve(
             paused: paused, files: enabled, text: textEnabled,
-            images: imageEnabled, historyEnabled: historyEnabled
+            images: imageEnabled, historyEnabled: historyEnabled,
+            mirrorEnabled: sync.enabled && sync.folderPrepared && sync.containerConfigured,
+            mirrorFiles: sync.mirrorFiles, mirrorText: sync.mirrorText,
+            mirrorImages: sync.mirrorImages
         ) {
             timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
                 MainActor.assumeIsolated { self?.checkPasteboard() }

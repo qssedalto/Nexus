@@ -5,9 +5,16 @@ import Foundation
 public enum ClipboardRetentionActivityPolicy {
     public static func shouldObserve(
         paused: Bool, files: Bool, text: Bool, images: Bool,
-        historyEnabled: Bool = true
+        historyEnabled: Bool = true,
+        mirrorEnabled: Bool = false,
+        mirrorFiles: Bool = false,
+        mirrorText: Bool = false,
+        mirrorImages: Bool = false
     ) -> Bool {
-        historyEnabled && !paused && (files || text || images)
+        historyEnabled && !paused && (
+            files || text || images ||
+            (mirrorEnabled && (mirrorFiles || mirrorText || mirrorImages))
+        )
     }
 
     public static func shouldRunCleanup(

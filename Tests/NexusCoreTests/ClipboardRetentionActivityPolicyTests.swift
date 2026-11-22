@@ -37,4 +37,26 @@ final class ClipboardRetentionActivityPolicyTests: XCTestCase {
         XCTAssertFalse(ClipboardRetentionActivityPolicy.shouldRunCleanup(
             retentionDays: 0, maximumHistoryRecords: 0))
     }
+
+    func testExplicitFolderMirroringKeepsObservationRunningWithoutHistoryFormats() {
+        XCTAssertFalse(ClipboardRetentionActivityPolicy.shouldObserve(
+            paused: false, files: false, text: false, images: false,
+            mirrorEnabled: false, mirrorFiles: true, mirrorText: true))
+        XCTAssertTrue(ClipboardRetentionActivityPolicy.shouldObserve(
+            paused: false, files: false, text: false, images: false,
+            mirrorEnabled: true, mirrorFiles: true))
+        XCTAssertTrue(ClipboardRetentionActivityPolicy.shouldObserve(
+            paused: false, files: false, text: false, images: false,
+            mirrorEnabled: true, mirrorImages: true))
+        XCTAssertTrue(ClipboardRetentionActivityPolicy.shouldObserve(
+            paused: false, files: false, text: false, images: false,
+            mirrorEnabled: true, mirrorText: true))
+        XCTAssertFalse(ClipboardRetentionActivityPolicy.shouldObserve(
+            paused: true, files: false, text: false, images: false,
+            mirrorEnabled: true, mirrorText: true))
+        XCTAssertFalse(ClipboardRetentionActivityPolicy.shouldObserve(
+            paused: false, files: false, text: false, images: false,
+            historyEnabled: false, mirrorEnabled: true, mirrorFiles: true))
+    }
+
 }

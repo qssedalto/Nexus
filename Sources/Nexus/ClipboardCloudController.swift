@@ -23,6 +23,7 @@ final class ClipboardCloudController: ObservableObject {
             defaults.set(enabled, forKey: "nexusFolderClipboardEnabled")
             if !enabled { cancelMirrorTasks() }
             configureAutomaticSyncTimer()
+            ClipboardMonitor.shared.refreshObservationConfiguration()
         }
     }
     /// Separate consent for timed iCloud Drive access. The default is OFF even
@@ -34,13 +35,22 @@ final class ClipboardCloudController: ObservableObject {
         }
     }
     @Published var includeNames: Bool {
-        didSet { defaults.set(includeNames, forKey: "nexusFolderClipboardNames") }
+        didSet {
+            defaults.set(includeNames, forKey: "nexusFolderClipboardNames")
+            configureAutomaticSyncTimer()
+        }
     }
     @Published var includeText: Bool {
-        didSet { defaults.set(includeText, forKey: "nexusFolderClipboardText") }
+        didSet {
+            defaults.set(includeText, forKey: "nexusFolderClipboardText")
+            configureAutomaticSyncTimer()
+        }
     }
     @Published var includePaths: Bool {
-        didSet { defaults.set(includePaths, forKey: "nexusFolderClipboardPaths") }
+        didSet {
+            defaults.set(includePaths, forKey: "nexusFolderClipboardPaths")
+            configureAutomaticSyncTimer()
+        }
     }
     /// Independent, revocable permission for image CKAsset transfer.
     @Published var includeImages: Bool {
@@ -50,13 +60,22 @@ final class ClipboardCloudController: ObservableObject {
         didSet { defaults.set(includeFiles, forKey: "nexusFolderClipboardFiles") }
     }
     @Published var mirrorFiles: Bool {
-        didSet { defaults.set(mirrorFiles, forKey: "nexusFolderMirrorFiles") }
+        didSet {
+            defaults.set(mirrorFiles, forKey: "nexusFolderMirrorFiles")
+            ClipboardMonitor.shared.refreshObservationConfiguration()
+        }
     }
     @Published var mirrorText: Bool {
-        didSet { defaults.set(mirrorText, forKey: "nexusFolderMirrorText") }
+        didSet {
+            defaults.set(mirrorText, forKey: "nexusFolderMirrorText")
+            ClipboardMonitor.shared.refreshObservationConfiguration()
+        }
     }
     @Published var mirrorImages: Bool {
-        didSet { defaults.set(mirrorImages, forKey: "nexusFolderMirrorImages") }
+        didSet {
+            defaults.set(mirrorImages, forKey: "nexusFolderMirrorImages")
+            ClipboardMonitor.shared.refreshObservationConfiguration()
+        }
     }
     @Published private(set) var status = localized("Folder synchronization is off")
     @Published private(set) var nextHistoryOffset: Int
@@ -138,6 +157,10 @@ final class ClipboardCloudController: ObservableObject {
     private func configureAutomaticSyncTimer() {
         automaticSyncTimer?.invalidate()
         automaticSyncTimer = nil
+        guard includeText || includeNames || includePaths else {
+            automaticSyncTask?.cancel()
+            return
+        }
         guard pairingKeyConfigured,
               ClipboardCloudAutomaticSyncPolicy.maySchedule(
             cloudEnabled: enabled,
@@ -190,6 +213,13 @@ final class ClipboardCloudController: ObservableObject {
     }
 
     var containerConfigured: Bool { selectedFolderURL != nil }
+
+    private var hasJournalContentSelection: Bool {
+        includeText || includeNames || includePaths
+    }
+    private var hasAnyContentSelection: Bool {
+        hasJournalContentSelection || mirrorFiles || mirrorText || mirrorImages
+    }
 
     var visibleSyncedRecords: [ClipboardCloudRecord] {
         let consent = currentConsent
@@ -450,7 +480,7 @@ final class ClipboardCloudController: ObservableObject {
             status = localized("Choose a folder and create a pairing key first.")
             return
         }
-        guard includeText || includeNames || includePaths else {
+        guard hasAnyContentSelection else {
             status = localized("Select at least one type of content to sync.")
             return
         }
@@ -459,7 +489,13 @@ final class ClipboardCloudController: ObservableObject {
         }
         guard folderPrepared else { return }
         enabled = true
-        await syncIncludingLocalHistory()
+        if hasJournalContentSelection {
+            await syncIncludingLocalHistory()
+        } else {
+            // Visible copies are local files, not encrypted history packets.
+            // Do not schedule or perform a meaningless network sync.
+            status = localized("NexusClipboardSync folder is ready")
+        }
     }
 
     /// User-initiated folder initialization, not an Apple container request.
@@ -488,8 +524,8 @@ final class ClipboardCloudController: ObservableObject {
             return
         }
         if automaticRun && (!automaticSyncEnabled || Task.isCancelled) { return }
-        guard includeText || includeNames || includePaths else {
-            status = localized("Select at least one type of content to sync.")
+        guard hasJournalContentSelection else {
+            status = localized("NexusClipboardSync folder is ready")
             return
         }
         guard let journal, let store else {
