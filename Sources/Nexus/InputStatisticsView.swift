@@ -241,6 +241,14 @@ struct InputStatisticsView: View {
     @State private var editingSource: String?
     @State private var sourceAliasDraft = ""
     @State private var showingSourceAliasEditor = false
+    @AppStorage("nexusInputKeyAliases") private var keyAliasData = Data()
+    @State private var editingKeyAlias: String?
+    @State private var keyAliasDraft = ""
+    @State private var showingKeyAliasEditor = false
+
+    private var keyAliases: [String: String] {
+        (try? JSONDecoder().decode([String: String].self, from: keyAliasData)) ?? [:]
+    }
 
     private var sourceAliases: [String: String] {
         (try? JSONDecoder().decode([String: String].self, from: sourceAliasData)) ?? [:]
@@ -422,6 +430,11 @@ struct InputStatisticsView: View {
                     }
                 }
                 .buttonStyle(.plain)
+                .contextMenu {
+                    Button(localized("Name this key or shortcut…")) {
+                        editKeyAlias(count.name)
+                    }
+                }
             }
             .frame(minHeight: 95, idealHeight: 150)
             if !controller.selectedKeyName.isEmpty {
@@ -430,6 +443,9 @@ struct InputStatisticsView: View {
                     Button(localized("Show all keys")) {
                         controller.selectedKeyName = ""
                         query()
+                    }
+                    Button(localized("Name this key or shortcut…")) {
+                        editKeyAlias(controller.selectedKeyName)
                     }
                 }
                 .font(.caption)
@@ -557,6 +573,16 @@ struct InputStatisticsView: View {
         } message: {
             Text(localized("The name applies to this event source. Sources without device identifiers may combine multiple devices."))
         }
+        .alert(localized("Name this key or shortcut…"), isPresented: $showingKeyAliasEditor) {
+            TextField(localized("Custom display name"), text: $keyAliasDraft)
+            if let editingKeyAlias, keyAliases[editingKeyAlias] != nil {
+                Button(localized("Reset name")) { saveKeyAlias("") }
+            }
+            Button(localized("Cancel"), role: .cancel) {}
+            Button(localized("Save")) { saveKeyAlias(keyAliasDraft) }
+        } message: {
+            Text(localized("This changes only the label shown in Nexus. It does not remap any key or claim a shortcut action was executed."))
+        }
         .onAppear {
             controller.refreshPermissionStatus()
             applyPreset()
@@ -598,6 +624,23 @@ struct InputStatisticsView: View {
         if let data = try? JSONEncoder().encode(names) { sourceAliasData = data }
     }
 
+    private func editKeyAlias(_ name: String) {
+        editingKeyAlias = name
+        keyAliasDraft = keyAliases[name] ?? ""
+        showingKeyAliasEditor = true
+    }
+
+    private func saveKeyAlias(_ input: String) {
+        guard let editingKeyAlias else { return }
+        let value = String(input.trimmingCharacters(in: .whitespacesAndNewlines).prefix(50))
+        guard !value.unicodeScalars.contains(where: {
+            CharacterSet.controlCharacters.contains($0)
+        }) else { return }
+        var aliases = keyAliases
+        aliases[editingKeyAlias] = value.isEmpty ? nil : value
+        if let data = try? JSONEncoder().encode(aliases) { keyAliasData = data }
+    }
+
     private func readableSource(_ source: String) -> String {
         let description = sourceDescription(source)
         guard let alias = sourceAliases[source] else { return description }
@@ -635,6 +678,7 @@ struct InputStatisticsView: View {
     }
 
     private func readableEvent(_ name: String) -> String {
+        if let alias = keyAliases[name], !alias.isEmpty { return alias }
         if name.count == 1 { return name.uppercased() }
         if name.first == "f", let number = Int(name.dropFirst()), (1...24).contains(number) {
             return "F\(number)"
