@@ -36,7 +36,7 @@ struct AboutView: View {
                         Text(appName)
                             .font(.custom("Avenir Next", size: 26, relativeTo: .title).weight(.bold))
 
-                        if buildInfo.isDevBuild {
+                        if buildInfo.showsDevelopmentLabel {
                             Text(localized("DEV"))
                                 .font(.custom("Avenir Next", size: 9, relativeTo: .caption2).weight(.heavy))
                                 .foregroundStyle(.white)
@@ -70,8 +70,8 @@ struct AboutView: View {
                 Button(localized("Check for Updates"), action: onCheckForUpdates)
             } else if let builds = URL(string:
                 "https://github.com/qssedalto/Nexus/pull/73/checks") {
-                Link(localized("View development builds"), destination: builds)
-                Text(localized("Automatic updates are unavailable in this test build."))
+                Link(localized("View updates on GitHub"), destination: builds)
+                Text(localized("This edition is updated manually from GitHub."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
