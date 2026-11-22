@@ -13,7 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let welcomeGuideStore = WelcomeGuideStore()
     private lazy var welcomeGuideController = WelcomeGuideWindowController(
         onOpenMenu: { [weak self] in
-            DispatchQueue.main.async { self?.statusItemController?.showMenu() }
+            self?.statusItemController?.showMenu()
         }
     )
     private var welcomeGuideObserver: NSObjectProtocol?
