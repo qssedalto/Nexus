@@ -33,6 +33,12 @@ public enum SharedSettings {
             || FileManager.default.fileExists(atPath: journal.path) {
             return fallback
         }
+        // Ad Hoc signatures do not provide a provisioned App Group.
+        // Even if containerURL returns a URL, writes can fail. Keep
+        // unsigned local builds on their stable, isolated user directory.
+        if group?.hasPrefix("adhoc.") == true {
+            return fallback
+        }
         return groupDirectory ?? fallback
     }
 
