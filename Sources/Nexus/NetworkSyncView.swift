@@ -705,113 +705,166 @@ struct NetworkSyncView: View {
     @State private var end = Date()
     @State private var confirmRemoteDelete = false
     @State private var confirmOperationDelete = false
-    @State private var showOperationSync = false
+    @State private var showAdvanced = false
+    @State private var showSensitiveOptions = false
+
+    private var mayUpload: Bool {
+        controller.connectionVerified && controller.hasToken &&
+        ((controller.statisticsUploadEnabled && controller.serverStatisticsAggregatesSupported)
+         || (controller.operationSyncEnabled && controller.serverOperationsSupported))
+    }
 
     var body: some View {
         Form {
-            Section(localized("API connection setup")) {
-                Text(localized("Network sync needs a separately deployed Nexus API and an access token. The address below is not guaranteed to be a working Nexus server. Clipboard history stays on this Mac until you authorize a transfer."))
-                    .font(.callout).foregroundStyle(.secondary)
-                TextField(localized("API server"), text: $controller.serverAddress)
-                                    SecureField(localized("API token"), text: $token)
-                HStack {
-                    Button(localized("Save token")) { if controller.saveToken(token) { token = "" } }
-                        .disabled(token.isEmpty)
-                    Button(localized("Remove token")) { controller.removeToken() }
-                        .disabled(!controller.hasToken)
-                    Button(localized("Test connection")) {
-                        Task { await controller.testConnection() }
-                    }
-                        .disabled(!controller.hasToken)
-                }
+            Section(localized("Before using server sync")) {
+                Text(localized("For iCloud Drive or a local folder, use the Sync tab instead. No API server or token is needed there."))
+                    .font(.callout)
+                Text(localized("This optional feature connects to a Nexus API server you have deployed yourself. Enter an HTTPS address and its access token, then verify the connection. Nexus does not create or host that server."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Link(localized("Read server setup instructions"),
+                     destination: URL(string:
+                         "https://github.com/qssedalto/Nexus/blob/main/Server/README.md")!)
+            }
+
+            Section(localized("Connect your server")) {
+                TextField(localized("Server HTTPS address"), text: $controller.serverAddress)
+                    .textFieldStyle(.roundedBorder)
+                SecureField(localized("Access token"), text: $token)
+                    .textFieldStyle(.roundedBorder)
                 if !controller.hasToken {
-                    Text(localized("No API token saved. Set up your own Nexus server before enabling uploads."))
-                        .font(.caption).foregroundStyle(.secondary)
+                    Button(localized("Save token")) {
+                        if controller.saveToken(token) { token = "" }
+                    }
+                    .disabled(token.isEmpty || controller.serverAddress.isEmpty)
+                } else {
+                    Label(localized("Access token saved in Keychain"),
+                          systemImage: "checkmark.shield")
+                    Button(localized("Remove token")) {
+                        controller.removeToken()
+                    }
                 }
+                Button(localized("Test server connection")) {
+                    Task { await controller.testConnection() }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(!controller.hasToken || controller.serverAddress.isEmpty)
                 Text(localized(controller.status))
-                    .font(.caption).textSelection(.enabled)
+                    .font(.caption)
+                    .textSelection(.enabled)
+                if controller.connectionVerified {
+                    Label(localized("Connection verified"), systemImage: "checkmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text(localized("Uploads stay unavailable until the server is verified."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
-            Section(localized("Statistics upload permissions")) {
-                Toggle(localized("Allow statistics upload to configured server"), isOn: $controller.statisticsUploadEnabled)
-                Toggle(localized("Automatic sync"), isOn: $controller.automatic)
-                    .disabled(!controller.statisticsUploadEnabled || !controller.hasToken)
-                Toggle(localized("Precise non-text events"), isOn: $controller.preciseEvents)
-                    .disabled(!controller.statisticsUploadEnabled)
-                Text(localized("All uploads are off by default. Never enable them until the server and token have been verified."))
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            Section(localized("Copy history transfer")) {
-            DisclosureGroup(localized("Copy history cloud sync (separate consent)"), isExpanded: $showOperationSync) {
-                Toggle(localized("Allow operation metadata sync"), isOn: $controller.operationSyncEnabled)
-                Toggle(localized("Include full source and target paths"), isOn: $controller.operationSyncPaths)
-                    .disabled(!controller.operationSyncEnabled)
-                Toggle(localized("Include copied text contents"), isOn: $controller.operationSyncText)
-                    .disabled(!controller.operationSyncEnabled)
-                Text(localized("Copied text and absolute file paths can contain passwords, personal names and private data. Both are redacted unless you opt in."))
-                    .font(.caption).foregroundStyle(.secondary)
-                HStack {
-                    Button(localized("Preview pending operations")) {
+
+            if controller.connectionVerified {
+                Section(localized("Choose what the server may receive")) {
+                    Toggle(localized("Upload keyboard and mouse statistics"),
+                           isOn: $controller.statisticsUploadEnabled)
+                        .disabled(!controller.serverStatisticsAggregatesSupported)
+                    Toggle(localized("Upload operation history"),
+                           isOn: $controller.operationSyncEnabled)
+                        .disabled(!controller.serverOperationsSupported)
+                    Toggle(localized("Sync automatically"),
+                           isOn: $controller.automatic)
+                        .disabled(!mayUpload)
+                    DisclosureGroup(localized("Sensitive data options"),
+                                    isExpanded: $showSensitiveOptions) {
+                        Toggle(localized("Precise non-text events"),
+                               isOn: $controller.preciseEvents)
+                            .disabled(!controller.statisticsUploadEnabled)
+                        Toggle(localized("Include full source and target paths"),
+                               isOn: $controller.operationSyncPaths)
+                            .disabled(!controller.operationSyncEnabled)
+                        Toggle(localized("Include copied text contents"),
+                               isOn: $controller.operationSyncText)
+                            .disabled(!controller.operationSyncEnabled)
+                        Text(localized("Text and full file paths may be sensitive. Leave these options off unless needed."))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Section(localized("Send and inspect data")) {
+                    Button(localized("Preview upload")) {
+                        controller.preview()
                         controller.previewOperations()
                     }
-                    Button(localized("Upload operation history now")) {
-                        Task { await controller.syncOperationsNow() }
-                    }.disabled(!controller.operationSyncEnabled || !controller.hasToken)
-                }
-                HStack {
-                    Button(localized("Restore operation history")) {
-                        Task { await controller.restoreOperations(from: lower, to: upper) }
-                    }.disabled(!controller.operationSyncEnabled || !controller.hasToken)
-                    Button(localized("Delete this device's remote operation history"), role: .destructive) {
-                        confirmOperationDelete = true
-                    }.disabled(!controller.hasToken)
-                }
-                Text(localized("Remote deletion is available even when operation uploads are disabled. Automatic sync and operation upload permissions are turned off before deletion."))
-                    .font(.caption).foregroundStyle(.secondary)
-                Text(controller.operationPreview).font(.caption).textSelection(.enabled)
-                LabeledContent(localized("Operation sync status"), value: localized(controller.operationSyncStatus))
-            }
-            }
-            Section(localized("Transfer and recovery")) {
-                HStack {
                     Button(localized("Upload now")) {
-                        Task { await controller.syncNow() }
+                        Task {
+                            if controller.statisticsUploadEnabled {
+                                await controller.syncNow()
+                            }
+                            if controller.operationSyncEnabled {
+                                await controller.syncOperationsNow()
+                            }
+                        }
                     }
-                        .disabled(!controller.statisticsUploadEnabled || !controller.hasToken)
-                    Button(localized("Preview upload")) { controller.preview() }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(!mayUpload)
+                    if !controller.uploadPreview.isEmpty {
+                        Text(controller.uploadPreview)
+                            .font(.caption)
+                            .textSelection(.enabled)
+                    }
+                    if !controller.operationPreview.isEmpty {
+                        Text(controller.operationPreview)
+                            .font(.caption)
+                            .textSelection(.enabled)
+                    }
+                    if let last = controller.lastSync {
+                        LabeledContent(localized("Last sync"),
+                                       value: last.formatted())
+                    }
                 }
-                Text(controller.uploadPreview)
-                    .font(.caption).textSelection(.enabled)
-                DatePicker(localized("From"), selection: $start)
-                DatePicker(localized("To"), selection: $end, in: start...)
-                HStack {
-                    Button(localized("Query remote")) {
-                        Task { await controller.queryRemote(from: lower, to: upper) }
-                    }.disabled(!controller.hasToken)
-                    Button(localized("Restore remote")) {
-                        Task { await controller.restore(from: lower, to: upper) }
-                    }.disabled(!controller.hasToken)
-                    Button(localized("Delete remote device data"), role: .destructive) {
-                        confirmRemoteDelete = true
-                    }.disabled(!controller.hasToken)
-                }
-                ForEach(controller.remoteSummary.sorted(by: { $0.key < $1.key }), id: \.key) { row in
-                    LabeledContent(row.key, value: row.value.formatted())
-                }
-                ForEach(controller.log, id: \.self) {
-                    Text($0).font(.caption).foregroundStyle(.secondary)
-                }
-                LabeledContent(localized("Sync status"), value: localized(controller.status))
-                if let lastSync = controller.lastSync {
-                    LabeledContent(localized("Last sync"), value: lastSync.formatted())
+
+                Section {
+                    DisclosureGroup(localized("Advanced recovery"), isExpanded: $showAdvanced) {
+                        DatePicker(localized("From"), selection: $start)
+                        DatePicker(localized("To"), selection: $end, in: start...)
+                        Button(localized("Query remote")) {
+                            Task { await controller.queryRemote(from: lower, to: upper) }
+                        }
+                        Button(localized("Restore remote")) {
+                            Task { await controller.restore(from: lower, to: upper) }
+                        }
+                        Button(localized("Restore operation history")) {
+                            Task { await controller.restoreOperations(from: lower, to: upper) }
+                        }
+                        Button(localized("Delete remote device data"), role: .destructive) {
+                            confirmRemoteDelete = true
+                        }
+                        Button(localized("Delete this device's remote operation history"),
+                               role: .destructive) {
+                            confirmOperationDelete = true
+                        }
+                        ForEach(controller.remoteSummary.sorted(by: { $0.key < $1.key }),
+                                id: \.key) { row in
+                            LabeledContent(row.key, value: row.value.formatted())
+                        }
+                        ForEach(controller.log, id: \.self) {
+                            Text($0).font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
                 }
             }
         }
         .formStyle(.grouped)
         .alert(localized("Delete remote device data"), isPresented: $confirmRemoteDelete) {
             Button(localized("Cancel"), role: .cancel) {}
-            Button(localized("Confirm"), role: .destructive) { Task { await controller.deleteRemoteDevice() } }
-        } message: { Text(localized("This deletes this device's server statistics. Automatic sync will be turned off before deletion.")) }
-        .alert(localized("Delete remote operation history"), isPresented: $confirmOperationDelete) {
+            Button(localized("Confirm"), role: .destructive) {
+                Task { await controller.deleteRemoteDevice() }
+            }
+        } message: {
+            Text(localized("This deletes this device's server statistics. Automatic sync will be turned off before deletion."))
+        }
+        .alert(localized("Delete remote operation history"),
+               isPresented: $confirmOperationDelete) {
             Button(localized("Cancel"), role: .cancel) {}
             Button(localized("Confirm"), role: .destructive) {
                 Task { await controller.deleteRemoteOperations() }
