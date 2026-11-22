@@ -53,6 +53,9 @@ final class ClipboardCloudController: ObservableObject {
     private let store: OperationStore?
     private let folderTokenNamespace = "NexusClipboardFolderV1"
     @Published private(set) var selectedFolderPath: String = ""
+    @Published var pairingKeyEntry = ""
+    @Published private(set) var pairingKeyConfigured = ClipboardFolderPairingKey.isConfigured()
+    @Published private(set) var revealedPairingKey = ""
     private var selectedFolderURL: URL?
     private let maximumHistoryPage = 200
     private var automaticSyncTimer: Timer?
@@ -64,7 +67,7 @@ final class ClipboardCloudController: ObservableObject {
         self.defaults = defaults
         lastSuccessfulSync = defaults.data(forKey: "nexusFolderClipboardLastSuccess")
             .flatMap { try? JSONDecoder().decode(ClipboardCloudRunSummary.self, from: $0) }
-        enabled = defaults.bool(forKey: "nexusFolderClipboardEnabled")
+        enabled = defaults.bool(forKey: "nexusFolderClipboardEnabled") && ClipboardFolderPairingKey.isConfigured()
         automaticSyncEnabled = defaults.bool(forKey: "nexusFolderClipboardAutomaticSync")
         includeNames = defaults.bool(forKey: "nexusFolderClipboardNames")
         includeText = defaults.bool(forKey: "nexusFolderClipboardText")
@@ -104,7 +107,8 @@ final class ClipboardCloudController: ObservableObject {
     private func configureAutomaticSyncTimer() {
         automaticSyncTimer?.invalidate()
         automaticSyncTimer = nil
-        guard ClipboardCloudAutomaticSyncPolicy.maySchedule(
+        guard pairingKeyConfigured,
+              ClipboardCloudAutomaticSyncPolicy.maySchedule(
             cloudEnabled: enabled,
             automaticEnabled: automaticSyncEnabled,
             containerConfigured: containerConfigured
@@ -210,6 +214,52 @@ final class ClipboardCloudController: ObservableObject {
         }
     }
 
+
+    /// Generate a cryptographic key only when none exists. Never overwrite
+    /// an installed secret implicitly: older synced data would become unreadable.
+    func generatePairingKey() {
+        guard !pairingKeyConfigured else {
+            status = "An encryption key is already configured. Use Reveal to pair another device."
+            return
+        }
+        do {
+            revealedPairingKey = try ClipboardFolderPairingKey.generate()
+            pairingKeyConfigured = true
+            status = "Pairing key saved in Keychain. Transfer it only to devices you trust."
+        } catch { status = "Pairing key generation failed: \\(error.localizedDescription)" }
+    }
+
+    func installPairingKey() {
+        do {
+            try ClipboardFolderPairingKey.save(
+                hex: pairingKeyEntry.trimmingCharacters(in: .whitespacesAndNewlines)
+            )
+            pairingKeyEntry = ""
+            revealedPairingKey = ""
+            pairingKeyConfigured = true
+            status = "Encryption key saved in Keychain"
+        } catch { status = "Invalid pairing key: \\(error.localizedDescription)" }
+    }
+
+    func revealPairingKey() {
+        do {
+            revealedPairingKey = try ClipboardFolderPairingKey.load()
+                .map { String(format: "%02x", $0) }.joined()
+            status = "Hide the pairing key once you have paired your other devices"
+        } catch { status = "Cannot read pairing key: \\(error.localizedDescription)" }
+    }
+
+    func hidePairingKey() { revealedPairingKey = "" }
+
+    func copyPairingKey() {
+        guard !revealedPairingKey.isEmpty else { return }
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        _ = pasteboard.setString(revealedPairingKey, forType: .string)
+        ClipboardMonitor.shared.ignoreCurrentChange()
+        status = "Pairing key copied. Clear the clipboard after securely transferring it."
+    }
+
     /// Stages one 200-record page and all local collections in an isolated
     /// utility task; the card UI never waits for SQLite/image work. This is a
     /// local preparatory action, not an implicit iCloud Drive upload.
@@ -255,7 +305,9 @@ final class ClipboardCloudController: ObservableObject {
         running = true
         defer { running = false }
         do {
-            let transport = ClipboardFolderTransport(folderURL: selectedFolderURL)
+            let transport = try ClipboardFolderTransport(
+                folderURL: selectedFolderURL, keyData: ClipboardFolderPairingKey.load()
+            )
             try await transport.prepareFolderIfRequested()
             status = "NexusClipboardSync folder is ready"
         } catch {
@@ -489,6 +541,8 @@ final class ClipboardCloudController: ObservableObject {
     private func makeTransport() async throws -> ClipboardFolderTransport {
         enum Availability: Error { case missingSelectedFolder }
         guard let selectedFolderURL else { throw Availability.missingSelectedFolder }
-        return ClipboardFolderTransport(folderURL: selectedFolderURL)
+        return try ClipboardFolderTransport(
+            folderURL: selectedFolderURL, keyData: ClipboardFolderPairingKey.load()
+        )
     }
 }
