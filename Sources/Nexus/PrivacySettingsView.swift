@@ -217,6 +217,13 @@ struct PrivacySettingsView: View {
                 }
             }
 
+            if Bundle.main.bundleIdentifier == "com.qssedalto.nexus.drive.dev" {
+                Section(localized("Server sync (advanced)")) {
+                    Text(localized("Server uploads are optional. Configure and test your own API in Server sync (advanced). They are unrelated to folder sync."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
             Section(localized("Network consent")) {
                 Toggle(localized("Allow statistics upload to configured server"), isOn: $sync.statisticsUploadEnabled)
                 Toggle(localized("Automatic sync"), isOn: $sync.automatic)
@@ -232,6 +239,7 @@ struct PrivacySettingsView: View {
                     .font(.caption).foregroundStyle(.secondary)
                 Text(localized("Operation uploads are off by default. Full paths and clipboard contents require separate consent even after metadata sync is enabled. Server-side deletion is controlled from Network sync."))
                     .font(.caption).foregroundStyle(.secondary)
+            }
             }
         }
         .onAppear {
