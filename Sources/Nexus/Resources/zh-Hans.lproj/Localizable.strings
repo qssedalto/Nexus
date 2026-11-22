@@ -689,3 +689,5 @@
 "Local clipboard storage could not be opened. Restart Nexus Drive after rebuilding the app." = "本地剪贴板数据库无法打开。请重新构建并启动 Nexus Drive。";
 "No clipboard types are selected. Enable Record clipboard text, file copying, or images below to begin collecting new entries." = "当前尚未开启任何记录类型。请在下方启用文字、文件复制或图片记录，然后重新复制内容。";
 "Generate a pairing key, prepare your chosen folder, then enable sync." = "请先生成配对密钥、准备同步文件夹，然后开启同步。";
+
+"Folder selected. Generate a pairing key to continue." = "文件夹已选好。请先生成配对密钥。";
