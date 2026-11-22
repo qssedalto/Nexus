@@ -668,3 +668,6 @@
 "Clipboard history or cloud journal database unavailable" = "剪贴板历史或同步数据库不可用";
 "Remote text copied to system clipboard" = "云端文本已复制到剪贴板";
 "To start, create a pairing key below, prepare the selected folder, then enable sync." = "首次使用：先在下方生成配对密钥，再准备文件夹，最后开启同步。";
+
+"View updates on GitHub" = "在 GitHub 查看更新";
+"This edition is updated manually from GitHub." = "此版本需要从 GitHub 手动下载更新。";
