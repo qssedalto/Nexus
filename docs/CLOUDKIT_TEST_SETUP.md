@@ -2,7 +2,28 @@
 
 The default Nexus app, Finder extension, Release, Debug, ServicesOnly and CI
 builds **do not have CloudKit entitlements** and cannot upload the clipboard.
-Do not change this default or replace a working installation implicitly.
+This is why Settings shows “CloudKit container not configured for this build”.
+Simply turning on the iCloud clipboard toggle cannot add an Apple entitlement.
+Do not replace a working installation implicitly.
+
+For a separately provisioned **local macOS test build**, `Scripts/package_app.sh`
+now supports two explicit, nonsecret local settings:
+- `NEXUS_CLOUDKIT_CONTAINER_ID`: the actual CloudKit container granted to this App ID.
+- `NEXUS_CLOUDKIT_PROVISIONING_PROFILE`: the absolute path to a matching macOS
+  development provisioning profile exported from your own Apple Developer account.
+
+Set these for a **development-signed, separate `Nexus Dev.app`** build, alongside the
+existing `SIGNING_MODE=development` and `APP_IDENTITY` settings. Example:
+```zsh
+NEXUS_CLOUDKIT_CONTAINER_ID='iCloud.YOUR_REGISTERED_CONTAINER' NEXUS_CLOUDKIT_PROVISIONING_PROFILE='/path/to/YOUR.provisionprofile' SIGNING_MODE=development APP_IDENTITY='YOUR_APPLE_DEVELOPMENT_IDENTITY' ./Scripts/package_app.sh release --dev
+```
+Replace the placeholders with real developer resources; the example does
+not create an iCloud container or issue an entitlement. The package script
+keeps the default CloudKit-disabled builds unchanged, validates the presence
+of the profile and ID, embeds the profile and signs the app with a matching
+CloudKit entitlement. A profile not authorized for the bundle ID/container may
+still fail on-device: confirm the actual signing entitlements and provisioning
+in Xcode before using the app.
 
 The Swift code includes opt-in privacy/settings panels on macOS and a universal
 iPhone/iPad client, with a private CKRecordZone named NexusClipboard. To exercise it on a Mac with

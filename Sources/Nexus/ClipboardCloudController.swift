@@ -1,5 +1,6 @@
 import AppKit
 import CloudKit
+import Security
 import Foundation
 import NexusCore
 import SwiftUI
@@ -165,6 +166,19 @@ final class ClipboardCloudController: ObservableObject {
             forInfoDictionaryKey: "NexusCloudKitContainerIdentifier"
         ) as? String, id.hasPrefix("iCloud."), !id.contains("$"),
               id.utf8.count < 200 else { return nil }
+        // An Info.plist string alone does not grant CloudKit access.
+        // Refuse to create CKContainer until the app's *actual* code signature
+        // also includes CloudKit and this same container identifier.
+        guard let signingTask = SecTaskCreateFromSelf(kCFAllocatorDefault),
+              let services = SecTaskCopyValueForEntitlement(
+                signingTask, "com.apple.developer.icloud-services" as CFString, nil
+              ) as? [String],
+              let containers = SecTaskCopyValueForEntitlement(
+                signingTask, "com.apple.developer.icloud-container-identifiers" as CFString, nil
+              ) as? [String],
+              services.contains("CloudKit"), containers.contains(id) else {
+            return nil
+        }
         return id
     }
 

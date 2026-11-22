@@ -11,6 +11,8 @@ EXPLICIT_APP_IDENTITY=${APP_IDENTITY:-}
 EXPLICIT_APP_GROUP_ID=${APP_GROUP_ID:-}
 EXPLICIT_DEV_APP_GROUP_ID=${DEV_APP_GROUP_ID:-}
 EXPLICIT_TEAM_ID=${TEAM_ID:-}
+EXPLICIT_NEXUS_CLOUDKIT_CONTAINER_ID=${NEXUS_CLOUDKIT_CONTAINER_ID:-}
+EXPLICIT_NEXUS_CLOUDKIT_PROVISIONING_PROFILE=${NEXUS_CLOUDKIT_PROVISIONING_PROFILE:-}
 EXPLICIT_ARCHES=${ARCHES:-}
 EXPLICIT_SPARKLE_FEED_URL=${SPARKLE_FEED_URL:-}
 EXPLICIT_SPARKLE_PRIVATE_KEY_FILE=${SPARKLE_PRIVATE_KEY_FILE:-}
@@ -150,6 +152,25 @@ if [[ "$SIGNING_MODE" != "adhoc" && -n "$APP_IDENTITY" &&
   exit 1
 fi
 
+# CloudKit is an explicitly provisioned build flavor. Never ship an
+# entitlement-less release that merely *claims* a container is available.
+CLOUDKIT_CONTAINER_ID=${EXPLICIT_NEXUS_CLOUDKIT_CONTAINER_ID:-${NEXUS_CLOUDKIT_CONTAINER_ID:-}}
+CLOUDKIT_PROFILE=${EXPLICIT_NEXUS_CLOUDKIT_PROVISIONING_PROFILE:-${NEXUS_CLOUDKIT_PROVISIONING_PROFILE:-}}
+if [[ -n "$CLOUDKIT_CONTAINER_ID" ]]; then
+  if [[ ! "$CLOUDKIT_CONTAINER_ID" =~ ^iCloud\.[A-Za-z0-9][A-Za-z0-9.-]*$ ]]; then
+    echo "ERROR: NEXUS_CLOUDKIT_CONTAINER_ID must be a real iCloud.* container ID." >&2
+    exit 1
+  fi
+  if [[ "$SIGNING_MODE" == "adhoc" ]]; then
+    echo "ERROR: CloudKit requires an Apple-signed, provisioned app; Ad Hoc is unsupported." >&2
+    exit 1
+  fi
+  if [[ -z "$CLOUDKIT_PROFILE" || ! -f "$CLOUDKIT_PROFILE" ]]; then
+    echo "ERROR: Set NEXUS_CLOUDKIT_PROVISIONING_PROFILE to a valid local macOS provisioning profile." >&2
+    exit 1
+  fi
+fi
+
 if [[ "$APP_VARIANT" == "dev" ]]; then
   ENABLE_SPARKLE_AUTOMATIC_CHECKS=false
   SPARKLE_FEED_URL=""
@@ -277,6 +298,14 @@ fi
 /usr/bin/plutil -insert SUEnableAutomaticChecks -bool "$ENABLE_SPARKLE_AUTOMATIC_CHECKS" "$APP_INFO"
 /usr/bin/plutil -replace NexusAppGroupIdentifier -string "$APP_GROUP_ID" "$APP_INFO"
 /usr/bin/plutil -replace NexusAppGroupIdentifier -string "$APP_GROUP_ID" "$EXTENSION_INFO"
+if [[ -n "$CLOUDKIT_CONTAINER_ID" ]]; then
+  /usr/bin/plutil -replace NexusCloudKitContainerIdentifier -string "$CLOUDKIT_CONTAINER_ID" "$APP_INFO"
+  /usr/bin/ditto "$CLOUDKIT_PROFILE" "$APP_BUNDLE/Contents/embedded.provisionprofile"
+else
+  # Strip the unresolved XcodeGen placeholder: it must never be mistaken for
+  # a provisioned CloudKit container in an ordinary CI or test build.
+  /usr/bin/plutil -remove NexusCloudKitContainerIdentifier "$APP_INFO" 2>/dev/null || true
+fi
 
 /usr/bin/plutil -lint "$APP_INFO" "$EXTENSION_INFO" >/dev/null
 /usr/bin/xattr -cr "$APP_BUNDLE"
@@ -292,6 +321,15 @@ EXTENSION_ENTITLEMENTS="$ENTITLEMENTS_DIR/NexusFinderSync.entitlements"
 /usr/libexec/PlistBuddy -c "Set :com.apple.security.application-groups:0 $APP_GROUP_ID" "$EXTENSION_ENTITLEMENTS"
 /usr/libexec/PlistBuddy -c "Set :com.apple.security.application-groups:1 $LEGACY_APP_GROUP_ID" "$APP_ENTITLEMENTS"
 /usr/libexec/PlistBuddy -c "Set :com.apple.security.application-groups:1 $LEGACY_APP_GROUP_ID" "$EXTENSION_ENTITLEMENTS"
+if [[ -n "$CLOUDKIT_CONTAINER_ID" ]]; then
+  /usr/libexec/PlistBuddy -c "Add :com.apple.developer.icloud-services array" "$APP_ENTITLEMENTS"
+  /usr/libexec/PlistBuddy -c "Add :com.apple.developer.icloud-services:0 string CloudKit" "$APP_ENTITLEMENTS"
+  /usr/libexec/PlistBuddy -c "Add :com.apple.developer.icloud-container-identifiers array" "$APP_ENTITLEMENTS"
+  /usr/libexec/PlistBuddy -c "Add :com.apple.developer.icloud-container-identifiers:0 string $CLOUDKIT_CONTAINER_ID" "$APP_ENTITLEMENTS"
+  if [[ "$SIGNING_MODE" == "development" ]]; then
+    /usr/libexec/PlistBuddy -c "Add :com.apple.developer.icloud-container-environment string Development" "$APP_ENTITLEMENTS"
+  fi
+fi
 /usr/bin/plutil -lint "$APP_ENTITLEMENTS" "$EXTENSION_ENTITLEMENTS" >/dev/null
 
 case "$SIGNING_MODE" in
