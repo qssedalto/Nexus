@@ -79,7 +79,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ARCHES=arm64 bash Scripts/build_drive_dev.sh --release --verify
+          # CI deliberately distributes an Ad Hoc signed preview; it has no
+          # personal Apple Development certificate or provisioning profile.
+          SIGNING_MODE=adhoc ARCHES=arm64 bash Scripts/build_drive_dev.sh --release --verify
           APP="Nexus Drive.app"
           INFO="$APP/Contents/Info.plist"
           EXT="$APP/Contents/PlugIns/NexusFinderSync.appex"
