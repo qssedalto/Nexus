@@ -19,7 +19,7 @@ NEXUS_CLOUDKIT_CONTAINER_ID='iCloud.YOUR_REAL_CONTAINER' NEXUS_CLOUDKIT_PROVISIO
 
 Both wrappers deliberately use unique app identifiers:
 - Nexus Drive Dev: `com.qssedalto.nexus.drive.dev`
-- Nexus CloudKit Dev: `com.qssedalto.nexus.cloudkit.dev`
+- Nexus CloudKit: `com.qssedalto.nexus.cloudkit.dev`
 
 Run without `--verify` only after build and signing have been checked on the intended Mac. The actual `CloudKit` test build must be signed for its **new** unique App ID, not an old `com.qssedalto.nexus.dev` provisioning profile.
 
