@@ -43,7 +43,7 @@ struct SettingsView<Updater: UpdaterControlling>: View {
 
             ClipboardCloudSettingsView()
                 .tabItem { Label(localized(buildInfo.isDriveEdition ? "Sync" : "iCloud Drive sync"),
-                      systemImage: "arrow.triangle.2.circlepath.circle") }
+                      systemImage: "arrow.triangle.2.circlepath") }
 
             PrivacySettingsView()
                 .tabItem { Label(localized("Privacy and Permissions"), systemImage: "hand.raised") }
