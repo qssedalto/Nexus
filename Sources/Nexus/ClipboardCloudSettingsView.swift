@@ -19,8 +19,7 @@ struct ClipboardCloudSettingsView: View {
     }
 
     private var readyToBegin: Bool {
-        cloud.containerConfigured && cloud.pairingKeyConfigured
-            && hasSyncSelection && !cloud.running
+        cloud.activationMode != .unavailable && hasSyncSelection && !cloud.running
     }
 
     var body: some View {
@@ -60,7 +59,13 @@ struct ClipboardCloudSettingsView: View {
             }
 
             Section(localized("Device pairing")) {
-                if cloud.pairingKeyConfigured {
+                if !cloud.hasJournalContentSelection {
+                    Text(localized(
+                        "Ordinary folder copies do not require a pairing key. A key is only needed to synchronize encrypted history metadata."
+                    ))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                } else if cloud.pairingKeyConfigured {
                     Label(localized("Encryption pairing key is ready"),
                           systemImage: "checkmark.shield.fill")
                         .foregroundStyle(.secondary)
@@ -73,7 +78,7 @@ struct ClipboardCloudSettingsView: View {
                     .buttonStyle(.borderedProminent)
                 }
 
-                if cloud.pairingKeyConfigured {
+                if cloud.hasJournalContentSelection && cloud.pairingKeyConfigured {
                     DisclosureGroup(localized("View or enter pairing key"),
                                     isExpanded: $pairingExpanded) {
                         Button(localized("Show pairing key")) {
@@ -94,7 +99,7 @@ struct ClipboardCloudSettingsView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                } else {
+                } else if cloud.hasJournalContentSelection {
                     DisclosureGroup(localized("Already have a pairing key?")) {
                         SecureField(localized("Enter a 64-character pairing key"),
                                     text: $cloud.pairingKeyEntry)
@@ -131,35 +136,43 @@ struct ClipboardCloudSettingsView: View {
                 if !cloud.containerConfigured {
                     Label(localized("First select a folder above."), systemImage: "folder")
                         .foregroundStyle(.secondary)
-                } else if !cloud.pairingKeyConfigured {
-                    Label(localized("Generate a pairing key above to continue."), systemImage: "key")
-                        .foregroundStyle(.secondary)
                 } else if !hasSyncSelection {
                     Label(localized("Select the content you want to synchronize."),
                           systemImage: "checklist")
                         .foregroundStyle(.secondary)
+                } else if cloud.mirrorOnlyEnabled && !cloud.enabled {
+                    Label(localized("Ordinary folder copies are active"),
+                          systemImage: "checkmark.circle.fill")
+                    Button(localized("Stop folder copies")) { cloud.stopSync() }
+                        .disabled(cloud.running)
+                } else if cloud.hasJournalContentSelection && !cloud.pairingKeyConfigured {
+                    Label(localized("Generate a pairing key to synchronize encrypted history."),
+                          systemImage: "key")
+                        .foregroundStyle(.secondary)
                 } else if !cloud.enabled {
-                    Button(localized("Start syncing")) {
+                    Button(localized(cloud.hasJournalContentSelection
+                        ? "Start syncing" : "Start folder copies")) {
                         Task { await cloud.startSync() }
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(!readyToBegin)
-                    Text(localized("Nexus will prepare the folder and synchronize in one step."))
+                    Text(localized(cloud.hasJournalContentSelection
+                        ? "Nexus will prepare the encrypted folder and synchronize in one step."
+                        : "Nexus will save new copied content as ordinary, user-openable files."))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
-                    Toggle(localized("Sync automatically every 5 minutes"),
-                           isOn: $cloud.automaticSyncEnabled)
-                    Button(localized("Sync now")) {
-                        Task { await cloud.syncIncludingLocalHistory() }
+                    if cloud.hasJournalContentSelection {
+                        Toggle(localized("Sync automatically every 5 minutes"),
+                               isOn: $cloud.automaticSyncEnabled)
+                        Button(localized("Sync now")) {
+                            Task { await cloud.syncIncludingLocalHistory() }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(cloud.running)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(cloud.running)
-                    Button(localized("Stop syncing")) {
-                        cloud.automaticSyncEnabled = false
-                        cloud.enabled = false
-                    }
-                    .disabled(cloud.running)
+                    Button(localized("Stop syncing")) { cloud.stopSync() }
+                        .disabled(cloud.running)
                 }
                 if cloud.running {
                     ProgressView()

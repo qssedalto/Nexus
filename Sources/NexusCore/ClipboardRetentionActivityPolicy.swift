@@ -11,8 +11,8 @@ public enum ClipboardRetentionActivityPolicy {
         mirrorText: Bool = false,
         mirrorImages: Bool = false
     ) -> Bool {
-        historyEnabled && !paused && (
-            files || text || images ||
+        !paused && (
+            (historyEnabled && (files || text || images)) ||
             (mirrorEnabled && (mirrorFiles || mirrorText || mirrorImages))
         )
     }
@@ -21,5 +21,25 @@ public enum ClipboardRetentionActivityPolicy {
         retentionDays: Int, maximumHistoryRecords: Int
     ) -> Bool {
         retentionDays > 0 || maximumHistoryRecords > 0
+    }
+}
+
+
+/// A visible folder mirror is different from an encrypted journal. It does
+/// not need a cryptographic pairing key, and never grants journal consent.
+public enum ClipboardFolderSyncActivationPolicy {
+    public enum Mode: Equatable {
+        case unavailable, mirrorOnly, encryptedJournal
+    }
+
+    public static func mode(
+        folderSelected: Bool, wantsJournal: Bool,
+        wantsMirror: Bool, pairingKeyConfigured: Bool
+    ) -> Mode {
+        guard folderSelected else { return .unavailable }
+        if wantsJournal {
+            return pairingKeyConfigured ? .encryptedJournal : .unavailable
+        }
+        return wantsMirror ? .mirrorOnly : .unavailable
     }
 }

@@ -33,6 +33,20 @@ final class ClipboardCloudController: ObservableObject {
             }
         }
     }
+    /// Separate opt-in for visible, unencrypted folder copies. This does not
+    /// authorize encrypted journal synchronization or need a pairing key.
+    @Published private(set) var mirrorOnlyEnabled: Bool {
+        didSet {
+            defaults.set(mirrorOnlyEnabled, forKey: "nexusFolderMirrorOnlyEnabled")
+            if !mirrorOnlyEnabled && !enabled { cancelMirrorTasks() }
+            // The clipboard observer queries this singleton. Defer refresh to
+            // avoid recursively initializing the two shared controllers.
+            Task { @MainActor in
+                ClipboardMonitor.shared.refreshObservationConfiguration()
+            }
+        }
+    }
+
     /// Separate consent for timed iCloud Drive access. The default is OFF even
     /// when the user previously enabled manual iCloud clipboard sync.
     @Published var automaticSyncEnabled: Bool {
@@ -144,6 +158,7 @@ final class ClipboardCloudController: ObservableObject {
         lastSuccessfulSync = defaults.data(forKey: "nexusFolderClipboardLastSuccess")
             .flatMap { try? JSONDecoder().decode(ClipboardCloudRunSummary.self, from: $0) }
         enabled = defaults.bool(forKey: "nexusFolderClipboardEnabled") && ClipboardFolderPairingKey.isConfigured()
+        mirrorOnlyEnabled = defaults.bool(forKey: "nexusFolderMirrorOnlyEnabled")
         automaticSyncEnabled = defaults.bool(forKey: "nexusFolderClipboardAutomaticSync")
         includeNames = defaults.bool(forKey: "nexusFolderClipboardNames")
         includeText = defaults.bool(forKey: "nexusFolderClipboardText")
@@ -174,6 +189,9 @@ final class ClipboardCloudController: ObservableObject {
         // An old enabled preference cannot authorize syncing an
         // uninitialized folder. The user must prepare it explicitly first.
         if !folderPrepared { enabled = false }
+        if !containerConfigured || !hasMirrorSelection || hasJournalContentSelection {
+            mirrorOnlyEnabled = false
+        }
         refreshLocalCache()
         if enabled, let summary = lastSuccessfulSync {
             status = syncStatus(uploaded: summary.uploaded, downloaded: summary.downloaded,
@@ -246,11 +264,22 @@ final class ClipboardCloudController: ObservableObject {
 
     var containerConfigured: Bool { selectedFolderURL != nil }
 
-    private var hasJournalContentSelection: Bool {
+    var hasJournalContentSelection: Bool {
         includeText || includeNames || includePaths
     }
+    var hasMirrorSelection: Bool {
+        mirrorFiles || mirrorText || mirrorImages
+    }
     private var hasAnyContentSelection: Bool {
-        hasJournalContentSelection || mirrorFiles || mirrorText || mirrorImages
+        hasJournalContentSelection || hasMirrorSelection
+    }
+    var activationMode: ClipboardFolderSyncActivationPolicy.Mode {
+        ClipboardFolderSyncActivationPolicy.mode(
+            folderSelected: containerConfigured,
+            wantsJournal: hasJournalContentSelection,
+            wantsMirror: hasMirrorSelection,
+            pairingKeyConfigured: pairingKeyConfigured
+        )
     }
 
     var visibleSyncedRecords: [ClipboardCloudRecord] {
@@ -276,6 +305,7 @@ final class ClipboardCloudController: ObservableObject {
         }
         cancelMirrorTasks()
         enabled = false
+        mirrorOnlyEnabled = false
         automaticSyncEnabled = false
         nextHistoryOffset = 0
         defaults.removeObject(forKey: "nexusFolderClipboardHistoryOffset")
@@ -288,7 +318,8 @@ final class ClipboardCloudController: ObservableObject {
     /// The visible files are independent of the encrypted sync protocol.
     /// Only explicit folder and per-format consent can reach this path.
     func mirrorCopied(_ content: ClipboardFolderMirror.Content) {
-        guard enabled, folderPrepared, let folder = selectedFolderURL else { return }
+        guard ((enabled && folderPrepared) || mirrorOnlyEnabled),
+              let folder = selectedFolderURL else { return }
         switch content {
         case .files: guard mirrorFiles else { return }
         case .text, .richText, .html: guard mirrorText else { return }
@@ -464,9 +495,11 @@ final class ClipboardCloudController: ObservableObject {
                 atPath: url.appendingPathComponent(".nexus-folder-sync-v2").path
             )
             if !folderPrepared { enabled = false }
-            status = localized(pairingKeyConfigured
-                ? "Folder selected. Click Prepare folder before syncing."
-                : "Folder selected. Generate a pairing key to continue.")
+            status = localized(!hasJournalContentSelection
+                ? "Folder selected. You can start ordinary folder copies without a pairing key."
+                : pairingKeyConfigured
+                    ? "Folder selected. Click Prepare folder before syncing."
+                    : "Folder selected. Generate a pairing key to continue.")
             configureAutomaticSyncTimer()
             Task { await refreshInterruptedCopies() }
         } catch {
@@ -568,26 +601,30 @@ final class ClipboardCloudController: ObservableObject {
     }
 
     func startSync() async {
-        guard containerConfigured, pairingKeyConfigured else {
-            status = localized("Choose a folder and create a pairing key first.")
-            return
-        }
-        guard hasAnyContentSelection else {
-            status = localized("Select at least one type of content to sync.")
-            return
-        }
-        if !folderPrepared {
-            await prepareSelectedFolder()
-        }
-        guard folderPrepared else { return }
-        enabled = true
-        if hasJournalContentSelection {
+        switch activationMode {
+        case .unavailable:
+            status = localized("Choose a folder and content types. Encrypted history also needs a pairing key.")
+        case .mirrorOnly:
+            // This branch never initializes an encrypted journal or accesses
+            // pairing credentials. Each copy still needs per-format opt-in.
+            mirrorOnlyEnabled = true
+            status = localized("Ordinary folder copies are active. No pairing key is required.")
+        case .encryptedJournal:
+            if !folderPrepared {
+                await prepareSelectedFolder()
+            }
+            guard folderPrepared else { return }
+            enabled = true
+            mirrorOnlyEnabled = false
             await syncIncludingLocalHistory()
-        } else {
-            // Visible copies are local files, not encrypted history packets.
-            // Do not schedule or perform a meaningless network sync.
-            status = localized("NexusClipboardSync folder is ready")
         }
+    }
+
+    func stopSync() {
+        automaticSyncEnabled = false
+        enabled = false
+        mirrorOnlyEnabled = false
+        status = localized("Folder synchronization is off")
     }
 
     /// User-initiated folder initialization, not an Apple container request.

@@ -158,7 +158,8 @@ final class ClipboardMonitor: ObservableObject {
         if ClipboardRetentionActivityPolicy.shouldObserve(
             paused: paused, files: enabled, text: textEnabled,
             images: imageEnabled, historyEnabled: historyEnabled,
-            mirrorEnabled: sync.enabled && sync.folderPrepared && sync.containerConfigured,
+            mirrorEnabled: ((sync.enabled && sync.folderPrepared) || sync.mirrorOnlyEnabled)
+                && sync.containerConfigured,
             mirrorFiles: sync.mirrorFiles, mirrorText: sync.mirrorText,
             mirrorImages: sync.mirrorImages
         ) {
@@ -236,7 +237,9 @@ final class ClipboardMonitor: ObservableObject {
     private func checkPasteboard() {
         // Guard again for a timer callback already queued when the user
         // disabled clipboard observation.
-        guard historyEnabled, !paused else { return }
+        let sync = ClipboardCloudController.shared
+        let mirrorActive = (sync.enabled && sync.folderPrepared) || sync.mirrorOnlyEnabled
+        guard !paused, historyEnabled || mirrorActive else { return }
         let pasteboard = NSPasteboard.general
         let count = pasteboard.changeCount
         guard count != lastChangeCount else { return }
@@ -264,7 +267,7 @@ final class ClipboardMonitor: ObservableObject {
         let urls = URLDropReader.fileURLs(from: pasteboard)
         if !urls.isEmpty {
             ClipboardCloudController.shared.mirrorCopied(.files(urls))
-            guard enabled, let store else { return }
+            guard historyEnabled, enabled, let store else { return }
             persist(feedbackKey: "Clipboard files detected") {
                 try store.record(type: "copy", urls: urls,
                                  sourceApplication: observedForegroundID,
@@ -299,7 +302,7 @@ final class ClipboardMonitor: ObservableObject {
             }
             ClipboardCloudController.shared.mirrorCopied(.image(originalImage, extensionName: ext))
         }
-        if (enabled || imageEnabled), imageDeclared, let store {
+        if historyEnabled, (enabled || imageEnabled), imageDeclared, let store {
             if imageEnabled, let encodedImageType,
                let data = pasteboard.data(forType: encodedImageType),
                data.count > 0 && data.count <= maximumImageBytes {
@@ -350,7 +353,7 @@ final class ClipboardMonitor: ObservableObject {
                 ClipboardCloudController.shared.mirrorCopied(.text(copiedText))
             }
         }
-        guard textEnabled, let store,
+        guard historyEnabled, textEnabled, let store,
               let text = pasteboard.string(forType: .string),
               !text.isEmpty,
               text.utf8.count <= maximumTextBytes else { return }
