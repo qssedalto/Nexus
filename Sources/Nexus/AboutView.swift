@@ -64,6 +64,12 @@ struct AboutView: View {
                         Label(link.title, systemImage: link.systemImage)
                     }
                 }
+                Button {
+                    openNexusWebsite()
+                } label: {
+                    Label(localized("Website"), systemImage: "globe")
+                }
+                .buttonStyle(.link)
             }
 
             Button(localized("Check for Updates"), action: onCheckForUpdates)
@@ -85,13 +91,25 @@ struct AboutView: View {
                 systemImage: "chevron.left.forwardslash.chevron.right",
                 rawURL: "https://github.com/qssedalto/Nexus"
             ),
-            makeLink(
-                id: "website",
-                title: localized("Website"),
-                systemImage: "globe",
-                rawURL: "https://qsseda.com/"
-            ),
         ].compactMap { $0 }
+    }
+
+    /// Open the self-contained public-facing Nexus product page bundled
+    /// with the app. A file URL needs no GitHub account, no server and no
+    /// login. Do not redirect to the generic qsseda.com homepage.
+    private func openNexusWebsite() {
+        let page = Bundle.main.url(forResource: "NexusWebsite", withExtension: "html")
+            ?? Bundle.main.bundleURL.appendingPathComponent(
+                "Contents/Resources/NexusWebsite.html"
+            )
+        guard FileManager.default.fileExists(atPath: page.path) else {
+            let alert = NSAlert()
+            alert.messageText = localized("Nexus website is unavailable")
+            alert.informativeText = localized("The product page is missing from this build. Rebuild Nexus Drive to restore it.")
+            alert.runModal()
+            return
+        }
+        NSWorkspace.shared.open(page)
     }
 
     private func makeLink(id: String, title: String, systemImage: String, rawURL: String) -> AboutLink? {
