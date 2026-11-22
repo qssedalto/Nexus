@@ -515,3 +515,35 @@
 "The installed app has not yet registered a native Service. Finder Sync can be hidden in iCloud Drive and other File Provider folders; the macOS Services fallback is listed after registration." = "The installed app has not yet registered a native Service. Finder Sync can be hidden in iCloud Drive and other File Provider folders; the macOS Services fallback is listed after registration.";
 "This build is not signed for CloudKit. A container name alone is insufficient; use a development profile with the CloudKit capability, then reopen the newly signed app." = "This build is not signed for CloudKit. A container name alone is insufficient; use a development profile with the CloudKit capability, then reopen the newly signed app.";
 "CloudKit signing setup guide" = "CloudKit signing setup guide";
+
+// iCloud Drive user-folder synchronization
+"iCloud Drive sync" = "iCloud Drive sync";
+"iCloud Drive clipboard folder" = "iCloud Drive clipboard folder";
+"Choose NexusClipboardSync folder…" = "Choose NexusClipboardSync folder…";
+"Select your existing NexusClipboardSync folder in iCloud Drive. No developer subscription is needed." = "Select your existing NexusClipboardSync folder in iCloud Drive. No developer subscription is needed.";
+"Enable folder clipboard synchronization" = "Enable folder clipboard synchronization";
+"Automatically synchronize every 5 minutes" = "Automatically synchronize every 5 minutes";
+"Synchronization is off by default. Nexus only reads and writes the folder you select, when authorized. Apple Files synchronizes it between devices independently." = "Synchronization is off by default. Nexus only reads and writes the folder you select, when authorized. Apple Files synchronizes it between devices independently.";
+"Select which clipboard data may be synchronized" = "Select which clipboard data may be synchronized";
+"Include copied text" = "Include copied text";
+"Include names and collection titles" = "Include names and collection titles";
+"Include original local file paths" = "Include original local file paths";
+"Original image and file bytes are not yet supported in folder synchronization. Paths on another device are descriptive only." = "Original image and file bytes are not yet supported in folder synchronization. Paths on another device are descriptive only.";
+"Folder synchronization controls" = "Folder synchronization controls";
+"Prepare selected folder" = "Prepare selected folder";
+"Prepare next 200 records" = "Prepare next 200 records";
+"Import synced records into local history" = "Import synced records into local history";
+"Replay all folder changes" = "Replay all folder changes";
+"Pending updates" = "Pending updates";
+"Remove folder synchronization data" = "Remove folder synchronization data";
+"Local cache reset preserves independently saved history. Deleting synchronized records removes only Nexus-owned JSON files from the selected folder. Other devices can upload old records again." = "Local cache reset preserves independently saved history. Deleting synchronized records removes only Nexus-owned JSON files from the selected folder. Other devices can upload old records again.";
+"Clear local sync cache…" = "Clear local sync cache…";
+"Delete synchronized Nexus folder records…" = "Delete synchronized Nexus folder records…";
+"Clear only the local folder sync cache?" = "Clear only the local folder sync cache?";
+"Clear local cache" = "Clear local cache";
+"Original local clipboard history is preserved. Files in iCloud Drive are not deleted." = "Original local clipboard history is preserved. Files in iCloud Drive are not deleted.";
+"Delete Nexus folder sync data" = "Delete Nexus folder sync data";
+"This deletes Nexus-owned sync JSON documents in your selected folder, not the entire folder or unrelated iCloud Drive data. Disable synchronization on other devices first. Type DELETE to confirm." = "This deletes Nexus-owned sync JSON documents in your selected folder, not the entire folder or unrelated iCloud Drive data. Disable synchronization on other devices first. Type DELETE to confirm.";
+"Delete sync records" = "Delete sync records";
+"Choose Nexus clipboard sync folder" = "Choose Nexus clipboard sync folder";
+"Select your existing NexusClipboardSync folder in iCloud Drive." = "Select your existing NexusClipboardSync folder in iCloud Drive.";
