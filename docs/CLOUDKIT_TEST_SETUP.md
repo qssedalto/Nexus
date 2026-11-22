@@ -19,9 +19,9 @@ NEXUS_CLOUDKIT_CONTAINER_ID='iCloud.YOUR_REGISTERED_CONTAINER' NEXUS_CLOUDKIT_PR
 ```
 Replace the placeholders with real developer resources; the example does
 not create an iCloud container or issue an entitlement. The package script
-keeps the default CloudKit-disabled builds unchanged, validates the presence
-of the profile and ID, embeds the profile and signs the app with a matching
-CloudKit entitlement. A profile not authorized for the bundle ID/container may
+keeps the default CloudKit-disabled builds unchanged, decodes the signed
+provisioning profile and checks that it explicitly authorizes the selected
+container, then embeds it and signs the app with matching CloudKit entitlements. A profile not authorized for the bundle ID/container may
 still fail on-device: confirm the actual signing entitlements and provisioning
 in Xcode before using the app.
 

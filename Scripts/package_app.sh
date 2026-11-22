@@ -169,6 +169,28 @@ if [[ -n "$CLOUDKIT_CONTAINER_ID" ]]; then
     echo "ERROR: Set NEXUS_CLOUDKIT_PROVISIONING_PROFILE to a valid local macOS provisioning profile." >&2
     exit 1
   fi
+  # Only the user's own Apple Developer profile can authorize this container.
+  # Refuse a mismatched or unreadable profile instead of signing a nonworking
+  # app and falsely advertising CloudKit in Preferences.
+  CLOUDKIT_PROFILE_INFO="$(mktemp "${TMPDIR:-/tmp}/nexus-cloudkit-profile.XXXXXX")"
+  trap '/bin/rm -f "${CLOUDKIT_PROFILE_INFO:-}"' EXIT
+  if ! /usr/bin/security cms -D -i "$CLOUDKIT_PROFILE" > "$CLOUDKIT_PROFILE_INFO"; then
+    echo "ERROR: Could not decode the macOS provisioning profile." >&2
+    exit 1
+  fi
+  CLOUDKIT_AUTHORIZED=0
+  index=0
+  while container=$(/usr/libexec/PlistBuddy -c "Print :Entitlements:com.apple.developer.icloud-container-identifiers:$index" "$CLOUDKIT_PROFILE_INFO" 2>/dev/null); do
+    if [[ "$container" == "$CLOUDKIT_CONTAINER_ID" ]]; then
+      CLOUDKIT_AUTHORIZED=1
+      break
+    fi
+    index=$((index + 1))
+  done
+  if [[ "$CLOUDKIT_AUTHORIZED" -ne 1 ]]; then
+    echo "ERROR: Provisioning profile does not authorize CloudKit container $CLOUDKIT_CONTAINER_ID." >&2
+    exit 1
+  fi
 fi
 
 if [[ "$APP_VARIANT" == "dev" ]]; then
