@@ -102,7 +102,7 @@ final class MobileClipboardController: ObservableObject {
             selectedFolderLabel = url.lastPathComponent
             status = "Folder selected. Prepare it before syncing."
         } catch {
-            status = "Could not remember selected folder: \\(error.localizedDescription)"
+            status = "Could not remember selected folder: \(error.localizedDescription)"
         }
     }
 
@@ -131,7 +131,7 @@ final class MobileClipboardController: ObservableObject {
             pairingKeyConfigured = true
             status = "Encryption key saved in this device's Keychain"
         } catch {
-            status = "Invalid pairing key: \\(error.localizedDescription)"
+            status = "Invalid pairing key: \(error.localizedDescription)"
         }
     }
 
@@ -314,7 +314,7 @@ final class MobileClipboardController: ObservableObject {
             try await transport.prepareFolderIfRequested()
             status = "NexusClipboardSync folder is ready"
         } catch {
-            status = "Could not prepare folder: \\(error.localizedDescription)"
+            status = "Could not prepare folder: \(error.localizedDescription)"
         }
     }
 
