@@ -627,14 +627,25 @@ struct InputStatisticsView: View {
         }
     }
 
+    private func readablePhysicalKey(_ name: String, shifted: Bool) -> String {
+        let physical = name.count == 1 ? name.uppercased() : localized(name)
+        guard let glyph = KeyboardLayoutLabel.glyph(for: name, shifted: shifted),
+              glyph.uppercased() != physical.uppercased() else { return physical }
+        return physical + " · " + glyph
+    }
+
     private func readableEvent(_ name: String) -> String {
         if name.count == 1 { return name.uppercased() }
         if name.first == "f", let number = Int(name.dropFirst()), (1...24).contains(number) {
             return "F\(number)"
         }
+        if name.hasPrefix("shift_key_") {
+            return "⇧ " + readablePhysicalKey(
+                String(name.dropFirst("shift_key_".count)), shifted: true
+            )
+        }
         if name.hasPrefix("key_") {
-            let key = String(name.dropFirst(4))
-            return key.count == 1 ? key.uppercased() : localized(key)
+            return readablePhysicalKey(String(name.dropFirst(4)), shifted: false)
         }
         let tokens = name.split(separator: "_").map(String.init)
         let modifierSymbols = ["control":"⌃", "option":"⌥", "command":"⌘", "shift":"⇧", "fn":"Fn"]
@@ -642,7 +653,9 @@ struct InputStatisticsView: View {
             let modifiers = tokens.prefix(while: { modifierSymbols[$0] != nil })
             let remainder = tokens.dropFirst(modifiers.count).joined(separator: "_")
             if !remainder.isEmpty {
-                let label = readableEvent(remainder)
+                let label = KeyboardEventClassifier.physicalKeys.values.contains(remainder)
+                    ? readablePhysicalKey(remainder, shifted: modifiers.contains("shift"))
+                    : readableEvent(remainder)
                 return modifiers.compactMap { modifierSymbols[$0] }.joined() + " " + label
             }
         }
