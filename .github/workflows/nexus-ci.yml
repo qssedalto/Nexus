@@ -70,3 +70,53 @@ jobs:
             echo 'ERROR: default build unexpectedly advertises CloudKit' >&2
             exit 1
           fi
+
+      # An unprovisioned compatibility preview, NOT an enabled CloudKit client.
+      # With an actual paid profile the existing package_app.sh flow must be
+      # run separately and verify its provisioned entitlements.
+      - name: Build isolated CloudKit-track preview (no iCloud entitlement)
+        if: github.event_name == 'pull_request' && github.head_ref == 'feat/cloudkit-provisioned-track'
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_NAME="Nexus CloudKit Dev" BUNDLE_ID="com.qssedalto.nexus.cloudkit.dev" ARCHES=arm64 ./Scripts/package_app.sh release --dev
+          APP="Nexus CloudKit Dev.app"
+          INFO="$APP/Contents/Info.plist"
+          EXT="$APP/Contents/PlugIns/NexusFinderSync.appex"
+          test -d "$APP" && test -d "$EXT"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$INFO")" = "com.qssedalto.nexus.cloudkit.dev"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$EXT/Contents/Info.plist")" = "com.qssedalto.nexus.cloudkit.dev.findersync"
+          if /usr/libexec/PlistBuddy -c 'Print :NexusCloudKitContainerIdentifier' "$INFO" >/dev/null 2>&1; then
+            echo "::error::Unprovisioned preview must not claim an actual CloudKit container."
+            exit 1
+          fi
+          /usr/bin/codesign --verify --deep --strict --verbose=2 "$APP"
+          /usr/bin/codesign --verify --strict --verbose=2 "$EXT"
+          /usr/bin/codesign -d --entitlements :- "$APP" > "$RUNNER_TEMP/nexus-cloudkit-preview-entitlements.plist" 2>/dev/null
+          if /usr/libexec/PlistBuddy -c 'Print :com.apple.developer.icloud-services' "$RUNNER_TEMP/nexus-cloudkit-preview-entitlements.plist" >/dev/null 2>&1; then
+            echo "::error::Unprovisioned preview must not have iCloud services entitlement."
+            exit 1
+          fi
+          test "$(/usr/bin/lipo -archs "$APP/Contents/MacOS/Nexus CloudKit Dev")" = arm64
+          mkdir -p "$RUNNER_TEMP/nexus-cloudkit-preview-dist"
+          ZIP="$RUNNER_TEMP/nexus-cloudkit-preview-dist/Nexus-CloudKit-Dev-unprovisioned-preview-macOS-arm64.zip"
+          /usr/bin/ditto --norsrc -c -k --keepParent "$APP" "$ZIP"
+          /usr/bin/unzip -tq "$ZIP"
+          {
+            echo "## Nexus CloudKit-track compatibility preview"
+            echo ""
+            echo "- Artifact: **Nexus-CloudKit-Dev-unprovisioned-preview-macOS-arm64-${GITHUB_RUN_NUMBER}**"
+            echo "- No CloudKit container or entitlement. **Cross-device CloudKit sync WILL NOT work**."
+            echo "- This ZIP is for UI/compatibility preview only; paid Apple Developer team, registered container and matching profile are needed to build the enabled variant."
+            echo "- Isolated bundle ID; Ad Hoc signed, not notarized."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload unprovisioned CloudKit-track preview ZIP
+        if: github.event_name == 'pull_request' && github.head_ref == 'feat/cloudkit-provisioned-track'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nexus-CloudKit-Dev-unprovisioned-preview-macOS-arm64-${{ github.run_number }}
+          path: ${{ runner.temp }}/nexus-cloudkit-preview-dist/Nexus-CloudKit-Dev-unprovisioned-preview-macOS-arm64.zip
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
