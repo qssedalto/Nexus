@@ -7,10 +7,12 @@ final class AppState: ObservableObject {
     @Published private(set) var feedback: DropFeedback?
     @Published var selectedFormat: PathFormat
     @Published private(set) var launchAtLoginEnabled: Bool
+    private(set) var shouldEnableDefaultLoginOnFirstLaunch = false
     @Published private(set) var finderExtensionEnabled: Bool
     @Published private(set) var useFinderSubmenu: Bool
     @Published private(set) var feedbackDuration: Double
     @Published private(set) var operations: [RecordedOperation] = []
+    @Published private(set) var shelfOperations: [RecordedOperation] = []
 
     private let settings: AppSettingsStore
     private let sharedSettings: AppSettingsStore?
@@ -21,6 +23,7 @@ final class AppState: ObservableObject {
     private let finderExtensionController: FinderExtensionManaging
     private var feedbackTask: Task<Void, Never>?
     private var operationQueryID = UUID()
+    private var shelfQueryID = UUID()
 
     init(
         settings: AppSettingsStore,
@@ -57,12 +60,21 @@ final class AppState: ObservableObject {
     }
 
     static func production() -> AppState {
+        // Move legacy settings and SQLite snapshots before opening any new store.
+        // Existing Nexus data wins; the migration never overwrites user files.
         SharedSettings.migrateLegacyStorage()
-        return AppState(
-            settings: AppSettingsStore(defaults: .standard),
+        let settings = AppSettingsStore(defaults: .standard)
+        // The initializer persists the current state; remember whether a
+        // preference existed BEFORE it runs. Never re-enable launch at login
+        // for an existing user who disabled it intentionally.
+        let firstLaunch = !settings.hasStoredLaunchAtLoginPreference
+        let state = AppState(
+            settings: settings,
             sharedSettings: SharedSettings.makeStore(),
             operationStore: OperationStore.shared()
         )
+        state.shouldEnableDefaultLoginOnFirstLaunch = firstLaunch
+        return state
     }
 
     var lastCopiedOutput: String? {
@@ -87,7 +99,8 @@ final class AppState: ObservableObject {
         return copyOutput(output, successMessage: localized("Path copied"), urls: urls, eventTimeMS: eventTimeMS)
     }
 
-    func copyAgain(_ output: String) {
+    @discardableResult
+    func copyAgain(_ output: String) -> Bool {
         copyOutput(output, successMessage: localized("Copied again"))
     }
 
@@ -111,21 +124,60 @@ final class AppState: ObservableObject {
         persistHistory()
     }
 
+    // Reuse the single existing status-bar feedback popover for passive
+    // clipboard changes. Detection does not imply successful paste.
+    func clipboardDidChange(_ key: String) {
+        showFeedback(.observed(localized(key)))
+    }
+
     func finderCopyDidSucceed() {
         refreshHistory()
         showFeedback(.success(localized("Path copied")))
     }
 
-    func refreshOperations(from startMS: Int64 = 0, to endMS: Int64 = Int64.max) {
+    /// The initial menu/settings refresh uses only recent records. Explicit
+    /// timeline range queries keep their full, user-selected range.
+    func refreshOperations(from startMS: Int64? = nil, to endMS: Int64 = Int64.max) {
         let queryID = UUID()
         operationQueryID = queryID
         let store = operationStore
-        Task.detached(priority: .utility) { [weak self] in
-            let results = (try? store?.query(from: startMS, to: endMS)) ?? []
-            await MainActor.run {
-                guard self?.operationQueryID == queryID else { return }
-                self?.operations = results
-            }
+        let lower = startMS ?? Int64(Date().addingTimeInterval(-30 * 86400).timeIntervalSince1970 * 1000)
+        let implicitLimit: Int? = startMS == nil ? 500 : nil
+        Task { [weak self] in
+            let results = await Task.detached(priority: .utility) {
+                (try? store?.query(from: lower, to: endMS, limit: implicitLimit)) ?? []
+            }.value
+            guard self?.operationQueryID == queryID else { return }
+            self?.operations = results
+        }
+    }
+
+    /// Separate shelf data from the unbounded, user-specified timeline query.
+    /// Loading 200 latest clipboard records (not unrelated operation events)
+    /// plus explicit pinned/collection UUIDs keeps
+    /// old favorites visible without materializing years of copy operations.
+    func refreshShelfOperations(protectedIDs: [String] = []) {
+        let queryID = UUID()
+        shelfQueryID = queryID
+        let store = operationStore
+        var seen = Set<String>()
+        let ids = Array(protectedIDs.filter {
+            !$0.isEmpty && seen.insert($0).inserted
+        }.prefix(500))
+        Task { [weak self] in
+            let results = await Task.detached(priority: .utility) {
+                let recent = (try? store?.searchClipboard(query: "", limit: 200)) ?? []
+                let protected = (try? store?.query(ids: ids)) ?? []
+                var byID: [String: RecordedOperation] = [:]
+                for operation in recent + protected { byID[operation.id] = operation }
+                return byID.values.sorted {
+                    let lhs = $0.eventTimeMS ?? $0.detectedTimeMS
+                    let rhs = $1.eventTimeMS ?? $1.detectedTimeMS
+                    return lhs == rhs ? $0.id > $1.id : lhs > rhs
+                }
+            }.value
+            guard self?.shelfQueryID == queryID else { return }
+            self?.shelfOperations = results
         }
     }
 
@@ -172,18 +224,33 @@ final class AppState: ObservableObject {
 
     @discardableResult
     private func copyOutput(_ output: String, successMessage: String, urls: [URL] = [], eventTimeMS: Int64? = nil) -> Bool {
+        let startedTimeMS = eventTimeMS ?? Int64(Date().timeIntervalSince1970 * 1000)
         do {
             try clipboardWriter.writeString(output)
             let completedTimeMS = Int64(Date().timeIntervalSince1970 * 1000)
+            // The dedicated Nexus operation is recorded below. Prevent the
+            // passive clipboard observer from adding a duplicate text event.
+            ClipboardMonitor.shared.ignoreCurrentChange()
             refreshHistory()
             history.add(output)
             persistHistory()
-            if !urls.isEmpty {
-                let operationStore = self.operationStore
-                Task.detached(priority: .utility) { [weak self] in
-                    try? operationStore?.record(type: "path_copy", urls: urls, sourceApplication: "Nexus", detectionMethod: "drop", eventTimeMS: eventTimeMS, completedTimeMS: completedTimeMS, clipboardText: output)
-                    await MainActor.run { self?.refreshOperations() }
-                }
+
+            let operationStore = self.operationStore
+            // A menu-bar file drop is a distinct user action from
+            // Finder's native copy-path service, even though both write
+            // formatted paths into the system clipboard.
+            let operationType = urls.isEmpty ? "text_copy" : "drop_copy"
+            let method = urls.isEmpty ? "app_recopy" : "drop"
+            Task { [weak self] in
+                await Task.detached(priority: .utility) {
+                    try? operationStore?.record(type: operationType, urls: urls,
+                                                sourceApplication: "Nexus", detectionMethod: method,
+                                                eventTimeMS: startedTimeMS,
+                                                detectedTimeMS: completedTimeMS,
+                                                completedTimeMS: completedTimeMS,
+                                                clipboardText: output)
+                }.value
+                self?.refreshOperations()
             }
             let detail = urls.count == 1 ? urls[0].lastPathComponent : (urls.isEmpty ? nil : "\(urls.count) \(localized("items"))")
             showFeedback(.success(successMessage, detail: detail))
@@ -230,6 +297,7 @@ struct DropFeedback: Identifiable, Equatable {
     enum Kind: Equatable {
         case success
         case failure
+        case observation
     }
 
     let id = UUID()
@@ -239,6 +307,10 @@ struct DropFeedback: Identifiable, Equatable {
 
     static func success(_ message: String, detail: String? = nil) -> DropFeedback {
         DropFeedback(kind: .success, message: message, detail: detail)
+    }
+
+    static func observed(_ message: String) -> DropFeedback {
+        DropFeedback(kind: .observation, message: message, detail: nil)
     }
 
     static func failure(_ message: String) -> DropFeedback {

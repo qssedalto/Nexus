@@ -17,12 +17,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var welcomeGuideObserver: NSObjectProtocol?
 
 
+    func applicationWillTerminate(_ notification: Notification) {
+        ClipboardHotkeyController.shared.shutdown()
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         NSApp.servicesProvider = serviceProvider
+        if appState.shouldEnableDefaultLoginOnFirstLaunch {
+            // Newly installed users only; respect a persisted disabled preference.
+            appState.setLaunchAtLoginEnabled(true)
+        }
+        let state = appState
+        InputStatisticsController.shared.setPasteRequestHandler { _ in
+            Task { @MainActor in
+                state.clipboardDidChange("Paste request detected")
+            }
+        }
         InputStatisticsController.shared.startIfPermitted()
+        _ = InputCloudBackupController.shared
         _ = NetworkSyncController.shared
-        _ = ClipboardMonitor.shared
+        if UserDefaults.standard.bool(forKey: "nexusCloudClipboardEnabled"),
+           UserDefaults.standard.bool(forKey: "nexusCloudClipboardAutomaticSync") {
+            _ = ClipboardCloudController.shared
+        }
+        ClipboardMonitor.shared.onDetected = { [weak self] key in
+            self?.appState.clipboardDidChange(key)
+        }
         finderCopyObserver = DistributedNotificationCenter.default().addObserver(
             forName: SharedSettings.finderCopyNotification,
             object: nil,

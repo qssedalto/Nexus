@@ -1,0 +1,43 @@
+name: Nexus isolated Services menu candidates
+
+on:
+  pull_request:
+    paths:
+      - 'project.yml'
+      - 'Config/Nexus-ServicesPrototype-Info.plist'
+      - 'Sources/Nexus/NexusServiceProvider.swift'
+      - 'Sources/NexusFinderSync/**'
+      - 'Sources/NexusCore/**'
+      - 'Scripts/test_services_prototype.sh'
+      - 'Scripts/test_services_only_release.sh'
+      - '.github/workflows/nexus-services.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'project.yml'
+      - 'Config/Nexus-ServicesPrototype-Info.plist'
+      - 'Sources/Nexus/NexusServiceProvider.swift'
+      - 'Sources/NexusFinderSync/**'
+      - 'Scripts/test_services_prototype.sh'
+      - 'Scripts/test_services_only_release.sh'
+      - '.github/workflows/nexus-services.yml'
+
+concurrency:
+  group: nexus-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-only:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Compile isolated noninstalled service prototype
+        run: bash Scripts/test_services_prototype.sh
+      - name: Compile same-identity single-service candidate without installing
+        run: bash Scripts/test_services_only_release.sh

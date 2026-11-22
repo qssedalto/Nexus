@@ -9,7 +9,7 @@
 "Copy" = "拷贝";
 "Copy As" = "拷贝格式";
 "Copy again" = "再次拷贝";
-"Copyright © 2026 qssedalto. Portions © 2026 Marco Gomiero." = "版权所有 © 2026 qssedalto；部分内容版权所有 © 2026 Marco Gomiero。";
+"Copyright © 2026 Marco Gomiero." = "版权所有 © 2026 Marco Gomiero。";
 "Couldn’t change the Finder extension’s status. Use System Settings to try again." = "无法更改扩展状态，请在系统设置中重试。";
 "Couldn’t read Finder extensions." = "无法读取访达扩展列表。";
 "Couldn’t register the Nexus extension." = "无法注册 天枢 访达扩展。";
@@ -94,7 +94,6 @@
 "Bundle Identifier" = "Bundle 标识符";
 "Input types" = "输入类型";
 "Shortcut" = "快捷键";
-"Enabled" = "启用状态";
 "Menu location" = "菜单位置";
 "Editable by Nexus" = "天枢可修改";
 "No" = "否";
@@ -122,7 +121,432 @@
 "Show feedback for" = "提示显示时长";
 "Off" = "关闭";
 
-/* Onboarding and menu-bar discoverability. */
+"Clipboard Shelf" = "剪贴板卡片";
+"Search, pin and copy your recorded clipboard history." = "搜索、固定并再次复制已经记录的剪贴板内容。";
+"Search clipboard" = "搜索剪贴板";
+"Files" = "文件";
+"Images" = "图片";
+"Text" = "文本";
+"Pinned" = "已固定";
+"Pin" = "固定";
+"Unpin" = "取消固定";
+"Folder" = "文件夹";
+"Copied text" = "复制的文本";
+"No clipboard history found" = "没有找到剪贴板历史";
+"Enable file or text monitoring in Settings, then copy something." = "请在设置中开启文件或文本监控，然后进行复制。";
+"Cards show metadata only for images and files; clipboard detection does not mean a file was pasted." = "图片和文件只显示元数据；检测到剪贴板变化不代表文件已粘贴。";
+"Source file unavailable" = "无法获取原始文件";
+"Record clipboard text (opt-in)" = "记录剪贴板文本（单独授权）";
+"Text history can include private information. Enable only when you want Nexus to store copied text locally." = "文本历史可能包含隐私信息。只有希望天枢在本机存储复制文本时才启用。";
+"Records detected clipboard changes, not confirmed file transfers or paste completion." = "此功能记录检测到的剪贴板变化，不代表文件传输或粘贴已完成。";
+"Text copy" = "复制文本";
+"Image copy" = "复制图片";
+"Clipboard files detected" = "检测到文件复制";
+"Clipboard image detected" = "检测到图片复制";
+"Clipboard text detected" = "检测到文本复制";
+
+"Follow system default" = "跟随系统默认";
+"Expand all Services where possible" = "尽可能将所有服务展开到一级菜单";
+"Group Services in submenu" = "将所有服务收纳进子菜单";
+"System default (no override)" = "系统默认（未设置）";
+"Global threshold" = "全局服务折叠阈值";
+"Global Services setting updated; reopen the Finder menu." = "已更新全局服务菜单设置，请重新打开访达右键菜单。";
+"No saved original setting found" = "未找到此前保存的原始设置。";
+"Original global Services setting restored" = "已恢复原始全局服务菜单设置。";
+"Cannot inspect global Services preferences" = "无法读取全局服务菜单偏好设置。";
+"Existing preference type is not an integer; no changes were made" = "现有设置不是整数类型，未作任何修改。";
+"Could not change global Services preferences; no settings were deleted" = "未能修改全局服务设置，原始备份仍然保留。";
+"This setting changes the Services submenu for every app, not only Nexus." = "此设置会影响所有应用的「服务」菜单，而不仅仅是天枢。";
+"Current global setting" = "当前全局设置";
+"Services menu layout" = "服务菜单布局";
+"Apply system-wide…" = "应用到整个系统…";
+"Change Services menus for all apps?" = "要修改所有应用的服务菜单吗？";
+"Apply system-wide" = "应用到整个系统";
+"This global setting may change where other apps' Services appear. Finder may need to reopen its context menu." = "此全局设置可能改变其他应用服务项的位置。访达可能需要重新打开右键菜单。";
+"Restore previous global value…" = "恢复之前的全局设置…";
+"Restore the saved global Services value?" = "要恢复保存的原始服务菜单设置吗？";
+"Restore original" = "恢复原始设置";
+"Restore the exact integer value (or unset state) saved before Nexus first changed this preference." = "恢复天枢首次修改前保存的原始整数值，或者原本未设置的状态。";
+"Global Services menu layout" = "全局服务菜单布局";
+
+"Copy history cloud sync (separate consent)" = "复制历史云同步（单独授权）";
+"Allow operation metadata sync" = "允许上传操作元数据";
+"Include full source and target paths" = "包含完整来源和目标路径";
+"Include copied text contents" = "包含复制的文本正文";
+"Copied text and absolute file paths can contain passwords, personal names and private data. Both are redacted unless you opt in." = "复制文本及绝对路径可能包含密码、个人姓名及隐私信息。除非另行授权，否则会自动移除正文与完整路径。";
+"Preview pending operations" = "预览待同步操作";
+"Upload operation history now" = "立即上传操作历史";
+"Restore operation history" = "恢复操作历史";
+"Delete this device's remote operation history" = "删除本设备云端操作历史";
+"Operation sync status" = "操作历史同步状态";
+"Delete remote operation history" = "删除云端操作历史";
+"This deletes this device's copy operation records on the server. Local records remain unchanged." = "这将删除服务器上属于本设备的复制操作记录，不影响本地历史。";
+
+"Item type" = "对象类型";
+"Package" = "文件包";
+"Document" = "文档";
+"Video" = "视频";
+"Archive" = "压缩包";
+"Cancel folder scan" = "取消文件夹扫描";
+"Copy source path" = "复制来源路径";
+"Copy target path" = "复制目标路径";
+"Calculate folder size (background)" = "后台计算文件夹大小";
+"Calculating folder size in the background…" = "正在后台计算文件夹大小…";
+"Folder size" = "文件夹大小";
+"Folder size scan cancelled" = "已取消文件夹扫描";
+
+"History retention is unlimited" = "历史保留时间未设限制";
+"old records removed locally" = "条旧记录已从本地删除";
+"Pause clipboard history collection" = "暂停收集剪贴板历史";
+"Excluded foreground app bundle IDs (comma separated)" = "排除的前台应用 Bundle ID（逗号分隔）";
+"Excluding the foreground app is best-effort; pasteboards do not reliably identify the source app. Pause history for sensitive sessions." = "仅能尽可能排除前台应用，剪贴板无法可靠识别复制来源。处理敏感信息时请暂停监控。";
+"Local history retention" = "本地历史保留";
+"Delete unpinned history after" = "未固定历史保留期限";
+"Maximum unpinned history records" = "最多保留未固定记录数";
+"Never" = "永不自动删除";
+"Unlimited" = "不限制";
+"Apply local cleanup now" = "立即清理本地历史";
+"Pinned records are preserved. Local deletion does not automatically erase an earlier cloud upload." = "固定记录不会被清理。本地删除不会自动清除此前上传到云端的数据。";
+"Clear unpinned local history" = "清除未固定的本地历史";
+"Delete all unpinned local copy history?" = "确定清除全部未固定的本地复制历史吗？";
+"Delete unpinned local history" = "删除未固定的本地历史";
+"Pinned records are preserved. This does not delete anything previously uploaded to a remote server." = "固定记录将保留。本操作不会删除此前上传到服务器的内容。";
+"Delete from local history" = "从本地历史删除";
+"Local record deleted" = "已从本地历史删除";
+"Unable to delete local record" = "无法删除这条本地记录";
+"local records deleted" = "条本地记录已删除";
+"Unable to clear local history" = "无法清空本地历史";
+
+"Could not initialize global shortcut handler" = "无法初始化全局快捷键监听";
+"Global clipboard shortcut disabled" = "全局剪贴板快捷键已关闭";
+"Shortcut unavailable or used by another application" = "快捷键不可用，可能已被其他应用占用";
+"Global clipboard shortcut enabled" = "已启用全局剪贴板快捷键";
+"Clipboard shortcut" = "剪贴板快捷键";
+"Show or hide clipboard shelf" = "显示或隐藏剪贴板面板";
+"Shortcuts are off by default. If the shortcut is occupied, the previous setting is kept." = "快捷键默认关闭；若组合键被其他应用占用，将保留原来的设置。";
+"Paste into previous app" = "粘贴到此前使用的应用";
+"Paste as plain text" = "以纯文本粘贴";
+
+"Permanent collection" = "永久剪贴板集合";
+"All collections" = "全部记录";
+"Create collection" = "新建集合";
+"Delete collection only" = "仅删除集合";
+"Collections protect their entries from history cleanup." = "集合内的记录不会被历史自动清理。";
+"Create permanent collection" = "新建永久剪贴板集合";
+"Collection name" = "集合名称";
+"Create" = "创建";
+"Delete this collection?" = "确定删除这个集合吗？";
+"Delete collection" = "删除集合";
+"The collection is removed; its saved clipboard operations remain in history." = "仅删除集合，已保存的剪贴板历史仍然保留。";
+"Add to collection" = "添加到集合";
+"Remove from collection" = "从集合中移除";
+"Move toward beginning" = "向前移动";
+"Move toward end" = "向后移动";
+"Collection name is empty or already used" = "集合名称为空或已存在";
+"Collection removed; clipboard history preserved" = "已删除集合，剪贴板历史未删除";
+"Unable to delete collection" = "无法删除集合";
+"Added to permanent collection" = "已添加到永久剪贴板集合";
+
+"Invalid time range" = "时间范围无效";
+"Statistics query complete" = "统计查询完成";
+"Count held-key repeats" = "统计长按自动重复";
+"Time range" = "时间范围";
+"Today" = "今天";
+"Yesterday" = "昨天";
+"Last 7 days" = "最近 7 天";
+"Last 30 days" = "最近 30 天";
+"This month" = "本月";
+"This year" = "今年";
+"All history" = "全部历史";
+"Custom" = "自定义";
+"Keyboard presses" = "键盘按键次数";
+"Mouse clicks" = "鼠标点击次数";
+"Special keys" = "特殊功能键次数";
+"Shortcuts" = "快捷键次数";
+"Scroll events" = "滚轮事件次数";
+"First recorded" = "开始记录时间";
+"Time trend" = "时间趋势";
+"Resolution" = "时间粒度";
+"Hourly" = "每小时";
+"Daily" = "每天";
+"Weekly" = "每周";
+"Monthly" = "每月";
+"Key and shortcut ranking" = "按键与快捷键排行榜";
+"Event category" = "事件分类";
+"Selected key" = "当前按键";
+"Show all keys" = "查看所有按键";
+"Time" = "时间";
+"Count" = "次数";
+"keyboard" = "功能键";
+"modifier" = "修饰键";
+"system" = "系统功能";
+"shortcut" = "快捷键";
+"mouse" = "鼠标";
+"scroll" = "滚轮";
+"ordinary" = "普通字符汇总";
+
+"Special key detection" = "系统功能键检测";
+"Enable diagnostic key recognition" = "开启按键识别测试";
+"Diagnostics show only recognized functional keys and input categories. Unknown system key types are marked unsupported; ordinary text is never captured. Closing this section disables diagnostics." = "诊断仅显示功能键和输入分类。未识别的系统键类型标记为不支持；不会采集普通输入文本。关闭界面后结束诊断。";
+"Recognized" = "已识别";
+"Unknown / unsupported" = "未知／暂不支持";
+
+"This is a read-only catalog of Services declared by installed apps and workflows. macOS alone determines effective activation and menu placement." = "这里只读展示已安装应用和工作流程声明的系统服务。实际启用状态及菜单位置由 macOS 决定。";
+"Nexus copy-path service" = "天枢复制路径服务";
+"Finder Sync copy command" = "访达扩展复制路径命令";
+"Finder copy menu position" = "访达复制菜单位置";
+"Direct context menu" = "直接显示在右键菜单";
+"Nexus submenu" = "天枢子菜单";
+"Manage Finder extension in macOS Settings…" = "前往 macOS 设置管理访达扩展…";
+"Finder Sync is not bundled with this configuration" = "此版本未包含访达扩展";
+"This build has no additional NSServices entry, preventing duplicate copy-path menus. The isolated ServicesPrototype build has a single native service instead of a Finder Sync copy menu." = "本版本没有额外的 NSServices 条目，避免出现重复的复制路径菜单。独立 ServicesPrototype 版本只保留一个原生服务，而不使用 Finder Sync 复制菜单。";
+"Manage native Services in macOS Settings…" = "前往 macOS 设置管理原生服务…";
+"Native Services titles and per-item menu levels are part of macOS registration and cannot be changed live through a supported public API." = "原生服务名称和每项菜单层级由 macOS 注册机制决定，无法通过受支持的公开 API 实时修改。";
+"Show only Nexus" = "只显示天枢服务";
+"declared services" = "项已声明服务";
+"Declared shortcut" = "声明的默认快捷键";
+"Show application in Finder" = "在访达中显示所属应用";
+"Change service settings in macOS…" = "在 macOS 中调整服务设置…";
+
+"Observe Command+V paste requests (opt-in)" = "检测 Command+V 粘贴请求（单独授权）";
+"Only a shortcut request and event timestamp are saved. This cannot verify a successful paste, does not inspect the destination, and requires input-monitoring permission." = "只保存快捷键请求和时间戳，无法确认实际粘贴成功，不读取目标应用内容，需要输入监控权限。";
+"Paste request detected" = "检测到粘贴请求（结果未知）";
+"Paste request" = "粘贴请求";
+"Paste requested, completion unknown" = "已发出粘贴请求，无法确认是否完成";
+
+"Privacy and Permissions" = "隐私与权限";
+"Input monitoring and permissions" = "输入监控与权限";
+"Accessibility permission for quick paste" = "快速粘贴所需的辅助功能权限";
+"Granted" = "已授权";
+"Not granted" = "未授权";
+"Request access…" = "请求授权…";
+"Nexus never reads typed text, password fields, or browser pages. Statistical key categories are stored locally unless you explicitly configure network sync." = "天枢不会读取输入的文字、密码框或网页内容。按键类别统计保存在本地，除非你主动配置网络同步。";
+"Clipboard history privacy" = "剪贴板历史隐私";
+"Source app exclusions are best-effort. Pasteboards cannot reliably identify the originating app, so pause monitoring during sensitive sessions." = "来源应用排除仅为尽力实现。剪贴板无法可靠识别真正的复制来源；处理敏感信息时请暂停监控。";
+"Pinned records and permanent collections survive automated cleanup. Deleting local history does not erase previous cloud uploads." = "固定记录和永久剪贴板集合不会被自动清理。本地删除不会清除之前已上传的云端数据。";
+"Network consent" = "网络同步授权";
+"Operation uploads are off by default. Full paths and clipboard contents require separate consent even after metadata sync is enabled. Server-side deletion is controlled from Network sync." = "操作历史上传默认关闭。启用元数据同步后，完整路径与剪贴板内容仍需分别授权。云端数据删除请前往「网络同步」。";
+
+"Drag/drop copy" = "拖放并复制路径";
+
+"Delete all statistics" = "删除全部统计数据";
+"This deletes every locally stored input statistic. Existing cloud backups and uploads are not deleted." = "这将删除所有本地键盘鼠标统计。已有云端备份和先前上传的数据不会同步删除。";
+
+"Device or event source" = "设备或事件来源";
+"All sources" = "全部来源";
+"Reset source filter" = "清除来源筛选";
+"Source and HID device statistics" = "事件来源与 HID 设备统计";
+"Only HID vendor/product and optional connection location identify a device model. Quartz and AppKit sources cannot identify a physical keyboard or mouse; location-free HID entries may represent several identical devices." = "只有 HID 提供的厂商、产品及可选连接位置可以帮助识别设备型号。Quartz 和 AppKit 无法可靠识别物理键盘或鼠标；缺少位置的 HID 条目也可能代表多个相同设备。";
+"Device unknown" = "设备未知";
+
+"Restore selected statistics" = "恢复选中的统计备份";
+"Select one NexusStatistics.sqlite file inside a Nexus Statistics device folder. Restoring merges old records, preserving current data." = "选择「Nexus Statistics」设备文件夹中的 NexusStatistics.sqlite。恢复会合并历史记录，不覆盖当前数据。";
+"Select a NexusStatistics.sqlite backup file" = "请选择 NexusStatistics.sqlite 备份文件";
+"Restoring historical statistics" = "正在恢复历史统计";
+"Restored statistical rows" = "已恢复的统计记录行数";
+"Restore backup…" = "从备份恢复…";
+"Each Mac receives its own backup subfolder. Restoring merges and deduplicates recorded statistics without erasing current events." = "每台 Mac 都使用独立的备份子文件夹。恢复时合并并去重统计记录，不清除当前事件。";
+"Automatically merge other Macs' iCloud backups" = "自动合并其他 Mac 的 iCloud 备份";
+"Cross-Mac import uses only the selected folder and separately named device snapshots, skips symlinks and backups over 100 MB, and preserves original event IDs across devices." = "跨 Mac 导入只读取你选定文件夹中的设备备份，跳过符号链接和超过 100 MB 的备份，保留原始设备和事件 ID。";
+"Import other Macs now" = "立即导入其他 Mac 的备份";
+"Choose a backup folder before importing other Macs" = "请先选择备份文件夹，再导入其他 Mac 的记录";
+"Scanning other Mac backups" = "正在扫描其他 Mac 的备份";
+"Imported cross-device statistical rows" = "跨设备导入的统计记录行数";
+
+"Server schema not recognized; operation sync not verified" = "服务器协议版本无法识别，操作历史同步尚未验证";
+"Connected: statistics and operation history APIs available" = "已连接：统计及操作历史 API 可用";
+"Connected: operation history API unavailable or not advertised" = "已连接：操作历史 API 未提供或未声明";
+
+"Source application filter" = "按来源应用筛选";
+"Source application unknown" = "来源应用未知";
+"Filter by date" = "按日期筛选";
+"Through" = "截至";
+"Showing the latest 200 matching records; narrow the search to find older ones." = "当前显示最新的 200 条匹配记录；请缩小搜索范围以查找更早内容。";
+
+"Save copied image pixels (opt-in, 8 MB maximum)" = "保存复制的图片内容（需授权，最大 8 MB）";
+"Image capture is off by default. Stored image bytes stay local, share duplicate storage, and are removed when the last history reference is deleted. Oversized or unreadable images retain metadata only." = "默认不保存图片像素。原始图片仅保存在本地，相同内容共享存储；最后一条引用被删除后也会删除图片数据。过大的图片或无法读取的图片仅保存元数据。";
+
+"Original clipboard image unavailable" = "原始剪贴板图片不可用";
+
+"Preview local copied files using Quick Look (opt-in)" = "使用快速查看预览本地复制的文件（需主动开启）";
+"File previews read only local supported files up to 24 MB. Cloud-only files and File Provider folders show an icon, without a requested download." = "文件缩略图只读取最大 24 MB 的受支持本地文件；仅云端的文件与文件提供程序目录只显示图标，不主动下载。";
+
+"Links" = "链接";
+"Code" = "代码";
+"Copied code" = "已复制代码";
+
+"Drag cards to reorder this collection." = "拖动卡片以调整此收藏集中的顺序。";
+
+"Custom shortcut" = "自定义快捷键";
+"Configure custom shortcut…" = "设置自定义快捷键…";
+"Custom shortcuts require two or more modifiers. Keys use physical keyboard positions; system conflicts are rejected without losing the previous shortcut." = "自定义快捷键至少需要两个修饰键；按键按物理键位识别。若与系统快捷键冲突，将保留原有快捷键。";
+"Custom clipboard shortcut" = "自定义剪贴板快捷键";
+"Key" = "按键";
+"Choose at least two modifiers. If macOS already uses the combination, Nexus keeps the previous shortcut." = "请至少选择两个修饰键。若 macOS 已占用该组合，Nexus 将保留此前的快捷键。";
+"Apply shortcut" = "应用快捷键";
+"Select at least two shortcut modifiers" = "请至少选择两个快捷键修饰键";
+"Configure a custom shortcut first" = "请先设置自定义快捷键";
+
+"Drop a card into a collection:" = "将卡片拖入收藏集：";
+
+"iCloud Clipboard" = "iCloud 剪贴板";
+"iCloud clipboard (manual opt-in)" = "iCloud 剪贴板（手动授权）";
+"Enable iCloud clipboard history sync" = "允许 iCloud 同步剪贴板历史";
+"Off by default. Your current Nexus installation does not upload clipboard history until you explicitly configure a signed CloudKit container, authorize the categories below and press Sync Now." = "默认关闭。只有配置经签名的 CloudKit 容器、授权下面的内容类别，并主动点击“立即同步”后才会上传剪贴板历史。";
+"CloudKit container configured" = "已配置 CloudKit 容器";
+"CloudKit container not configured for this build" = "此构建未配置 CloudKit 容器";
+"Independent cloud data permissions" = "独立的云端数据权限";
+"Include copied text in iCloud" = "允许上传复制的文本";
+"Include file names and collection names" = "允许上传文件名及收藏集名称";
+"Include full source file paths" = "允许上传完整源文件路径";
+"Image pixels are never uploaded. Cloud copies of deleted or previously shared data require separate deletion; disabling consent prevents new uploads but cannot recall existing Apple iCloud copies." = "不会上传图片像素。已经上传的数据需要单独在云端删除；关闭授权只能阻止后续上传，不能收回此前的 iCloud 副本。";
+"Prepare and sync clipboard" = "准备与同步剪贴板";
+"Prepare next local history page" = "准备下一页本地历史";
+"Create private iCloud zone" = "创建 iCloud 私有存储区";
+"Sync now" = "立即同步";
+"Preparation only queues local data. Each click handles up to 200 history records; collections are included when their names are authorized. Sync now uploads pending changes and downloads one cloud change page." = "准备操作只在本地排队，每次最多处理 200 条历史；授权名称后可一并准备收藏集。同步操作上传待处理变更并下载一页云端变更。";
+"Next history page offset:" = "下一页历史偏移量：";
+"Pending local changes:" = "本地待处理变更：";
+"Locally cached cloud history" = "本地缓存的云端历史";
+"Remote records are a local preview, not a verified paste. Only plain text entries with authorized content may be copied again." = "远端记录这里只是本地预览，不代表已经粘贴成功；只有授权的纯文本才支持再次复制。";
+"Refresh local cache" = "刷新本地缓存";
+"No cached cloud clipboard entries" = "没有缓存的云端剪贴板记录";
+"Metadata only" = "仅元数据";
+"Copy text" = "复制文本";
+"Enable iCloud clipboard consent to inspect its local cache" = "请先授权 iCloud 剪贴板以查看本地缓存";
+
+"Save safe RTF typography (opt-in)" = "保存安全的 RTF 文字格式（需主动开启）";
+"RTF formatting keeps only bold, italic and underline flags. Attachments, remote resources, fonts and original RTF data are never saved." = "仅保存粗体、斜体、下划线等文字样式。不保存附件、远程资源、字体文件或原始 RTF 数据。";
+
+"Foreground app at copy detection (unverified): " = "检测复制时的前台应用（未验证）：";
+"Reported source app: " = "报告的来源应用：";
+
+"Reset cloud change cursor" = "重置云端变更游标";
+
+"matching records loaded" = "条匹配记录已加载";
+"Load 200 older matching records" = "继续加载 200 条更早的匹配记录";
+
+"Restore cached cloud history to local shelf" = "将缓存的云端历史恢复到本地剪贴板面板";
+
+"RTF and safe HTML formatting retain only bold, italic and underline flags. Unsupported HTML, attachments, remote resources, fonts and original markup are never saved." = "RTF 和经过安全筛选的 HTML 只保留粗体、斜体与下划线。不会保存不受支持的 HTML、附件、远程资源、字体或原始标记内容。";
+
+"Switch collections while shelf is open" = "面板打开时切换收藏集";
+"0 shows all history; 1–9 select named collections in display order. Command-F focuses clipboard search. These shortcuts work only while the shelf is focused." = "按 0 显示全部历史；1–9 按当前显示顺序切换命名收藏集。Command-F 聚焦剪贴板搜索框。仅面板获得键盘焦点时有效。";
+
+"Mark card color" = "标记卡片颜色";
+"Custom card color" = "自定义卡片颜色";
+"Unable to update card color" = "无法更新卡片颜色";
+"Automatic color" = "自动颜色";
+"Red" = "红色";
+"Orange" = "橙色";
+"Yellow" = "黄色";
+"Green" = "绿色";
+"Blue" = "蓝色";
+"Purple" = "紫色";
+"Gray" = "灰色";
+
+"Restored %d cloud entries and %d collection changes to local history" = "已将 %d 条云端记录及 %d 项收藏集变更恢复到本地历史";
+
+"Identical plain-text copies" = "相同纯文本重复复制";
+"Keep every copy" = "保留每次复制";
+"Refresh newest identical plain-text copy" = "更新最新的一条相同纯文本记录";
+"Default keeps every copy. Optional consolidation only refreshes the most recent identical plain-text entry within 10 minutes; files, images and formatted text break the sequence." = "默认保留每一次复制。开启合并后，仅在十分钟内连续复制完全相同的纯文本时更新最近一条记录；文件、图片或富文本会中断此合并。";
+
+"Quick clipboard history" = "快速剪贴板历史";
+"Recent clipboard" = "最近剪贴板";
+"Pinned clipboard" = "固定的剪贴板";
+"No recorded clipboard entries" = "暂无剪贴板历史";
+"Open clipboard shelf" = "打开剪贴板面板";
+
+"Resume clipboard history" = "恢复剪贴板历史记录";
+"Pause clipboard history" = "暂停剪贴板历史记录";
+
+"Last successful manual sync:" = "最近成功的手动同步：";
+"More changes pending" = "仍有待同步变更";
+"Synchronized at last run" = "上次运行时已同步";
+
+"iCloud clipboard data removal" = "iCloud 剪贴板数据清理";
+"Removing local cache preserves your original clipboard history. Erasing the private iCloud zone deletes Nexus clipboard cloud records for this Apple account, but another device can upload its own older copies if sync remains enabled there." = "清理本地缓存不会删除原始剪贴板历史。删除 iCloud 私有存储区将清除该 Apple 账户中的 Nexus 云端剪贴板记录；如果其他设备仍开启同步，旧记录可能再次上传。";
+"Clear local iCloud clipboard cache…" = "清理本机 iCloud 剪贴板缓存…";
+"Erase Nexus clipboard data from iCloud…" = "删除 iCloud 中的 Nexus 剪贴板数据…";
+"Clear only the local iCloud clipboard cache?" = "仅清理本机 iCloud 剪贴板缓存？";
+"Clear local iCloud clipboard cache" = "清理本机 iCloud 剪贴板缓存";
+"The local cloud outbox, cached records, cloud cursors and imported mirrors will be removed. Original locally copied entries are preserved; no network request is made." = "将删除本机的云端待上传队列、缓存记录、同步游标和导入的镜像，保留原始本地复制记录。此操作不会联网。";
+"Erase private Nexus iCloud clipboard zone" = "删除 Nexus 的 iCloud 私有剪贴板存储区";
+"This permanently deletes the entire dedicated NexusClipboard zone from the signed-in Apple account. Disable sync on other devices before proceeding to prevent re-upload. Your original local clipboard history is preserved." = "将永久删除当前 Apple 账户中 NexusClipboard 专用存储区的全部云端数据。请先关闭其他设备的同步，避免旧数据再次上传。原始本地剪贴板历史会保留。";
+"Type DELETE to confirm" = "输入 DELETE 以确认";
+"Erase Nexus iCloud records" = "删除 Nexus 的 iCloud 记录";
+"Local iCloud clipboard cache cleared; original local history preserved" = "已清理本机 iCloud 剪贴板缓存；原始本地历史已保留";
+"Local cloud cache removal failed" = "清理本机云端缓存失败";
+"Nexus private iCloud clipboard zone deleted. Disable sync on other devices to prevent recreation." = "Nexus 私有 iCloud 剪贴板存储区已删除。请关闭其他设备的同步，避免重新建立数据。";
+"Cloud deletion failed; sync remains disabled and local recovery data may remain" = "云端删除失败；同步仍保持关闭，本地恢复数据可能仍在";
+
+"Save clipboard-provided link titles (opt-in)" = "保存剪贴板附带的链接标题（需主动开启）";
+"Only a title already present in the copied link's pasteboard is retained locally. Nexus never fetches the webpage, and titles are removed when their history entry is deleted." = "仅将复制链接时剪贴板已提供的标题保存在本机。Nexus 不会联网获取网页内容；删除对应历史记录时也会删除标题。";
+"Rename collection" = "重命名集合";
+"Rename permanent collection" = "重命名永久集合";
+"Rename" = "重命名";
+"Collection renamed" = "集合已重命名";
+"Unable to rename collection" = "无法重命名集合";
+"Remote deletion is available even when operation uploads are disabled. Automatic sync and operation upload permissions are turned off before deletion." = "即使已关闭操作历史上传，仍可删除服务器上的记录。删除前会关闭自动同步及操作历史上传权限。";
+"This deletes this device's server statistics. Automatic sync will be turned off before deletion." = "这将删除本设备在服务器上的统计数据。删除前将关闭自动同步。";
+"This deletes this device's copy operation records on the server. Automatic sync and operation upload permissions will be turned off; local records remain unchanged." = "这将删除本设备在服务器上的复制操作记录，同时关闭自动同步和操作历史上传权限；本机记录不受影响。";
+"Statistics server requires aggregate retry support before upload" = "统计服务器尚未支持可靠的聚合重试；已停止上传并保留本地待同步记录";
+"Server connected but safe aggregate statistics retry is unavailable" = "服务器已连接，但缺少安全的统计聚合重试支持；请先升级服务端";
+"Enable keyboard and mouse statistics" = "启用键盘与鼠标统计";
+"Enable clipboard history monitoring" = "启用剪贴板历史监听";
+"Allow statistics upload to configured server" = "允许向已配置服务器上传统计数据";
+"Statistics upload is disabled; local data is preserved" = "统计上传已关闭；本地记录仍然保留";
+"Statistical uploads remain off until you enable their independent switch; disabling it stops scheduled and manual statistics uploads without deleting local records." = "统计上传须通过独立开关启用；关闭后会停止自动及手动统计上传，但不会删除本地记录。";
+"Review the time range to be deleted." = "请核对即将删除的统计时间范围。";
+"These statistics were recorded locally on this Mac." = "这些统计记录保存在这台 Mac 的本地数据库。";
+"Deletion removes the selected local records permanently." = "删除操作将永久移除所选本地记录。";
+"Deleting local data does not remove existing cloud backups." = "删除本地数据不会移除现有云备份。";
+"Deleting local data does not erase previously uploaded server records." = "删除本地数据不会清除之前上传到服务器的记录。";
+"Pinned clipboard entries are separate from input statistics." = "永久固定的剪贴板条目不属于键鼠统计。";
+"A deleted statistical event cannot be restored without a separate backup." = "没有单独备份时，已删除的统计事件无法恢复。";
+"Verify that the selected range is correct before continuing." = "继续前请再次检查所选删除范围。";
+"This is the ninth confirmation; you can still cancel safely." = "这是第九次确认；现在仍可以安全取消。";
+"Final confirmation: permanently delete these local statistics." = "最终确认：永久删除这些本地统计数据。";
+"iCloud clipboard (user controlled)" = "iCloud 剪贴板（用户可控制）";
+"Automatically sync iCloud clipboard every 5 minutes" = "每 5 分钟自动同步 iCloud 剪贴板";
+"Automatic sync is off by default. If enabled, Nexus prepares at most 200 local history records per cycle and synchronizes only the CloudKit categories you have authorized. The private zone must first be created manually; turning off automatic sync stops future scheduled cycles." = "自动同步默认关闭。启用后，Nexus 每轮最多准备 200 条本地历史，只同步你已授权的 CloudKit 数据类别。首次使用仍需手动创建私有云端区域；关闭自动同步后将停止后续定时任务。";
+"CloudKit requires a signed container and the selected data permissions. Manual sync works independently of the automatic schedule. Disabling either sync switch prevents future scheduled CloudKit requests." = "CloudKit 需要已签名且配置正确的容器和相应数据授权。手动同步不依赖自动同步；关闭任一相关开关都会停止后续定时 CloudKit 请求。";
+"Last successful sync:" = "上次成功同步：";
+"Include original clipboard images in iCloud (up to 8 MB)" = "在 iCloud 中同步剪贴板图片原件（最多 8 MB）";
+"Image transfer is off by default. Enabling it uploads original image copies as private CloudKit assets. File originals are not included; disabling permission stops future transfers but does not erase cloud copies already uploaded." = "图片原件同步默认关闭。开启后，复制的图片原件将作为私有 CloudKit 资源同步；不包含文件原件。关闭授权会停止后续传输，但不会自动删除已上传的云端副本。";
+"Include original clipboard images (up to 8 MB)" = "包括剪贴板图片原件（最多 8 MB）";
+"Image originals are downloaded from your private CloudKit zone only after this separate permission is enabled. File originals are not synchronized. Your clipboard is never inspected in the background." = "只有单独开启本项后才会从私人 CloudKit 区域下载图片原件。文件原件尚不同步，也不会在后台检查剪贴板。";
+"Copy image" = "复制图片";
+"Cloud clipboard image" = "云端剪贴板图片";
+"Image preview unavailable" = "图片预览不可用";
+"Cloud image unavailable" = "云端图片不可用";
+"Cloud image copied to clipboard" = "云端图片已复制到剪贴板";
+"Local full-text indexing" = "本地全文索引";
+"Maintain on-device clipboard search index (opt-in)" = "维护设备上的剪贴板全文索引（可选）";
+"Optional FTS5 indexing speeds up searches of three or more characters, including CJK text. Short terms and punctuation use the original exact search. Disabling the index removes its extra local plaintext copy without deleting clipboard history." = "可选 FTS5 索引可加快包含三个或更多字符的中英文搜索。短关键词和标点仍使用原有精确检索。关闭索引会删除额外的本地文本索引，不会删除剪贴板历史。";
+"Search index ready" = "搜索索引已建立";
+"Search index removed" = "搜索索引已移除";
+"Local history database unavailable" = "本地历史数据库不可用";
+"Search index unavailable: " = "搜索索引不可用：";
+"Include one small local file original in iCloud (up to 8 MB)" = "在 iCloud 中同步单个小型本地文件原件（最多 8 MB）";
+"Original image and single-file transfers have independent permission switches, off by default. File transfer excludes folders, symlinks, cloud-only files and packages. Turning off permission cannot erase copies already uploaded." = "图片原件与单文件原件有独立权限开关，默认关闭。文件传输排除文件夹、符号链接、纯云端文件和应用包。关闭权限不会自动擦除已上传副本。";
+"Save remote file…" = "保存远端文件…";
+"Cloud file not available locally" = "云端文件尚未缓存到本机";
+"Cloud file exported" = "云端文件已导出";
+"Cloud file export failed" = "导出云端文件失败";
+"Include one small original file (up to 8 MB)" = "包含单个小型文件原件（最多 8 MB）";
+"Image and single-file originals use independent iCloud permissions. Files are exported only when you request it; Nexus does not inspect the clipboard in the background." = "图片与单文件原件分别授权。只有你主动选择时才会导出文件，Nexus 不会在后台检查剪贴板。";
+"Export file" = "导出文件";
+"Clipboard-provided titles are saved locally when permitted, without network activity." = "如果允许，剪贴板自带的标题会仅保存在本机，不会发起网络请求。";
+"Allow explicit website title lookup (HTTPS only)" = "允许手动获取网页标题（仅 HTTPS）";
+"Off by default. After enabling, right-click a link card and choose Fetch website title once. This contacts that public website and reveals the selected URL; query parameters, URL credentials, local hosts and redirects are refused. No automatic requests." = "默认关闭。开启后，可右键点击链接卡片并选择“获取一次网页标题”。操作会访问该网站并向其透露所选 URL；带查询参数、账户凭据、本地主机的地址和重定向都会被拒绝。不会自动请求。";
+"Fetch website title once" = "获取一次网页标题";
+"Website title unavailable" = "无法获取网页标题";
+"Website title saved locally" = "网页标题已保存到本机";
+
+/* Preserved Nexus onboarding and accessibility translations */
+"Copyright © 2026 qssedalto. Portions © 2026 Marco Gomiero." = "版权所有 © 2026 qssedalto；部分内容版权所有 © 2026 Marco Gomiero。";
 "Welcome to Nexus" = "欢迎使用天枢";
 "Nexus is running." = "天枢已成功启动。";
 "Nexus lives in the menu bar, not the Dock. Here is how to find it." = "天枢常驻菜单栏，而不是程序坞。下面介绍如何找到它。";
@@ -137,3 +561,10 @@
 "Show Welcome Guide…" = "显示首次使用指南…";
 "Reopen the guide if the menu bar icon is hidden." = "若菜单栏图标被隐藏，可以在此重新打开使用指南。";
 "Help" = "帮助";
+
+/* Extended deletion confirmation challenge */
+"Confirmation stage" = "确认阶段";
+"Deletion confirmation progress" = "删除确认进度";
+"You may cancel at any point. No statistics are deleted until the final confirmation." = "你可以随时取消。在完成最后一次确认之前，不会删除任何统计数据。";
+"You can cancel now without deleting any statistics." = "现在取消将不会删除任何统计数据。";
+"Clearing local history…" = "正在清理本地历史记录…";

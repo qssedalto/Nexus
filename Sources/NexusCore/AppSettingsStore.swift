@@ -40,6 +40,13 @@ public final class AppSettingsStore: @unchecked Sendable {
         }
     }
 
+    /// Distinguish a genuinely new installation from an existing user who
+    /// intentionally turned launch-at-login off. Do not override existing
+    /// preferences during upgrades.
+    public var hasStoredLaunchAtLoginPreference: Bool {
+        defaults.object(forKey: Key.launchAtLoginEnabled) != nil
+    }
+
     public var launchAtLoginEnabled: Bool {
         get {
             defaults.bool(forKey: Key.launchAtLoginEnabled)

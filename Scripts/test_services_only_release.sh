@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# Build only. NEVER register a service, install an app, or overwrite a working
+# signed release in the user's Applications directory.
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+source "$ROOT/version.env"
+OUT="${NEXUS_SERVICES_ONLY_DERIVED_DATA:-$ROOT/.build/services-only-derived}"
+"$ROOT/Scripts/generate_project.sh"
+
+EXT_SETTINGS="$(xcodebuild -project Nexus.xcodeproj -target NexusFinderSync -configuration ServicesOnly -showBuildSettings)"
+if ! grep -E 'SWIFT_ACTIVE_COMPILATION_CONDITIONS.*NEXUS_SERVICE_PROTOTYPE' <<<"$EXT_SETTINGS" >/dev/null; then
+  echo 'ERROR: the ServicesOnly Finder extension would duplicate the native path-copy command' >&2
+  exit 1
+fi
+xcodebuild -project Nexus.xcodeproj -scheme Nexus -configuration ServicesOnly \
+  -derivedDataPath "$OUT" -destination 'platform=macOS' \
+  CODE_SIGNING_ALLOWED=NO ENABLE_DEBUG_DYLIB=NO \
+  MARKETING_VERSION="$MARKETING_VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+  build -quiet
+
+INFO="$OUT/Build/Products/ServicesOnly/Nexus.app/Contents/Info.plist"
+test -f "$INFO"
+function plist_read() { /usr/libexec/PlistBuddy -c "Print :$1" "$INFO"; }
+test "$(plist_read CFBundleIdentifier)" = 'com.qssedalto.nexus'
+RELEASE_SETTINGS="$(xcodebuild -project Nexus.xcodeproj -target Nexus -configuration Release -showBuildSettings)"
+ONLY_SETTINGS="$(xcodebuild -project Nexus.xcodeproj -target Nexus -configuration ServicesOnly -showBuildSettings)"
+release_group="$(sed -n 's/^[[:space:]]*APP_GROUP_ID = //p' <<<"$RELEASE_SETTINGS" | head -n 1)"
+only_group="$(sed -n 's/^[[:space:]]*APP_GROUP_ID = //p' <<<"$ONLY_SETTINGS" | head -n 1)"
+test -n "$release_group"
+test "$only_group" = "$release_group"
+test "$(plist_read NSServices:0:NSMessage)" = 'copySelectedPaths'
+test "$(plist_read NSServices:0:NSSendFileTypes:0)" = 'public.item'
+if plist_read NSServices:1 >/dev/null 2>&1; then
+  echo "ERROR: multiple native copy-path registrations" >&2
+  exit 1
+fi
+echo 'PASS: ServicesOnly has original production identity and exactly one native copy-path action.'
+echo 'NOTE: This is a build-only candidate; verify Finder/iCloud before any deployment.'

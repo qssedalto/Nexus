@@ -78,7 +78,7 @@ struct URLDropReaderTests {
     }
 
     private func makePasteboard() -> NSPasteboard {
-        let pasteboardName = NSPasteboard.Name("com.qssedalto.nexus.tests.\(UUID().uuidString)")
+        let pasteboardName = NSPasteboard.Name("com.prof18.slashgrab.tests.\(UUID().uuidString)")
         let pasteboard = NSPasteboard(name: pasteboardName)
         pasteboard.clearContents()
         return pasteboard

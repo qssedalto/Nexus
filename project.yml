@@ -11,6 +11,8 @@ configs:
   Debug: debug
   Release: release
   Local: release
+  ServicesPrototype: debug
+  ServicesOnly: release
 
 packages:
   Sparkle:
@@ -50,6 +52,22 @@ settings:
       LEGACY_APP_GROUP_ID: $(DEVELOPMENT_TEAM).com.prof18.slashgrab.local.shared
       FINDER_EXTENSION_BUNDLE_ID: com.qssedalto.nexus.local.findersync
       FINDER_EXTENSION_DISPLAY_NAME: Nexus Finder Extension
+    ServicesPrototype:
+      APP_DISPLAY_NAME: Nexus Services Prototype
+      APP_BUNDLE_ID: com.qssedalto.nexus.servicesprototype.dev
+      APP_ICON_NAME: AppIconDev
+      APP_GROUP_ID: $(DEVELOPMENT_TEAM).com.qssedalto.nexus.servicesprototype.dev.shared
+      LEGACY_APP_GROUP_ID: $(DEVELOPMENT_TEAM).com.prof18.slashgrab.servicesprototype.dev.shared
+      FINDER_EXTENSION_BUNDLE_ID: com.qssedalto.nexus.servicesprototype.dev.findersync
+      FINDER_EXTENSION_DISPLAY_NAME: Nexus Services Prototype Finder Extension
+    ServicesOnly:
+      APP_DISPLAY_NAME: Nexus
+      APP_BUNDLE_ID: com.qssedalto.nexus
+      APP_ICON_NAME: AppIcon
+      APP_GROUP_ID: $(DEVELOPMENT_TEAM).com.qssedalto.nexus.shared
+      LEGACY_APP_GROUP_ID: $(DEVELOPMENT_TEAM).com.prof18.slashgrab.shared
+      FINDER_EXTENSION_BUNDLE_ID: com.qssedalto.nexus.findersync
+      FINDER_EXTENSION_DISPLAY_NAME: Nexus Finder Extension
 
 targets:
   NexusCore:
@@ -60,6 +78,8 @@ targets:
     settings:
       base:
         PRODUCT_NAME: NexusCore
+    dependencies:
+      - sdk: CloudKit.framework
 
   NexusFinderSync:
     type: app-extension
@@ -91,6 +111,11 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: $(FINDER_EXTENSION_BUNDLE_ID)
         APPLICATION_EXTENSION_API_ONLY: YES
         SKIP_INSTALL: YES
+      configs:
+        ServicesPrototype:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) NEXUS_SERVICE_PROTOTYPE"
+        ServicesOnly:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) NEXUS_SERVICE_PROTOTYPE"
     dependencies:
       - target: NexusCore
       - sdk: AppKit.framework
@@ -118,6 +143,7 @@ targets:
         NSHumanReadableCopyright: Copyright © 2026 qssedalto. Portions © 2026 Marco Gomiero.
         NSPrincipalClass: NSApplication
         NexusAppGroupIdentifier: $(APP_GROUP_ID)
+        NexusCloudKitContainerIdentifier: $(NEXUS_CLOUDKIT_CONTAINER_ID)
     entitlements:
       path: Config/Nexus.entitlements
       properties:
@@ -130,6 +156,13 @@ targets:
         PRODUCT_MODULE_NAME: Nexus
         PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_ID)
         ASSETCATALOG_COMPILER_APPICON_NAME: $(APP_ICON_NAME)
+      configs:
+        ServicesPrototype:
+          INFOPLIST_FILE: Config/Nexus-ServicesPrototype-Info.plist
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) NEXUS_SERVICE_PROTOTYPE"
+        ServicesOnly:
+          INFOPLIST_FILE: Config/Nexus-ServicesPrototype-Info.plist
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) NEXUS_SERVICE_PROTOTYPE"
     dependencies:
       - target: NexusCore
       - target: NexusFinderSync

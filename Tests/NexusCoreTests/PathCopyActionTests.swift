@@ -56,7 +56,7 @@ struct PathCopyActionTests {
     }
 
     private func makeDefaults() -> UserDefaults {
-        let suiteName = "com.qssedalto.nexus.copy-action-tests.\(UUID().uuidString)"
+        let suiteName = "com.prof18.slashgrab.copy-action-tests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         defaults.removePersistentDomain(forName: suiteName)
         return defaults

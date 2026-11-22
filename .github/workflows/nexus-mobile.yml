@@ -1,0 +1,45 @@
+name: Nexus iPhone and iPad simulator build
+
+on:
+  pull_request:
+    paths:
+      - 'Sources/NexusClipboardMobile/**'
+      - 'Sources/NexusMobileCore/**'
+      - 'Sources/NexusCore/**'
+      - 'Mobile/**'
+      - 'project.ios.yml'
+      - '.github/workflows/nexus-mobile.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'Sources/NexusClipboardMobile/**'
+      - 'Sources/NexusMobileCore/**'
+      - 'Sources/NexusCore/**'
+      - 'Mobile/**'
+      - 'project.ios.yml'
+      - '.github/workflows/nexus-mobile.yml'
+
+concurrency:
+  group: nexus-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate iOS project
+        run: xcodegen generate --spec project.ios.yml
+      - name: Build universal iPhone/iPad simulator client
+        run: |
+          xcodebuild -project NexusClipboardMobile.xcodeproj \
+            -scheme NexusClipboardMobile -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/nexus-ios-derived" \
+            CODE_SIGNING_ALLOWED=NO build -quiet

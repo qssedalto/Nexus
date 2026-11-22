@@ -1,6 +1,8 @@
 import AppKit
+import ApplicationServices
 import Combine
 import SwiftUI
+import NexusCore
 
 @MainActor
 final class StatusItemController {
@@ -10,6 +12,8 @@ final class StatusItemController {
     private let popover = NSPopover()
     private let feedbackPopover = NSPopover()
     private let dropReadyPopover = NSPopover()
+    private var clipboardShelfPanel: NSPanel?
+    private var previousFrontmostApp: NSRunningApplication?
     private var statusView: DropTargetStatusView?
     private var dropReadyShowTask: DispatchWorkItem?
     private var feedbackDismissTask: Task<Void, Never>?
@@ -62,6 +66,10 @@ final class StatusItemController {
         ])
 
         statusView = view
+        ClipboardHotkeyController.shared.onToggle = { [weak self] in
+            self?.toggleClipboardShelf()
+        }
+        ClipboardHotkeyController.shared.install()
 
         popover.behavior = .transient
         popover.contentSize = NSSize(width: 360, height: menuPopoverHeight)
@@ -74,6 +82,9 @@ final class StatusItemController {
                 },
                 onOpenLegacySettings: { [weak self] in
                     self?.openLegacySettings()
+                },
+                onOpenClipboardShelf: { [weak self] in
+                    self?.showClipboardShelf()
                 },
                 onQuit: { NSApp.terminate(nil) }
             )
@@ -132,7 +143,102 @@ final class StatusItemController {
     }
 
     private var menuPopoverHeight: CGFloat {
-        appState.lastCopiedOutput == nil ? 248 : 310
+        appState.lastCopiedOutput == nil ? 355 : 417
+    }
+
+    private func toggleClipboardShelf() {
+        if clipboardShelfPanel?.isVisible == true {
+            clipboardShelfPanel?.orderOut(nil)
+        } else {
+            showClipboardShelf()
+        }
+    }
+
+    private func showClipboardShelf() {
+        popover.performClose(nil)
+        if let frontmost = NSWorkspace.shared.frontmostApplication,
+           frontmost.bundleIdentifier != Bundle.main.bundleIdentifier {
+            previousFrontmostApp = frontmost
+        }
+
+        let panel: NSPanel
+        if let existing = clipboardShelfPanel {
+            panel = existing
+        } else {
+            let created = NSPanel(
+                contentRect: NSRect(x: 0, y: 0, width: 900, height: 480),
+                styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
+                backing: .buffered,
+                defer: false
+            )
+            created.title = localized("Clipboard Shelf")
+            created.level = .floating
+            created.isReleasedWhenClosed = false
+            created.hidesOnDeactivate = false
+            created.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+            created.contentViewController = NSHostingController(
+                rootView: ClipboardShelfView(
+                    appState: appState,
+                    onPasteRequested: { [weak self] in self?.pasteIntoPreviousApp() },
+                    onCloseRequested: { [weak self] in self?.clipboardShelfPanel?.orderOut(nil) }
+                )
+            )
+            clipboardShelfPanel = created
+            panel = created
+        }
+
+        let mouseLocation = NSEvent.mouseLocation
+        let preferredScreen = NSScreen.screens.first(where: { $0.frame.contains(mouseLocation) })
+            ?? NSScreen.main
+        if let visible = preferredScreen?.visibleFrame {
+            let frame = ClipboardPanelPlacement.frame(
+                inside: visible, requestedSize: panel.frame.size
+            )
+            panel.setFrame(frame, display: true)
+        }
+        appState.refreshOperations()
+        NSApp.activate(ignoringOtherApps: true)
+        panel.makeKeyAndOrderFront(nil)
+    }
+
+    /// Called only following an explicit double click or Return by the user.
+    /// The clipboard is already populated. When focus or permissions cannot
+    /// be verified we leave it copied rather than injecting into a wrong app.
+    private func pasteIntoPreviousApp() {
+        guard let target = previousFrontmostApp,
+              target.bundleIdentifier != Bundle.main.bundleIdentifier,
+              target.isTerminated == false else {
+            return
+        }
+        guard AXIsProcessTrusted() else {
+            // Stable documented AX option key. Reading the imported CF
+            // global constant directly violates Swift 6 strict concurrency.
+            _ = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
+            return
+        }
+        // The selected card was just copied into NSPasteboard. If the user
+        // copies something else before target activation finishes, abort
+        // instead of pasting the intervening clipboard contents.
+        let expectedChangeCount = NSPasteboard.general.changeCount
+        clipboardShelfPanel?.orderOut(nil)
+        guard target.activate(options: [.activateIgnoringOtherApps]) else { return }
+        let expectedPID = target.processIdentifier
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(220)) {
+            guard ClipboardPasteSafety.canRequestPaste(
+                hasAccessibilityPermission: AXIsProcessTrusted(),
+                expectedTargetPID: expectedPID,
+                currentFrontmostPID: NSWorkspace.shared.frontmostApplication?.processIdentifier,
+                expectedClipboardChangeCount: expectedChangeCount,
+                currentClipboardChangeCount: NSPasteboard.general.changeCount
+            ) else { return }
+            let source = CGEventSource(stateID: .hidSystemState)
+            let down = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: true)
+            let up = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: false)
+            down?.flags = .maskCommand
+            up?.flags = .maskCommand
+            down?.post(tap: .cghidEventTap)
+            up?.post(tap: .cghidEventTap)
+        }
     }
 
     private func prepareToOpenSettings() {

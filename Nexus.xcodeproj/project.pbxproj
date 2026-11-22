@@ -7,143 +7,254 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		03E5A09A97B2D62296BEED92 /* PathFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8B12BC0AEB404FEA420631F /* PathFormat.swift */; };
-		0623269B73680E7A2A47A699 /* AppSettingsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FD17EC25F201121D8893384 /* AppSettingsStoreTests.swift */; };
-		0C820E49347A4B94EF3FCA16 /* SparkleUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BA89171F30DEB9CFF420617 /* SparkleUpdater.swift */; };
-		10BBAC82E4B4150D1762FB9E /* DropZoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FB3C43BCF381CB862BFC53F /* DropZoneView.swift */; };
-		14653E66C823381B5C29ACCB /* NexusStatusSuccessTemplate.png in Resources */ = {isa = PBXBuildFile; fileRef = F2408A315E8C3BA07B2FC375 /* NexusStatusSuccessTemplate.png */; };
-		14D73976DD8073C5410D4D2D /* AppStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3361D05B27300417E70A67 /* AppStateTests.swift */; };
-		159FA3F83E129E8AFFB26B89 /* FinderSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CE76D61F70EB6B45BBF6148 /* FinderSync.swift */; };
-		1D0D3B9078D5E137B4E67DAB /* NexusStatusSuccessTemplate@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 91C012A0E834E2813CEF0CDA /* NexusStatusSuccessTemplate@2x.png */; };
-		203CD9289213E4FBC55D5663 /* DropTargetStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C3A440DA410151305CB0E /* DropTargetStatusView.swift */; };
-		2731169BBC049EE045FE7E83 /* NexusStatusIdle.svg in Resources */ = {isa = PBXBuildFile; fileRef = FEE4FAC1F6AC1EE1182AE3B2 /* NexusStatusIdle.svg */; };
-		2A241EBC12789586A1F9D331 /* FinderExtensionRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF85D1DCCC976C5C8B55F7B2 /* FinderExtensionRegistry.swift */; };
-		30AA1FB6DC6575390B404CA6 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BAD4A499035B92935D803A /* AppDelegate.swift */; };
-		326F0106A82FE7F0DA93F52D /* FinderExtensionMigrationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24CD16C2072EE95A043C65A8 /* FinderExtensionMigrationController.swift */; };
-		32E62280E7A8FA1D31093B96 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02053019567BBCD9272FA890 /* AppState.swift */; };
-		395F97A93599AB24C876B71B /* NexusStatusActiveTemplate@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 7F468B8CB61DF25946752FCD /* NexusStatusActiveTemplate@3x.png */; };
-		4107795AED46F5A69E2262D4 /* NexusStatusActiveTemplate.png in Resources */ = {isa = PBXBuildFile; fileRef = 8B8CA3D42590C59FFD6CB5BE /* NexusStatusActiveTemplate.png */; };
-		4170D5E3B50075C5EF26DA20 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0F97FFA2A4D84F1368DE663D /* InfoPlist.strings */; };
-		538687532E50DA1C004BE48D /* NexusApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F5C252F970625C7E51DA10F /* NexusApp.swift */; };
-		5709F76395D0EA54672E60C2 /* FinderExtensionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35443E504172B2256A8B7CDA /* FinderExtensionController.swift */; };
-		590FF5FE669A7D318396B972 /* AppKitClipboardWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E1606CC71339F799B1C024C /* AppKitClipboardWriter.swift */; };
-		591581BE477532587F89B6A5 /* NexusStatusActiveTemplate@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 11AB93DB773ADB4737FA607E /* NexusStatusActiveTemplate@2x.png */; };
-		595CD8FE5D77535E275CC3A4 /* URLDropReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B0D1A8DB0FC5BC8E9438234 /* URLDropReader.swift */; };
-		5CFF9768C241F3CF9E869E7E /* libNexusCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 948A289AEB27C91F75854B19 /* libNexusCore.a */; };
-		5F4699163AB014C0896ADB8F /* MenuPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CE9AB57DEAEAA2FCA8394A2 /* MenuPopoverView.swift */; };
-		6D394C1F3C93CD1C780A2BF9 /* SharedSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE235382BF8FD4A45C936F3C /* SharedSettings.swift */; };
-		6E9834685A8D402F424D7194 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = FEC73C675B1D6B9F09BF9105 /* Sparkle */; };
-		739DC00883939B79F8FB12BE /* PathFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC954E6A7D28C9705C5B9EC /* PathFormatterTests.swift */; };
-		79BD5A92D528829E34C88934 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 81F038A4DA375E69FF419925 /* Localizable.strings */; };
-		7B4D4C2931FB6E8B42EBA990 /* PathCopyActionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB2ADD5C7E884CCEDDD5BB9B /* PathCopyActionTests.swift */; };
-		8472A3274EEE2AF969F1BEFF /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4220F2C6189F3FCC7CDCBC66 /* Localization.swift */; };
-		87A4F03D681F5AC0B16E6B58 /* NexusStatusSuccess.svg in Resources */ = {isa = PBXBuildFile; fileRef = 730DAB348F1B45F6ECA5D84C /* NexusStatusSuccess.svg */; };
-		8B3065EC2EA32D68327B488A /* libNexusCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 948A289AEB27C91F75854B19 /* libNexusCore.a */; };
-		8C4A4665FF5D8741BF220CCE /* StatusItemController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAE2E0F0F48A6AA04B26FEF2 /* StatusItemController.swift */; };
-		8C52B471AE6A8EFF3A2D134D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BA812B6070D33F822475ED1 /* SettingsView.swift */; };
-		8E900B2E3C373F1A40186776 /* FinderSync.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CE40AEBFBCEAD630570FD36 /* FinderSync.framework */; };
-		A08EFB5DDE49EDDB19D35152 /* libNexusCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 948A289AEB27C91F75854B19 /* libNexusCore.a */; };
-		A87F5A6FCF29FB92F888E0BD /* URLDropReaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A338925A788BF66151DACC62 /* URLDropReaderTests.swift */; };
-		AAD0E5ED4E8383163DB1B384 /* LaunchAtLoginController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A03420C2C711F975AE46DDC8 /* LaunchAtLoginController.swift */; };
-		AE0ECC0A0CD5265D22CCEA87 /* NexusStatusIdleTemplate@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 3605173BD4994CA98BC56083 /* NexusStatusIdleTemplate@2x.png */; };
-		BAD81625C782C7A42F982240 /* AppIconProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58DA2E3C8E4CB65B70849186 /* AppIconProvider.swift */; };
-		BB9B352A07C9C946C9BA2D66 /* FinderExtensionRegistryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FDD5A4964105ABE2BAA7BF7 /* FinderExtensionRegistryTests.swift */; };
-		BD39369064E32AE51F746116 /* StatusIconProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9B3754BE92EE7861906E41F /* StatusIconProvider.swift */; };
-		BD8CC093886242AC90E7832E /* PathCopyAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE25408AE6ABFFD0B0C481B6 /* PathCopyAction.swift */; };
-		C1913A8A26BB67717CB40857 /* FinderSync.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CE40AEBFBCEAD630570FD36 /* FinderSync.framework */; };
-		C498D3160A4B0C27AF083EA5 /* AppIconDev.icon in Resources */ = {isa = PBXBuildFile; fileRef = DE1FE00EC22958370680F84A /* AppIconDev.icon */; };
-		C8449EDBA5BB391BFD96D7E7 /* NexusStatusIdleTemplate.png in Resources */ = {isa = PBXBuildFile; fileRef = 853A8FFA576BB6840531DE14 /* NexusStatusIdleTemplate.png */; };
-		C8FCD72C5262BB19ED5316C3 /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F161A2FEB03DFA07404D237 /* AppKit.framework */; };
-		C9F35EFAE8185E3DD5746C39 /* NexusStatusIdleTemplate@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 7E77B50758754DAD91942EAD /* NexusStatusIdleTemplate@3x.png */; };
-		CA33814799F2BC44A9E51AAC /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 780F73E05058090727A33135 /* Localizable.strings */; };
-		D0F5DC1FF9FFB68FA3C7ABD4 /* AppBuildInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F686E3E6F3481A522C34CECF /* AppBuildInfo.swift */; };
-		D2D45DCDE5BB34BFA15AF9A0 /* ClipboardWriting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 261CA6D615E6A3AD6318385D /* ClipboardWriting.swift */; };
-		D64F65788CEFB48DEDF71C1B /* AppSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37D5C1E17F78130AF2B16AE8 /* AppSettingsStore.swift */; };
-		D99E4E0981D66F40FA400C3E /* ResourceBundleLocator.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE2353C412D08A52ABBBE22B /* ResourceBundleLocator.swift */; };
-		E0F3530926F262D99441B924 /* PathFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 520793E18FEC0244139B65E7 /* PathFormatter.swift */; };
-		E6EDB45DCBD3E4A63CA20AF3 /* FeedbackPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDD95A5C04775746B38BAF0F /* FeedbackPopoverView.swift */; };
-		EAC42B6ECE9D0B59D5D19AAC /* FinderSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0947B7DBA55BA576DB0CB44 /* FinderSettingsView.swift */; };
-		EC93AEDAFFDB4B220C016011 /* PathHistoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9768F96CACFD2C00656B22E8 /* PathHistoryTests.swift */; };
-		ECE7ABBA381F3456D7E72BE3 /* PathHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3B8AFF52C504B2489CEC476 /* PathHistory.swift */; };
-		EDA857053F99A0B9CD04DC15 /* NexusStatusSuccessTemplate@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 7511140AEC09B7E96EB9F2F2 /* NexusStatusSuccessTemplate@3x.png */; };
-		EFE8456FF3C2979D466C5437 /* FinderExtensionMigrationControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94F2647388444EA8D131ECA7 /* FinderExtensionMigrationControllerTests.swift */; };
-		F09F4D664B5120B659D67659 /* NexusFinderSync.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = C753CA21DD19F2A604E3C2C6 /* NexusFinderSync.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		F1100F78289B856517F3A128 /* RecentPathRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8E1EA6EAA1AB8D328D8C6BC /* RecentPathRow.swift */; };
-		F6165722D9A07D7972D7FFBB /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 477A7E0C8E1A707EF59780E2 /* AboutView.swift */; };
-		F62E8CCEBD23E7E0D6401A3B /* NexusStatusActive.svg in Resources */ = {isa = PBXBuildFile; fileRef = 3B9BF055D6BCEC6FD6C1AC03 /* NexusStatusActive.svg */; };
-		FB2C9AE89548A16A51E6A246 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 204AAA7E668CAFCAD298F99F /* AppIcon.icon */; };
-		FE01C538B68B156B7B837EFC /* libNexusCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 948A289AEB27C91F75854B19 /* libNexusCore.a */; };
-		B77000000000000000000000 /* OperationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77000000000000000000000 /* OperationStore.swift */; };
-		B77000000000000000000001 /* OperationTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77000000000000000000001 /* OperationTimelineView.swift */; };
-		B77000000000000000000002 /* OperationStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77000000000000000000002 /* OperationStoreTests.swift */; };
-		B77000000000000000000003 /* NexusServiceProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77000000000000000000003 /* NexusServiceProvider.swift */; };
-		B77000000000000000000004 /* InputStatisticsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77000000000000000000004 /* InputStatisticsStore.swift */; };
-		B77000000000000000000005 /* InputMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77000000000000000000005 /* InputMonitor.swift */; };
-		B77000000000000000000006 /* InputStatisticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77000000000000000000006 /* InputStatisticsView.swift */; };
-		B77000000000000000000007 /* InputStatisticsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77000000000000000000007 /* InputStatisticsStoreTests.swift */; };
-		B77000000000000000000008 /* NetworkSyncView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77000000000000000000008 /* NetworkSyncView.swift */; };
-		B77000000000000000000009 /* SystemServicesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77000000000000000000009 /* SystemServicesView.swift */; };
-		B77000000000000000000010 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = A77000000000000000000010 /* InfoPlist.strings */; };
-		B77000000000000000000011 /* ClipboardMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77000000000000000000011 /* ClipboardMonitor.swift */; };
-		C0DE00000000000000000001 /* WelcomeGuideStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0DE00000000000000000001 /* WelcomeGuideStore.swift */; };
-		C0DE00000000000000000002 /* WelcomeGuideWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0DE00000000000000000002 /* WelcomeGuideWindowController.swift */; };
-		C0DE00000000000000000003 /* WelcomeGuideStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0DE00000000000000000003 /* WelcomeGuideStoreTests.swift */; };
-		C0DE00000000000000000004 /* LegacyStorageMigrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0DE00000000000000000004 /* LegacyStorageMigrationTests.swift */; };
+		01F68207CC7C6AEA4ED02ABE /* ClipboardQuickMenuSummaryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2B1A77B0EB623B853F3F85B /* ClipboardQuickMenuSummaryTests.swift */; };
+		031741451698134F0E8D7124 /* ClipboardCollectionDropPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61CEADC23D3D8E5D3868C188 /* ClipboardCollectionDropPolicy.swift */; };
+		03492666CAC3F4F92E2D242D /* AppSettingsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99BFD9A2B07A5C6A8397E396 /* AppSettingsStoreTests.swift */; };
+		0829B923E068807C78D50517 /* ClipboardCloudRemoteHistoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BBE5334D8DC1BA28DBBD66A /* ClipboardCloudRemoteHistoryTests.swift */; };
+		0DC8FDD0B15138A9EE08AC6A /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = F54AB5E994FE0FF69DCB76F5 /* Localizable.strings */; };
+		0E51D0BCBD7F287C9643969F /* NativeServicesCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9D9AD9834FD412DEA8C9D56 /* NativeServicesCatalogTests.swift */; };
+		0F3994E821BFB6C0C88D1E42 /* AppStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C57D4C05D04362396E3E77D3 /* AppStateTests.swift */; };
+		101E08233C08D6F997E1D13C /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CB0DEAC6BFF34FF26040B91 /* AboutView.swift */; };
+		11B1576D5CE676F75D21D303 /* NexusStatusIdleTemplate@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = A1FC21E9F1896B75A2D84696 /* NexusStatusIdleTemplate@3x.png */; };
+		14B962BF8D602F0290D487D4 /* ClipboardFullTextSearchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE6016E9C9A70F5C714EF369 /* ClipboardFullTextSearchTests.swift */; };
+		158BFE83969EDC6119A88A1B /* ClipboardPanelPlacementTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193DB9530C37B3048EAC3BC3 /* ClipboardPanelPlacementTests.swift */; };
+		159212F0F32A852C401DF8AB /* libNexusCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0B9221EEC53D5686B81BD38A /* libNexusCore.a */; };
+		1732640B7D6219EBB6926394 /* ClipboardCloudRunSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = A02329EC860545AF15648DB0 /* ClipboardCloudRunSummary.swift */; };
+		17A7844CE6883490F7ED8320 /* ClipboardRemoteWebTitlePolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA799E467AD7D448495DE603 /* ClipboardRemoteWebTitlePolicyTests.swift */; };
+		18BB2F4E6C438BF468080CF5 /* ClipboardRemoteWebTitlePolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = B831BD92EDBA833799B3B62F /* ClipboardRemoteWebTitlePolicy.swift */; };
+		19600C4BAA38DD48FBB21F23 /* WelcomeGuideStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 863EE2EE866A92BB4134D5BD /* WelcomeGuideStoreTests.swift */; };
+		197DA760724A0B83082B411A /* ClipboardSafeHTMLPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0E6744DFEAB66A3205FCCCB /* ClipboardSafeHTMLPreview.swift */; };
+		19AC4A0E3C54B529A51BE010 /* OperationTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A77563C2DEE60B1405B5B3E /* OperationTimelineView.swift */; };
+		1BE9912DD2F5C4C2146540FA /* FinderExtensionRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D0C8A20FDEDDECF6D3ADA1F /* FinderExtensionRegistry.swift */; };
+		1C1C5BD37D74DD495C040096 /* ClipboardLinkTitleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74D9E4910CD3B6801B50B284 /* ClipboardLinkTitleTests.swift */; };
+		1C2D9D463B197D5A971A82B2 /* NexusStatusSuccess.svg in Resources */ = {isa = PBXBuildFile; fileRef = 28600798B65430D12FBCFF91 /* NexusStatusSuccess.svg */; };
+		1D2016CB9F97AD2ED15E2556 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = D2615BC3D7AB03C2B6056DC1 /* Localizable.strings */; };
+		1D6E7E4F5A1D587AEAA82C08 /* ClipboardCollectionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13B2E20F38AFBF8C8BD9F819 /* ClipboardCollectionsTests.swift */; };
+		1DCA78AB4AB780E5CA0C28E8 /* ClipboardCloudFileAsset.swift in Sources */ = {isa = PBXBuildFile; fileRef = E33CE0223F8521F8D932E068 /* ClipboardCloudFileAsset.swift */; };
+		1E79615423B7D2F32AE18984 /* NexusStatusActiveTemplate@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 75F8F52BA4E60CB71A65BDAF /* NexusStatusActiveTemplate@2x.png */; };
+		20A6FD5CBFA3ECB684F79B8A /* InputStatisticsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA77D3AEE04461217B34994E /* InputStatisticsStoreTests.swift */; };
+		2232F1273A4BA9A8AA5F0C91 /* ClipboardLinkTitleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D12C23411CE5687AD03D58EF /* ClipboardLinkTitleView.swift */; };
+		22679896CAFDDADCEB0ED5BD /* ClipboardCodePreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC84CCF3614EF47A915385A0 /* ClipboardCodePreview.swift */; };
+		236341FF6F1925E08408F3C6 /* ClipboardCollectionDropPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C34B34F0CA7F620F260F9FA5 /* ClipboardCollectionDropPolicyTests.swift */; };
+		2384BB5819540CC39E777848 /* OperationRetentionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B55F7151B0DA6F5884CA77B /* OperationRetentionTests.swift */; };
+		238D20E11BCEFB4BE806D20A /* ClipboardCollectionShortcutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9CB26072E15DDC1505C9954 /* ClipboardCollectionShortcutTests.swift */; };
+		2514A3F70DCC648BBA0E62BE /* ClipboardCloudConsentRevocationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D77870F67208BE52B34B407C /* ClipboardCloudConsentRevocationTests.swift */; };
+		25B630E077C266AC12E82E66 /* NexusStatusActiveTemplate.png in Resources */ = {isa = PBXBuildFile; fileRef = 1B7247424CA0F5C3D9D81257 /* NexusStatusActiveTemplate.png */; };
+		25DEA4D606EC2B8DA6DFC76E /* FinderExtensionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E26CBC8636210E5F120D99E /* FinderExtensionController.swift */; };
+		26159011E8AEF3294F7C8F44 /* PathHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD8D4D120D44610CA102E8DC /* PathHistory.swift */; };
+		27CE07163F1A59A1F811C391 /* FinderSync.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2EB8D67E67000A8C5E68237E /* FinderSync.framework */; };
+		2A4B5B17839D11209FDC03CA /* ClipboardCloudSyncCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CF0F056668246477D13522 /* ClipboardCloudSyncCoordinatorTests.swift */; };
+		2BF639CEFA8DDDE505DFC40A /* FinderSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9829E11C07988CD69BB3F9E /* FinderSync.swift */; };
+		2D18ABB5F8B0777D865FB2F7 /* ClipboardRichTextPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1BDED6E6F296AA5596E4B3B /* ClipboardRichTextPreview.swift */; };
+		2F9204D2A9A7C68162460335 /* SharedSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AE40E30D60A7D9B1A2AB532 /* SharedSettings.swift */; };
+		3101198C9C1D8AE0D6C4C116 /* FinderExtensionMigrationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2833B36380E20A767918361E /* FinderExtensionMigrationController.swift */; };
+		3250B401505932D465348490 /* ClipboardTextDuplicatePolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = B953B801EFA44EEED10F695F /* ClipboardTextDuplicatePolicy.swift */; };
+		32A1615B6054BE87ADE6F88D /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF0AD568F74C0D430B4D53E /* AppDelegate.swift */; };
+		33634364E2D5D7CF91B5F356 /* ClipboardCloudKitCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 432BD45E7C3554A41E8B686F /* ClipboardCloudKitCodec.swift */; };
+		3B0634A76D4D5DDA195978A0 /* PathHistoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B3D243389B143E420BCC1AC /* PathHistoryTests.swift */; };
+		3E4DED92EC15EA6E073E17B3 /* DropZoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5291495E09BDE70A479DB9 /* DropZoneView.swift */; };
+		3E5C57F63E42650804C17094 /* ClipboardWriting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 941693DB535481CA67EAC98C /* ClipboardWriting.swift */; };
+		3F7D3E104D370332F0011270 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = B1FD5B2E0645E2ADFB0FD1B5 /* InfoPlist.strings */; };
+		409843555A923BC09E089680 /* MenuPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74449DBDFE1B1587CFFCB0CA /* MenuPopoverView.swift */; };
+		4462FE5334A19DDC9E91863C /* GlobalServicesMenuControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FD6E2573CDB6ABD6C9FA967 /* GlobalServicesMenuControls.swift */; };
+		44FD4AA32AF4852DE9964AB1 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA42E7B81FAE699EB54714F9 /* AppState.swift */; };
+		485EECAF8451BE30B68EADAF /* HIDConsumerUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4619D295FB1786DE565FB8C2 /* HIDConsumerUsage.swift */; };
+		48EED3BB0920223891BA00E8 /* ClipboardSourceAppBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = D509E36F05E1FCEEDC57B12F /* ClipboardSourceAppBadge.swift */; };
+		49437EEEAD1FBC736B764E09 /* ClipboardShortcutSpecificationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B65E6DB90029B119AF575D8 /* ClipboardShortcutSpecificationTests.swift */; };
+		49C36D5988E23500BB50EAA6 /* ClipboardCodePreviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 004C00662528C28ACFE31143 /* ClipboardCodePreviewTests.swift */; };
+		4CC8BCD402A845104582A233 /* NexusStatusIdle.svg in Resources */ = {isa = PBXBuildFile; fileRef = 9A39B2E3B1C2969906A7B9E9 /* NexusStatusIdle.svg */; };
+		4E01651F3A1555FF625A445B /* SystemServicesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6553B7FBBCF08D13FD471CD5 /* SystemServicesView.swift */; };
+		4E2C36BB192E5CCD1CB33906 /* FolderSizeScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 242AE82C8C9F0C3F3601131E /* FolderSizeScanner.swift */; };
+		5336D1948EBFB3D5BF31C785 /* ClipboardRetentionActivityPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 511F11251D9221A9B843401E /* ClipboardRetentionActivityPolicy.swift */; };
+		53F26F6709A726CA319B2556 /* AppIconProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06CEF114DA2256514B85DF73 /* AppIconProvider.swift */; };
+		540C009FF4AF0E31630C2987 /* ClipboardRemoteWebTitleFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9800E373563A808BB8E668F /* ClipboardRemoteWebTitleFetcher.swift */; };
+		54630772E30223B7BBB4A5E5 /* WelcomeGuideStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B49F26447A07B6DD0F3CAC3 /* WelcomeGuideStore.swift */; };
+		54D52BAD3643226EA54DDFA4 /* ClipboardCloudKitPrivateTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3CA5A35C778746EC2BAE496 /* ClipboardCloudKitPrivateTransport.swift */; };
+		567888EFA5F36CD38BD1B783 /* ClipboardCloudRunSummaryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6652CB2F1E47249473B30C9C /* ClipboardCloudRunSummaryTests.swift */; };
+		56A1FC9C1A5285DA29A904AD /* NexusApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC04BDAB61F82D3189AC43C6 /* NexusApp.swift */; };
+		572E313F44E40C9EB53698D1 /* ClipboardCloudAutomaticSyncPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08525F0A5611F9385A145BE3 /* ClipboardCloudAutomaticSyncPolicyTests.swift */; };
+		58C8EB693803CDBEA9A47103 /* ClipboardSyntaxExcerpt.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA6A54EDC97BF58B6FBB9062 /* ClipboardSyntaxExcerpt.swift */; };
+		58DEDC4EE9038FAFB5CE164E /* ClipboardCloudLocalSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 120B8D876EC443940083B2EA /* ClipboardCloudLocalSnapshotTests.swift */; };
+		58EF864DE6A037328FFF9CB8 /* ClipboardShortcutSpecification.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91303A4CECECC711D364C687 /* ClipboardShortcutSpecification.swift */; };
+		592AC8892EA8B12457554D71 /* ClipboardCloudUploadDecisionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7396B233AA4F75532A054F8 /* ClipboardCloudUploadDecisionTests.swift */; };
+		5B3FEBB95FC239563F053731 /* InputStatisticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F56A1D3F0D25029797D0222 /* InputStatisticsView.swift */; };
+		5BDC3408F27CF301AFB3E6E8 /* PrivacyFeatureSwitchPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0D0D9C2CC17499A6271530E /* PrivacyFeatureSwitchPolicyTests.swift */; };
+		5BED3D12CE472DC0756F38F7 /* ClipboardCollectionShortcut.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8439F22E96C3058C3315594 /* ClipboardCollectionShortcut.swift */; };
+		5DFBA2FA841CB1B569B0764E /* StatusIconProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86973176D7BF83A1FB4D8045 /* StatusIconProvider.swift */; };
+		5E3FD34CAAAB60A148DFC871 /* AppKitClipboardWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 492AD1CE5253872F1B5B42F3 /* AppKitClipboardWriter.swift */; };
+		5F9DB1CAEE15D3FF7FEBA1B9 /* ClipboardCloudAutomaticSyncPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = D291CF120DCDF2DC02C6148B /* ClipboardCloudAutomaticSyncPolicy.swift */; };
+		6199ECCFF47E9C6D25D91661 /* LegacyStorageMigrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7208CF5F616A0058ED8AA2AE /* LegacyStorageMigrationTests.swift */; };
+		61F0AA4FAAB782E4C4203B48 /* ClipboardRichTextExcerpt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F3FE5D2518FAB1846D2C19D /* ClipboardRichTextExcerpt.swift */; };
+		63726172BD92F341FA90B8D4 /* PathFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E34B007F95233137352E5B6 /* PathFormatterTests.swift */; };
+		64FD78739A0EB6DC81DD2E03 /* LaunchAtLoginController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A98811D0A6FC0E99C57DCB4 /* LaunchAtLoginController.swift */; };
+		672F7AAB3752949FBBF17F26 /* InputUploadPrivacyPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A2D736DED2F061B7C016FC2 /* InputUploadPrivacyPolicyTests.swift */; };
+		690C3857D60C621B9CDD1B46 /* OperationSyncPrivacyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3680A96678DA615BFE10204 /* OperationSyncPrivacyTests.swift */; };
+		69A04982B82681B5A8016197 /* OperationStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7948F64E70B47681E8C5372 /* OperationStoreTests.swift */; };
+		6A8CF34ACF3236810E43EAF3 /* ClipboardHotkeyController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 685E5B772ABCA7F14C62A747 /* ClipboardHotkeyController.swift */; };
+		6AA5D150EACBD524F1FB45BA /* NexusStatusSuccessTemplate@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 18CAA2A6D2E3DB7A3AE5A824 /* NexusStatusSuccessTemplate@2x.png */; };
+		6B9A125D1F2F0DCB35301281 /* ClipboardCloudPurgeCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0744A266E1B42F05D9813207 /* ClipboardCloudPurgeCoordinator.swift */; };
+		6BFC3A5E1914126499D05977 /* InputDashboardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CA8CFF45716EC4723E7077D /* InputDashboardTests.swift */; };
+		6E124B25DDB7DB81F0D05579 /* InputMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B1E932FF1D477951D5D95D8 /* InputMonitor.swift */; };
+		6E5A58A6572B523105044E92 /* ClipboardRTFParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E569D3D6F8E5D30999E5DAA4 /* ClipboardRTFParserTests.swift */; };
+		6F714D6803844883EBEABD1A /* FeedbackPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E84CFAE22F151E771C10035C /* FeedbackPopoverView.swift */; };
+		703E28F73956C0771C0C206F /* ClipboardCloudKitCodecTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B386DEE15AE4BBCDC60FDF2B /* ClipboardCloudKitCodecTests.swift */; };
+		704208C779D19C0269726BF3 /* ClipboardSensitiveTypePolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C49AAAEF846E595BD5AFBF9 /* ClipboardSensitiveTypePolicyTests.swift */; };
+		7122263E71BC3F0E428EFCEF /* ClipboardPasteSafetyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB56AE1FBB62D4A18854218 /* ClipboardPasteSafetyTests.swift */; };
+		74D8C3771F2FB6E44FACD35A /* libNexusCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0B9221EEC53D5686B81BD38A /* libNexusCore.a */; };
+		74E058D8D22947C5FE9163A8 /* ClipboardQuickMenuSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58AC4C5573EFE39AFC9EA546 /* ClipboardQuickMenuSummary.swift */; };
+		74E883FC91ED0FBF857620A0 /* ClipboardCloudSyncModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7267B7FECC57B6E25EE3C1D9 /* ClipboardCloudSyncModel.swift */; };
+		7553C880DF240C1C1450E663 /* ResourceBundleLocator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20B3B6B94772E5C8E7760F88 /* ResourceBundleLocator.swift */; };
+		75983941BEDA2D881C06F8E1 /* CloudKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 87B6A58301DA760DE711FACC /* CloudKit.framework */; };
+		7649C58B73070703CE57478A /* PathFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FD2EA974083EB776E8FCB6E /* PathFormatter.swift */; };
+		7C82BAB69C90CE358BCF2512 /* ClipboardCloudForegroundSyncPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE404EF3C45ED5AD43283B5C /* ClipboardCloudForegroundSyncPolicyTests.swift */; };
+		80395F32BC4E431F64499853 /* InputUploadPrivacyPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAC6697D057ADBCBDED13D75 /* InputUploadPrivacyPolicy.swift */; };
+		816ECC6653D6EB294FF8BAFC /* NexusStatusActiveTemplate@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 5D7ECEBDF61D63C9322EE2CE /* NexusStatusActiveTemplate@3x.png */; };
+		84471505F3B2A1E37A95F915 /* ClipboardRichTextPreviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58876D97A9FF15AA68631C91 /* ClipboardRichTextPreviewTests.swift */; };
+		85B8FB2B490E67699156F24B /* PathCopyAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 281DDC0684E6520178361AAA /* PathCopyAction.swift */; };
+		86045BE54AACF46F3B471156 /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C296D44701D9CCA41F4200E /* Localization.swift */; };
+		88C1595BE34658F9CF2D9B48 /* NexusStatusIdleTemplate@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = CF2E24FE8D13822A0DC93E02 /* NexusStatusIdleTemplate@2x.png */; };
+		8BA57A095914EFA8C139648B /* ClipboardCloudSyncCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0ABB1BF482E70AF467A1EE6 /* ClipboardCloudSyncCoordinator.swift */; };
+		8BBE5361A1C7E5E1FED3CF6A /* ClipboardCloudPurgeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C421754ACB96E31C4BB20A88 /* ClipboardCloudPurgeTests.swift */; };
+		8BDEEF4FC1AF74FB5B8EF725 /* ClipboardCloudImageAsset.swift in Sources */ = {isa = PBXBuildFile; fileRef = 728EE320299C0E5E3CBB57CD /* ClipboardCloudImageAsset.swift */; };
+		8C508A7C7B514FA753F04EEC /* AppBuildInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF61508CB809DFF5626F0D82 /* AppBuildInfo.swift */; };
+		8D00F10062187BB8191FD9D9 /* ClipboardCloudController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 738879D7AC65C32298CE26F9 /* ClipboardCloudController.swift */; };
+		8F347A723CA597BEDE4D1781 /* NexusStatusIdleTemplate.png in Resources */ = {isa = PBXBuildFile; fileRef = 67DA70D81F564090554D4A70 /* NexusStatusIdleTemplate.png */; };
+		8FF04E806F1747DB3E766630 /* ClipboardCloudImageAssetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9255C839DE16DF174ECB2FA /* ClipboardCloudImageAssetTests.swift */; };
+		901C1EE10A8B1396ADAFCFD7 /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C1B856A0577AA63F438DC24C /* AppKit.framework */; };
+		90E57658A8E273B5B3B155CF /* ClipboardFilePreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0413A98643C63D3CD6E425DA /* ClipboardFilePreview.swift */; };
+		92C885721568997031E17160 /* StatisticsDeletionConfirmationPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C0963AEB0A67E3425933CD1 /* StatisticsDeletionConfirmationPolicy.swift */; };
+		93321B969BA83A9ADAC93785 /* ClipboardTextPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3C42F505F965E86C91FB3B0 /* ClipboardTextPreview.swift */; };
+		934C04EA273F22B4E26BE873 /* PathFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4121CFBDA282F9DFB5E9DFB9 /* PathFormat.swift */; };
+		93C27736207640B1B1A6BAD2 /* NexusStatusSuccessTemplate.png in Resources */ = {isa = PBXBuildFile; fileRef = 10AEB0A773117402D279C620 /* NexusStatusSuccessTemplate.png */; };
+		95E2D0C7110339BC8AFACAD0 /* ClipboardSourceAttribution.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6A37B66201FEBDD48ED47F2 /* ClipboardSourceAttribution.swift */; };
+		99F15AB3254C19D4A226DD86 /* ClipboardCloudSyncModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD36F68E9F6D4698E023CDCB /* ClipboardCloudSyncModelTests.swift */; };
+		9C36E198696720F0E536133C /* StatusItemController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D00F8E30731489335226C13 /* StatusItemController.swift */; };
+		9C3C39F876A3D6889FCD1612 /* WelcomeGuideWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3880BFEA01E53AC81AABD69C /* WelcomeGuideWindowController.swift */; };
+		9D55E3C2C65820499C1E9F4A /* ClipboardCloudUploadDecision.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E17A7F14EA49226735FA34A /* ClipboardCloudUploadDecision.swift */; };
+		9E6C31E04879C38C7D3CEEB6 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = A2B7B198E488BA3E51DA3A24 /* AppIcon.icon */; };
+		A001104D778BE5C5499D6436 /* ClipboardFilePreviewPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1355AF2D111A4FBB7F3983AB /* ClipboardFilePreviewPolicy.swift */; };
+		A2BD062E5AA659A51BDA8F2A /* ClipboardRTFParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97BBF42F10F2BF8F40ACAEB1 /* ClipboardRTFParser.swift */; };
+		A4D48B9360EF7FC4F46EFCD5 /* FolderSizeScannerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E444122654DBC4E35A99B8C /* FolderSizeScannerTests.swift */; };
+		A9581A19F1A4B306227DCD52 /* ClipboardSourceAttributionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A75D3ABF25AF550B345FBA5 /* ClipboardSourceAttributionTests.swift */; };
+		AB5EFACF692BF19F14938458 /* FinderExtensionRegistryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54810F013A8B89B8259CF8D2 /* FinderExtensionRegistryTests.swift */; };
+		ABC9D2B01387C1ABDCC24C0C /* ClipboardImageStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4981A15FC515943172770432 /* ClipboardImageStoreTests.swift */; };
+		ACEAB389E1B10AB840CA22B8 /* AppIconDev.icon in Resources */ = {isa = PBXBuildFile; fileRef = 2DE0263E6B64A1A791BB7EB6 /* AppIconDev.icon */; };
+		AEBEC65F7AF4255950BF1050 /* ClipboardHistorySearchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 239536B9C9968A10B2EBF8EF /* ClipboardHistorySearchTests.swift */; };
+		B02DCBB1DCE96337E07C220A /* ClipboardCloudForegroundSyncPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8025CECCE430DE30907D64E7 /* ClipboardCloudForegroundSyncPolicy.swift */; };
+		B093718C94CBF4C776C81BA0 /* NetworkSyncView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC99B04800D7D7A2C0A4674 /* NetworkSyncView.swift */; };
+		B3C9602210F6FC5F4BE8C92D /* ClipboardCloudJournalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95A5754A7473187C5D59D5DE /* ClipboardCloudJournalTests.swift */; };
+		B498E5478441D27C1D499717 /* ClipboardCloudPermanentCollectionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 826B05947DBC651B9EE9971F /* ClipboardCloudPermanentCollectionsTests.swift */; };
+		B7DEAA689DE9794A40905DA4 /* ClipboardSearchScaleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A17CD715EEC75522AA9320 /* ClipboardSearchScaleTests.swift */; };
+		B8984CF5A5DADAA3E5306C53 /* MobileClipboardLocalStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5AEE362BDF3BAF2770D68BF /* MobileClipboardLocalStore.swift */; };
+		BB70A4A265BC511BB364CEC2 /* HIDConsumerUsageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACB438FA1CB5A061049C617E /* HIDConsumerUsageTests.swift */; };
+		BB7F54927FD4F51FA1393A47 /* RecentPathRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1423E81827FDDB1A57F64FFD /* RecentPathRow.swift */; };
+		BB8017259E2EF6C272F3DEE9 /* URLDropReaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F5DE3ACFF763DF6F3F907D /* URLDropReaderTests.swift */; };
+		BC5DCF110AF01CBCD075083C /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F17FC72B148C2675BF17F54 /* SettingsView.swift */; };
+		BFAFD6AA4064890D16B59614 /* MobileClipboardLocalStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 854B778A3F1FD042707B4E6D /* MobileClipboardLocalStoreTests.swift */; };
+		C15A626913486FF5474A872C /* ClipboardTextDuplicatePolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F53691E99ECEE08B710542B /* ClipboardTextDuplicatePolicyTests.swift */; };
+		C20C463810988120FD362ABB /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0CECC4A8EEE21B88FEA8D535 /* InfoPlist.strings */; };
+		C4D73EBFE29C5F453533FCF5 /* FinderSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EE7FE47B20C1AA9D6CA46E4 /* FinderSettingsView.swift */; };
+		C5C56A88111C878D1474A282 /* ClipboardCloudFileAssetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BF413128F835CB085F5949E /* ClipboardCloudFileAssetTests.swift */; };
+		C606DDD155BBE04A1DFEFFC7 /* ClipboardShelfSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9857E8B6E29F3F14ACF98F3C /* ClipboardShelfSelectionTests.swift */; };
+		C74C87E1007A8580FA6B474B /* StatisticsDeletionConfirmationPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA3C2EC02E28F20B9A4800F7 /* StatisticsDeletionConfirmationPolicyTests.swift */; };
+		C8E4781819140BB7C1F67629 /* NexusServiceProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9426AE32A2FB52A3D45568D1 /* NexusServiceProvider.swift */; };
+		C947AEA9256D9FA1EE7165BB /* ClipboardThumbnailMaker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1148A7B883CBF5B720694CD9 /* ClipboardThumbnailMaker.swift */; };
+		C97B7B2C7141DBE6DF92F818 /* NativeServicesCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBBDE057878C718F67297BFE /* NativeServicesCatalog.swift */; };
+		C97C1D8B7076BA990FD98274 /* SparkleUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7FAD2BCF56A65F0D645729A /* SparkleUpdater.swift */; };
+		CC0786708A09F34FBFE8DDC0 /* DropTargetStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A779964EC2E3DC25D8839EF /* DropTargetStatusView.swift */; };
+		CECDBE0A09FBA7E2BF589F98 /* libNexusCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0B9221EEC53D5686B81BD38A /* libNexusCore.a */; };
+		CF40EC8D39759178E6E645BA /* ClipboardPasteSafety.swift in Sources */ = {isa = PBXBuildFile; fileRef = B42CB5CB98C334A4D36452FA /* ClipboardPasteSafety.swift */; };
+		D0EAF3057EAC0ED7E7862FC5 /* PathCopyActionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29D77C6F1330CF664C0C428B /* PathCopyActionTests.swift */; };
+		D684BDA1FF24277C2E7AB100 /* OperationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D4F770545650C9F72CBD300 /* OperationStore.swift */; };
+		D7F43B81682F6421C4373C82 /* ClipboardRetentionActivityPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D01772B99A50A657E7C675D7 /* ClipboardRetentionActivityPolicyTests.swift */; };
+		D9514342C6F7EE8192CF8632 /* ClipboardCloudJournal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CB0B6D94CCC7ED02A96FCF4 /* ClipboardCloudJournal.swift */; };
+		D96EC58DEF17D95D7C2236DE /* NexusStatusSuccessTemplate@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = BAAD6EF601DC1307A943021C /* NexusStatusSuccessTemplate@3x.png */; };
+		DC3B313BC9C6FCC99D18EE47 /* FinderExtensionMigrationControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08664ED364C68EE32DC8EBF9 /* FinderExtensionMigrationControllerTests.swift */; };
+		DDC06C5F170BB90F16C54755 /* URLDropReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3F914BEC3BA7064A49EB49E /* URLDropReader.swift */; };
+		DF00BDDA44D599C76AF36469 /* NexusStatusActive.svg in Resources */ = {isa = PBXBuildFile; fileRef = 3C21A0BA9D02A10C26761B13 /* NexusStatusActive.svg */; };
+		E064C098EF7B80236963F872 /* ServicesMenu.strings in Resources */ = {isa = PBXBuildFile; fileRef = 4032E353C5F3C0DC2E917160 /* ServicesMenu.strings */; };
+		E190FFCA130421CDA51FAA38 /* FinderSync.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2EB8D67E67000A8C5E68237E /* FinderSync.framework */; };
+		E1AE1880E0973899257BE022 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 5429C81C2DE2C3887E1F5363 /* Sparkle */; };
+		E213F3E8A05A3AEFC6553AAA /* ClipboardSafeHTMLPreviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2ABD0F71DAAC33886B9C295 /* ClipboardSafeHTMLPreviewTests.swift */; };
+		E23E7E3E5D5DAF2A28166265 /* ClipboardShelfSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = E625C3806A42DC3FB35A01C2 /* ClipboardShelfSelection.swift */; };
+		E37F1DC841F78E30E3F00D7F /* libNexusCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0B9221EEC53D5686B81BD38A /* libNexusCore.a */; };
+		E3CF2A10D64DA674AB2F9976 /* ClipboardPanelPlacement.swift in Sources */ = {isa = PBXBuildFile; fileRef = B72B3130B28146615401A40A /* ClipboardPanelPlacement.swift */; };
+		E432D56B12222E4004B7C72C /* ClipboardSensitiveTypePolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C099BE65DB65BC38AF91128 /* ClipboardSensitiveTypePolicy.swift */; };
+		E484F2A657710630D1AA9E5C /* InputStatisticsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17E2730BA6129F3EFDA668B /* InputStatisticsStore.swift */; };
+		E4CC0A1E87B38E898035B5C3 /* ClipboardCloudSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 445316B4BB963445FD7F530D /* ClipboardCloudSettingsView.swift */; };
+		E90D407DBCDAA243A20D4E07 /* InputCloudBackupController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85EF769D04144E1DC847D4FB /* InputCloudBackupController.swift */; };
+		E9196C8E047CBC2B9C1EFD23 /* ClipboardLinkTitlePolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = B44D1021DEFF2B8C33636328 /* ClipboardLinkTitlePolicy.swift */; };
+		EB9F1742D3EDCA64A711508E /* ClipboardCollection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EDDD84EBC993F67FD84C57D /* ClipboardCollection.swift */; };
+		EC09315A3E574EB3923528C8 /* ClipboardCardAccentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFE4796C01892A1AA4A0D6FB /* ClipboardCardAccentTests.swift */; };
+		EE09AD111303AD4C63A827F6 /* OperationSyncModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A484699CA8F355BB0A62DBB9 /* OperationSyncModels.swift */; };
+		EF6964F41E6C18B4435F5F88 /* PrivacyFeatureSwitchPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D49327FB70E645ABA537981 /* PrivacyFeatureSwitchPolicy.swift */; };
+		F09E2D7DC025137D6C8A61A7 /* HIDConsumerMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0670D69CCB396404766D96B0 /* HIDConsumerMonitor.swift */; };
+		F1F3A023464CFE85B0595F85 /* ClipboardCardAccent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07244D78A8EDFCC451A389A9 /* ClipboardCardAccent.swift */; };
+		F21FBAFA4CCA9756871D8839 /* ClipboardMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD397FB6435292A500E64177 /* ClipboardMonitor.swift */; };
+		F3BC6D82E51B2C851945A34C /* ClipboardFilePreviewPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D75F2387AE39BEBC7821FAF /* ClipboardFilePreviewPolicyTests.swift */; };
+		F3C38B07321F628E462787A9 /* ClipboardCloudLocalSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DFE05DA450B5E36794DD1E2 /* ClipboardCloudLocalSnapshot.swift */; };
+		F4E4B3AA684151DAB64145AF /* PrivacySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85C7BC87BE45EEF10B470AB3 /* PrivacySettingsView.swift */; };
+		F68F1FBE1871DC1EB9B6A46C /* ClipboardTextPreviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 772883009FC434DFD6DA151A /* ClipboardTextPreviewTests.swift */; };
+		F8224741C7A4AAC916AD7918 /* NexusFinderSync.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D26D03B7CE06B28231019DF9 /* NexusFinderSync.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		FB33549053D36CA574E2EC14 /* AppSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD11F25DBCBD248F858AC149 /* AppSettingsStore.swift */; };
+		FC858AB9C3E0474CCF2D1546 /* InputCloudBackupRestoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF8BA2A3028D4B7B66623D8E /* InputCloudBackupRestoreTests.swift */; };
+		FDEE67A95B9C4FCA58E80139 /* ClipboardShelfView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38671A7F7C8802A89C8ED698 /* ClipboardShelfView.swift */; };
+		FF5C814EED05BC2E966635E2 /* StatisticsDeletionChallengeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92205905E9CC492D77937690 /* StatisticsDeletionChallengeView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		36C9F05A084524FF558A7F70 /* PBXContainerItemProxy */ = {
+		0015E78EA59943C89D7F34F1 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = 22C639B72E02EA312BF69658 /* Project object */;
+			containerPortal = 6E0546D7A1020B804447C56B /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = 7F01D3E4AAC00660AA377414;
+			remoteGlobalIDString = 565CDD8351093D81C0F2564D;
 			remoteInfo = NexusCore;
 		};
-		40EFAFA3CC8E2ECF187932FA /* PBXContainerItemProxy */ = {
+		5130AEF0B3AEDA5FAC35D851 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = 22C639B72E02EA312BF69658 /* Project object */;
+			containerPortal = 6E0546D7A1020B804447C56B /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = 7F01D3E4AAC00660AA377414;
+			remoteGlobalIDString = 565CDD8351093D81C0F2564D;
 			remoteInfo = NexusCore;
 		};
-		737531542591B5EF16BD7C23 /* PBXContainerItemProxy */ = {
+		788518737B0A6EA63789A75F /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = 22C639B72E02EA312BF69658 /* Project object */;
+			containerPortal = 6E0546D7A1020B804447C56B /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = 1EBF27416FFBAD492304355B;
-			remoteInfo = Nexus;
-		};
-		9F8A550EA402256A02B8B618 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 22C639B72E02EA312BF69658 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 7F01D3E4AAC00660AA377414;
+			remoteGlobalIDString = 565CDD8351093D81C0F2564D;
 			remoteInfo = NexusCore;
 		};
-		CAF6C34621F42273CCAC997A /* PBXContainerItemProxy */ = {
+		8C1E798DAB144422602BC1FC /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = 22C639B72E02EA312BF69658 /* Project object */;
+			containerPortal = 6E0546D7A1020B804447C56B /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = 29D42AAF0A6B0855D8C30FE0;
+			remoteGlobalIDString = 227B68F3F9A4F826145E54EF;
 			remoteInfo = NexusFinderSync;
 		};
-		F8D8860D9A4571F04504AEA8 /* PBXContainerItemProxy */ = {
+		A5AC4F8A845CB0DFA21DF1E1 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = 22C639B72E02EA312BF69658 /* Project object */;
+			containerPortal = 6E0546D7A1020B804447C56B /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = 7F01D3E4AAC00660AA377414;
+			remoteGlobalIDString = C33A72293F18700680F43B8C;
+			remoteInfo = Nexus;
+		};
+		DE59FA33F3082C16746397F9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6E0546D7A1020B804447C56B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 565CDD8351093D81C0F2564D;
 			remoteInfo = NexusCore;
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		500357D42DD6C940AE84D0C6 /* Embed Foundation Extensions */ = {
+		E9A9035DE8C26E4EEBF3EB0B /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				F09F4D664B5120B659D67659 /* NexusFinderSync.appex in Embed Foundation Extensions */,
+				F8224741C7A4AAC916AD7918 /* NexusFinderSync.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -151,296 +262,531 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		02053019567BBCD9272FA890 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
-		0F97FFA2A4D84F1368DE663D /* InfoPlist.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = InfoPlist.strings; path = "zh-Hans.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
-		11AB93DB773ADB4737FA607E /* NexusStatusActiveTemplate@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "NexusStatusActiveTemplate@2x.png"; sourceTree = "<group>"; };
-		11BAD4A499035B92935D803A /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		1B0D1A8DB0FC5BC8E9438234 /* URLDropReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLDropReader.swift; sourceTree = "<group>"; };
-		1CE76D61F70EB6B45BBF6148 /* FinderSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderSync.swift; sourceTree = "<group>"; };
-		204AAA7E668CAFCAD298F99F /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
-		24CD16C2072EE95A043C65A8 /* FinderExtensionMigrationController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderExtensionMigrationController.swift; sourceTree = "<group>"; };
-		261CA6D615E6A3AD6318385D /* ClipboardWriting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardWriting.swift; sourceTree = "<group>"; };
-		2BA89171F30DEB9CFF420617 /* SparkleUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkleUpdater.swift; sourceTree = "<group>"; };
-		2FD17EC25F201121D8893384 /* AppSettingsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsStoreTests.swift; sourceTree = "<group>"; };
-		2FDD5A4964105ABE2BAA7BF7 /* FinderExtensionRegistryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderExtensionRegistryTests.swift; sourceTree = "<group>"; };
-		35443E504172B2256A8B7CDA /* FinderExtensionController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderExtensionController.swift; sourceTree = "<group>"; };
-		3605173BD4994CA98BC56083 /* NexusStatusIdleTemplate@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "NexusStatusIdleTemplate@2x.png"; sourceTree = "<group>"; };
-		37D5C1E17F78130AF2B16AE8 /* AppSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsStore.swift; sourceTree = "<group>"; };
-		3B9BF055D6BCEC6FD6C1AC03 /* NexusStatusActive.svg */ = {isa = PBXFileReference; path = NexusStatusActive.svg; sourceTree = "<group>"; };
-		3FF27331C449675FAA56F734 /* NexusCoreTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NexusCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		4220F2C6189F3FCC7CDCBC66 /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
-		477A7E0C8E1A707EF59780E2 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
-		4BC954E6A7D28C9705C5B9EC /* PathFormatterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathFormatterTests.swift; sourceTree = "<group>"; };
-		4CE40AEBFBCEAD630570FD36 /* FinderSync.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FinderSync.framework; path = System/Library/Frameworks/FinderSync.framework; sourceTree = SDKROOT; };
-		4F161A2FEB03DFA07404D237 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
-		520793E18FEC0244139B65E7 /* PathFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathFormatter.swift; sourceTree = "<group>"; };
-		58DA2E3C8E4CB65B70849186 /* AppIconProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIconProvider.swift; sourceTree = "<group>"; };
-		5CE9AB57DEAEAA2FCA8394A2 /* MenuPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuPopoverView.swift; sourceTree = "<group>"; };
-		730DAB348F1B45F6ECA5D84C /* NexusStatusSuccess.svg */ = {isa = PBXFileReference; path = NexusStatusSuccess.svg; sourceTree = "<group>"; };
-		7511140AEC09B7E96EB9F2F2 /* NexusStatusSuccessTemplate@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "NexusStatusSuccessTemplate@3x.png"; sourceTree = "<group>"; };
-		780F73E05058090727A33135 /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Localizable.strings; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
-		7BA812B6070D33F822475ED1 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
-		7E77B50758754DAD91942EAD /* NexusStatusIdleTemplate@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "NexusStatusIdleTemplate@3x.png"; sourceTree = "<group>"; };
-		7F468B8CB61DF25946752FCD /* NexusStatusActiveTemplate@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "NexusStatusActiveTemplate@3x.png"; sourceTree = "<group>"; };
-		81F038A4DA375E69FF419925 /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Localizable.strings; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
-		853A8FFA576BB6840531DE14 /* NexusStatusIdleTemplate.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = NexusStatusIdleTemplate.png; sourceTree = "<group>"; };
-		8B8CA3D42590C59FFD6CB5BE /* NexusStatusActiveTemplate.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = NexusStatusActiveTemplate.png; sourceTree = "<group>"; };
-		8E1606CC71339F799B1C024C /* AppKitClipboardWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppKitClipboardWriter.swift; sourceTree = "<group>"; };
-		8F5C252F970625C7E51DA10F /* NexusApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NexusApp.swift; sourceTree = "<group>"; };
-		8FB3C43BCF381CB862BFC53F /* DropZoneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropZoneView.swift; sourceTree = "<group>"; };
-		91C012A0E834E2813CEF0CDA /* NexusStatusSuccessTemplate@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "NexusStatusSuccessTemplate@2x.png"; sourceTree = "<group>"; };
-		93B90C3411784397EFBF752A /* Nexus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Nexus.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		948A289AEB27C91F75854B19 /* libNexusCore.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libNexusCore.a; sourceTree = BUILT_PRODUCTS_DIR; };
-		94F2647388444EA8D131ECA7 /* FinderExtensionMigrationControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderExtensionMigrationControllerTests.swift; sourceTree = "<group>"; };
-		9768F96CACFD2C00656B22E8 /* PathHistoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathHistoryTests.swift; sourceTree = "<group>"; };
-		A03420C2C711F975AE46DDC8 /* LaunchAtLoginController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginController.swift; sourceTree = "<group>"; };
-		A338925A788BF66151DACC62 /* URLDropReaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLDropReaderTests.swift; sourceTree = "<group>"; };
-		AB2ADD5C7E884CCEDDD5BB9B /* PathCopyActionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathCopyActionTests.swift; sourceTree = "<group>"; };
-		B8B12BC0AEB404FEA420631F /* PathFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathFormat.swift; sourceTree = "<group>"; };
-		BE2353C412D08A52ABBBE22B /* ResourceBundleLocator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResourceBundleLocator.swift; sourceTree = "<group>"; };
-		C753CA21DD19F2A604E3C2C6 /* NexusFinderSync.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = NexusFinderSync.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		C9B3754BE92EE7861906E41F /* StatusIconProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusIconProvider.swift; sourceTree = "<group>"; };
-		CB3361D05B27300417E70A67 /* AppStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateTests.swift; sourceTree = "<group>"; };
-		D15C3A440DA410151305CB0E /* DropTargetStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropTargetStatusView.swift; sourceTree = "<group>"; };
-		D8E1EA6EAA1AB8D328D8C6BC /* RecentPathRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentPathRow.swift; sourceTree = "<group>"; };
-		DAE2E0F0F48A6AA04B26FEF2 /* StatusItemController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusItemController.swift; sourceTree = "<group>"; };
-		DE1FE00EC22958370680F84A /* AppIconDev.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIconDev.icon; sourceTree = "<group>"; };
-		DE235382BF8FD4A45C936F3C /* SharedSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedSettings.swift; sourceTree = "<group>"; };
-		DF8A70B8B3247E025B12C045 /* NexusTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NexusTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		F0947B7DBA55BA576DB0CB44 /* FinderSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderSettingsView.swift; sourceTree = "<group>"; };
-		F2408A315E8C3BA07B2FC375 /* NexusStatusSuccessTemplate.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = NexusStatusSuccessTemplate.png; sourceTree = "<group>"; };
-		F3B8AFF52C504B2489CEC476 /* PathHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathHistory.swift; sourceTree = "<group>"; };
-		F686E3E6F3481A522C34CECF /* AppBuildInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppBuildInfo.swift; sourceTree = "<group>"; };
-		FDD95A5C04775746B38BAF0F /* FeedbackPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackPopoverView.swift; sourceTree = "<group>"; };
-		FE25408AE6ABFFD0B0C481B6 /* PathCopyAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathCopyAction.swift; sourceTree = "<group>"; };
-		FEE4FAC1F6AC1EE1182AE3B2 /* NexusStatusIdle.svg */ = {isa = PBXFileReference; path = NexusStatusIdle.svg; sourceTree = "<group>"; };
-		FF85D1DCCC976C5C8B55F7B2 /* FinderExtensionRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderExtensionRegistry.swift; sourceTree = "<group>"; };
-		A77000000000000000000000 /* OperationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperationStore.swift; sourceTree = "<group>"; };
-		A77000000000000000000001 /* OperationTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperationTimelineView.swift; sourceTree = "<group>"; };
-		A77000000000000000000002 /* OperationStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperationStoreTests.swift; sourceTree = "<group>"; };
-		A77000000000000000000003 /* NexusServiceProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NexusServiceProvider.swift; sourceTree = "<group>"; };
-		A77000000000000000000004 /* InputStatisticsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputStatisticsStore.swift; sourceTree = "<group>"; };
-		A77000000000000000000005 /* InputMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputMonitor.swift; sourceTree = "<group>"; };
-		A77000000000000000000006 /* InputStatisticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputStatisticsView.swift; sourceTree = "<group>"; };
-		A77000000000000000000007 /* InputStatisticsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputStatisticsStoreTests.swift; sourceTree = "<group>"; };
-		A77000000000000000000008 /* NetworkSyncView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkSyncView.swift; sourceTree = "<group>"; };
-		A77000000000000000000009 /* SystemServicesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemServicesView.swift; sourceTree = "<group>"; };
-		A77000000000000000000010 /* InfoPlist.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = InfoPlist.strings; path = "zh-Hans.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
-		A77000000000000000000011 /* ClipboardMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardMonitor.swift; sourceTree = "<group>"; };
-		D0DE00000000000000000001 /* WelcomeGuideStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeGuideStore.swift; sourceTree = "<group>"; };
-		D0DE00000000000000000002 /* WelcomeGuideWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeGuideWindowController.swift; sourceTree = "<group>"; };
-		D0DE00000000000000000003 /* WelcomeGuideStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeGuideStoreTests.swift; sourceTree = "<group>"; };
-		D0DE00000000000000000004 /* LegacyStorageMigrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyStorageMigrationTests.swift; sourceTree = "<group>"; };
+		004C00662528C28ACFE31143 /* ClipboardCodePreviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCodePreviewTests.swift; sourceTree = "<group>"; };
+		0413A98643C63D3CD6E425DA /* ClipboardFilePreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardFilePreview.swift; sourceTree = "<group>"; };
+		0670D69CCB396404766D96B0 /* HIDConsumerMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HIDConsumerMonitor.swift; sourceTree = "<group>"; };
+		06CEF114DA2256514B85DF73 /* AppIconProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIconProvider.swift; sourceTree = "<group>"; };
+		07244D78A8EDFCC451A389A9 /* ClipboardCardAccent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCardAccent.swift; sourceTree = "<group>"; };
+		0744A266E1B42F05D9813207 /* ClipboardCloudPurgeCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudPurgeCoordinator.swift; sourceTree = "<group>"; };
+		08525F0A5611F9385A145BE3 /* ClipboardCloudAutomaticSyncPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudAutomaticSyncPolicyTests.swift; sourceTree = "<group>"; };
+		08664ED364C68EE32DC8EBF9 /* FinderExtensionMigrationControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderExtensionMigrationControllerTests.swift; sourceTree = "<group>"; };
+		0A77563C2DEE60B1405B5B3E /* OperationTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperationTimelineView.swift; sourceTree = "<group>"; };
+		0B65E6DB90029B119AF575D8 /* ClipboardShortcutSpecificationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardShortcutSpecificationTests.swift; sourceTree = "<group>"; };
+		0B9221EEC53D5686B81BD38A /* libNexusCore.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libNexusCore.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		0D75F2387AE39BEBC7821FAF /* ClipboardFilePreviewPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardFilePreviewPolicyTests.swift; sourceTree = "<group>"; };
+		0E17A7F14EA49226735FA34A /* ClipboardCloudUploadDecision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudUploadDecision.swift; sourceTree = "<group>"; };
+		10AEB0A773117402D279C620 /* NexusStatusSuccessTemplate.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = NexusStatusSuccessTemplate.png; sourceTree = "<group>"; };
+		1148A7B883CBF5B720694CD9 /* ClipboardThumbnailMaker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardThumbnailMaker.swift; sourceTree = "<group>"; };
+		11A17CD715EEC75522AA9320 /* ClipboardSearchScaleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardSearchScaleTests.swift; sourceTree = "<group>"; };
+		120B8D876EC443940083B2EA /* ClipboardCloudLocalSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudLocalSnapshotTests.swift; sourceTree = "<group>"; };
+		1355AF2D111A4FBB7F3983AB /* ClipboardFilePreviewPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardFilePreviewPolicy.swift; sourceTree = "<group>"; };
+		13B2E20F38AFBF8C8BD9F819 /* ClipboardCollectionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCollectionsTests.swift; sourceTree = "<group>"; };
+		1423E81827FDDB1A57F64FFD /* RecentPathRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentPathRow.swift; sourceTree = "<group>"; };
+		17CF0F056668246477D13522 /* ClipboardCloudSyncCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudSyncCoordinatorTests.swift; sourceTree = "<group>"; };
+		18CAA2A6D2E3DB7A3AE5A824 /* NexusStatusSuccessTemplate@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "NexusStatusSuccessTemplate@2x.png"; sourceTree = "<group>"; };
+		193DB9530C37B3048EAC3BC3 /* ClipboardPanelPlacementTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPanelPlacementTests.swift; sourceTree = "<group>"; };
+		1AE40E30D60A7D9B1A2AB532 /* SharedSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedSettings.swift; sourceTree = "<group>"; };
+		1B3D243389B143E420BCC1AC /* PathHistoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathHistoryTests.swift; sourceTree = "<group>"; };
+		1B55F7151B0DA6F5884CA77B /* OperationRetentionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperationRetentionTests.swift; sourceTree = "<group>"; };
+		1B7247424CA0F5C3D9D81257 /* NexusStatusActiveTemplate.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = NexusStatusActiveTemplate.png; sourceTree = "<group>"; };
+		1CA8CFF45716EC4723E7077D /* InputDashboardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputDashboardTests.swift; sourceTree = "<group>"; };
+		1FD2EA974083EB776E8FCB6E /* PathFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathFormatter.swift; sourceTree = "<group>"; };
+		20B3B6B94772E5C8E7760F88 /* ResourceBundleLocator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResourceBundleLocator.swift; sourceTree = "<group>"; };
+		22EEBC86012C9DA0E55E636C /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		239536B9C9968A10B2EBF8EF /* ClipboardHistorySearchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardHistorySearchTests.swift; sourceTree = "<group>"; };
+		242AE82C8C9F0C3F3601131E /* FolderSizeScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderSizeScanner.swift; sourceTree = "<group>"; };
+		281DDC0684E6520178361AAA /* PathCopyAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathCopyAction.swift; sourceTree = "<group>"; };
+		2833B36380E20A767918361E /* FinderExtensionMigrationController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderExtensionMigrationController.swift; sourceTree = "<group>"; };
+		28600798B65430D12FBCFF91 /* NexusStatusSuccess.svg */ = {isa = PBXFileReference; path = NexusStatusSuccess.svg; sourceTree = "<group>"; };
+		29D77C6F1330CF664C0C428B /* PathCopyActionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathCopyActionTests.swift; sourceTree = "<group>"; };
+		2A75D3ABF25AF550B345FBA5 /* ClipboardSourceAttributionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardSourceAttributionTests.swift; sourceTree = "<group>"; };
+		2A779964EC2E3DC25D8839EF /* DropTargetStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropTargetStatusView.swift; sourceTree = "<group>"; };
+		2C099BE65DB65BC38AF91128 /* ClipboardSensitiveTypePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardSensitiveTypePolicy.swift; sourceTree = "<group>"; };
+		2C296D44701D9CCA41F4200E /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
+		2D49327FB70E645ABA537981 /* PrivacyFeatureSwitchPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyFeatureSwitchPolicy.swift; sourceTree = "<group>"; };
+		2DE0263E6B64A1A791BB7EB6 /* AppIconDev.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIconDev.icon; sourceTree = "<group>"; };
+		2E26CBC8636210E5F120D99E /* FinderExtensionController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderExtensionController.swift; sourceTree = "<group>"; };
+		2EB8D67E67000A8C5E68237E /* FinderSync.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FinderSync.framework; path = System/Library/Frameworks/FinderSync.framework; sourceTree = SDKROOT; };
+		2EDDD84EBC993F67FD84C57D /* ClipboardCollection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCollection.swift; sourceTree = "<group>"; };
+		2F3FE5D2518FAB1846D2C19D /* ClipboardRichTextExcerpt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardRichTextExcerpt.swift; sourceTree = "<group>"; };
+		38671A7F7C8802A89C8ED698 /* ClipboardShelfView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardShelfView.swift; sourceTree = "<group>"; };
+		3880BFEA01E53AC81AABD69C /* WelcomeGuideWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeGuideWindowController.swift; sourceTree = "<group>"; };
+		3A98811D0A6FC0E99C57DCB4 /* LaunchAtLoginController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginController.swift; sourceTree = "<group>"; };
+		3C21A0BA9D02A10C26761B13 /* NexusStatusActive.svg */ = {isa = PBXFileReference; path = NexusStatusActive.svg; sourceTree = "<group>"; };
+		3CB0B6D94CCC7ED02A96FCF4 /* ClipboardCloudJournal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudJournal.swift; sourceTree = "<group>"; };
+		3DFE238B3A80AB0597CD289A /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		3E444122654DBC4E35A99B8C /* FolderSizeScannerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderSizeScannerTests.swift; sourceTree = "<group>"; };
+		4121CFBDA282F9DFB5E9DFB9 /* PathFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathFormat.swift; sourceTree = "<group>"; };
+		432BD45E7C3554A41E8B686F /* ClipboardCloudKitCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudKitCodec.swift; sourceTree = "<group>"; };
+		445316B4BB963445FD7F530D /* ClipboardCloudSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudSettingsView.swift; sourceTree = "<group>"; };
+		4619D295FB1786DE565FB8C2 /* HIDConsumerUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HIDConsumerUsage.swift; sourceTree = "<group>"; };
+		492AD1CE5253872F1B5B42F3 /* AppKitClipboardWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppKitClipboardWriter.swift; sourceTree = "<group>"; };
+		4981A15FC515943172770432 /* ClipboardImageStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardImageStoreTests.swift; sourceTree = "<group>"; };
+		4DF0AD568F74C0D430B4D53E /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		511F11251D9221A9B843401E /* ClipboardRetentionActivityPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardRetentionActivityPolicy.swift; sourceTree = "<group>"; };
+		54810F013A8B89B8259CF8D2 /* FinderExtensionRegistryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderExtensionRegistryTests.swift; sourceTree = "<group>"; };
+		58876D97A9FF15AA68631C91 /* ClipboardRichTextPreviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardRichTextPreviewTests.swift; sourceTree = "<group>"; };
+		58AC4C5573EFE39AFC9EA546 /* ClipboardQuickMenuSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardQuickMenuSummary.swift; sourceTree = "<group>"; };
+		5B49F26447A07B6DD0F3CAC3 /* WelcomeGuideStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeGuideStore.swift; sourceTree = "<group>"; };
+		5CB0DEAC6BFF34FF26040B91 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
+		5D4F770545650C9F72CBD300 /* OperationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperationStore.swift; sourceTree = "<group>"; };
+		5D7ECEBDF61D63C9322EE2CE /* NexusStatusActiveTemplate@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "NexusStatusActiveTemplate@3x.png"; sourceTree = "<group>"; };
+		5F17FC72B148C2675BF17F54 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		61CEADC23D3D8E5D3868C188 /* ClipboardCollectionDropPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCollectionDropPolicy.swift; sourceTree = "<group>"; };
+		630E6FB142E81CCE4B8DF57B /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		6553B7FBBCF08D13FD471CD5 /* SystemServicesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemServicesView.swift; sourceTree = "<group>"; };
+		6652CB2F1E47249473B30C9C /* ClipboardCloudRunSummaryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudRunSummaryTests.swift; sourceTree = "<group>"; };
+		67DA70D81F564090554D4A70 /* NexusStatusIdleTemplate.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = NexusStatusIdleTemplate.png; sourceTree = "<group>"; };
+		685E5B772ABCA7F14C62A747 /* ClipboardHotkeyController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardHotkeyController.swift; sourceTree = "<group>"; };
+		69ED62341195FDE8DC9B5405 /* NexusTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NexusTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		6C0963AEB0A67E3425933CD1 /* StatisticsDeletionConfirmationPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsDeletionConfirmationPolicy.swift; sourceTree = "<group>"; };
+		6D25BDD3993A4AB5EF33C603 /* NexusCoreTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NexusCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		6DFE05DA450B5E36794DD1E2 /* ClipboardCloudLocalSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudLocalSnapshot.swift; sourceTree = "<group>"; };
+		6E34B007F95233137352E5B6 /* PathFormatterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathFormatterTests.swift; sourceTree = "<group>"; };
+		6EE7FE47B20C1AA9D6CA46E4 /* FinderSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderSettingsView.swift; sourceTree = "<group>"; };
+		6F53691E99ECEE08B710542B /* ClipboardTextDuplicatePolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardTextDuplicatePolicyTests.swift; sourceTree = "<group>"; };
+		7208CF5F616A0058ED8AA2AE /* LegacyStorageMigrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyStorageMigrationTests.swift; sourceTree = "<group>"; };
+		7259ACECB8DF692280464066 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/ServicesMenu.strings; sourceTree = "<group>"; };
+		7267B7FECC57B6E25EE3C1D9 /* ClipboardCloudSyncModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudSyncModel.swift; sourceTree = "<group>"; };
+		728EE320299C0E5E3CBB57CD /* ClipboardCloudImageAsset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudImageAsset.swift; sourceTree = "<group>"; };
+		738879D7AC65C32298CE26F9 /* ClipboardCloudController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudController.swift; sourceTree = "<group>"; };
+		74449DBDFE1B1587CFFCB0CA /* MenuPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuPopoverView.swift; sourceTree = "<group>"; };
+		74D9E4910CD3B6801B50B284 /* ClipboardLinkTitleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardLinkTitleTests.swift; sourceTree = "<group>"; };
+		75F8F52BA4E60CB71A65BDAF /* NexusStatusActiveTemplate@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "NexusStatusActiveTemplate@2x.png"; sourceTree = "<group>"; };
+		772883009FC434DFD6DA151A /* ClipboardTextPreviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardTextPreviewTests.swift; sourceTree = "<group>"; };
+		7A2D736DED2F061B7C016FC2 /* InputUploadPrivacyPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputUploadPrivacyPolicyTests.swift; sourceTree = "<group>"; };
+		7B1E932FF1D477951D5D95D8 /* InputMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputMonitor.swift; sourceTree = "<group>"; };
+		7BF413128F835CB085F5949E /* ClipboardCloudFileAssetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudFileAssetTests.swift; sourceTree = "<group>"; };
+		7C49AAAEF846E595BD5AFBF9 /* ClipboardSensitiveTypePolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardSensitiveTypePolicyTests.swift; sourceTree = "<group>"; };
+		7E5291495E09BDE70A479DB9 /* DropZoneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropZoneView.swift; sourceTree = "<group>"; };
+		7FB56AE1FBB62D4A18854218 /* ClipboardPasteSafetyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPasteSafetyTests.swift; sourceTree = "<group>"; };
+		8025CECCE430DE30907D64E7 /* ClipboardCloudForegroundSyncPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudForegroundSyncPolicy.swift; sourceTree = "<group>"; };
+		826B05947DBC651B9EE9971F /* ClipboardCloudPermanentCollectionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudPermanentCollectionsTests.swift; sourceTree = "<group>"; };
+		854B778A3F1FD042707B4E6D /* MobileClipboardLocalStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileClipboardLocalStoreTests.swift; sourceTree = "<group>"; };
+		85C7BC87BE45EEF10B470AB3 /* PrivacySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacySettingsView.swift; sourceTree = "<group>"; };
+		85EF769D04144E1DC847D4FB /* InputCloudBackupController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputCloudBackupController.swift; sourceTree = "<group>"; };
+		863EE2EE866A92BB4134D5BD /* WelcomeGuideStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeGuideStoreTests.swift; sourceTree = "<group>"; };
+		86973176D7BF83A1FB4D8045 /* StatusIconProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusIconProvider.swift; sourceTree = "<group>"; };
+		87B6A58301DA760DE711FACC /* CloudKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CloudKit.framework; path = System/Library/Frameworks/CloudKit.framework; sourceTree = SDKROOT; };
+		8BBE5334D8DC1BA28DBBD66A /* ClipboardCloudRemoteHistoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudRemoteHistoryTests.swift; sourceTree = "<group>"; };
+		8D00F8E30731489335226C13 /* StatusItemController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusItemController.swift; sourceTree = "<group>"; };
+		8D0C8A20FDEDDECF6D3ADA1F /* FinderExtensionRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderExtensionRegistry.swift; sourceTree = "<group>"; };
+		8FD6E2573CDB6ABD6C9FA967 /* GlobalServicesMenuControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalServicesMenuControls.swift; sourceTree = "<group>"; };
+		91303A4CECECC711D364C687 /* ClipboardShortcutSpecification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardShortcutSpecification.swift; sourceTree = "<group>"; };
+		92205905E9CC492D77937690 /* StatisticsDeletionChallengeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsDeletionChallengeView.swift; sourceTree = "<group>"; };
+		941693DB535481CA67EAC98C /* ClipboardWriting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardWriting.swift; sourceTree = "<group>"; };
+		9426AE32A2FB52A3D45568D1 /* NexusServiceProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NexusServiceProvider.swift; sourceTree = "<group>"; };
+		95A5754A7473187C5D59D5DE /* ClipboardCloudJournalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudJournalTests.swift; sourceTree = "<group>"; };
+		97BBF42F10F2BF8F40ACAEB1 /* ClipboardRTFParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardRTFParser.swift; sourceTree = "<group>"; };
+		9857E8B6E29F3F14ACF98F3C /* ClipboardShelfSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardShelfSelectionTests.swift; sourceTree = "<group>"; };
+		99BFD9A2B07A5C6A8397E396 /* AppSettingsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsStoreTests.swift; sourceTree = "<group>"; };
+		9A39B2E3B1C2969906A7B9E9 /* NexusStatusIdle.svg */ = {isa = PBXFileReference; path = NexusStatusIdle.svg; sourceTree = "<group>"; };
+		9F56A1D3F0D25029797D0222 /* InputStatisticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputStatisticsView.swift; sourceTree = "<group>"; };
+		A02329EC860545AF15648DB0 /* ClipboardCloudRunSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudRunSummary.swift; sourceTree = "<group>"; };
+		A1F5DE3ACFF763DF6F3F907D /* URLDropReaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLDropReaderTests.swift; sourceTree = "<group>"; };
+		A1FC21E9F1896B75A2D84696 /* NexusStatusIdleTemplate@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "NexusStatusIdleTemplate@3x.png"; sourceTree = "<group>"; };
+		A2ABD0F71DAAC33886B9C295 /* ClipboardSafeHTMLPreviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardSafeHTMLPreviewTests.swift; sourceTree = "<group>"; };
+		A2B1A77B0EB623B853F3F85B /* ClipboardQuickMenuSummaryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardQuickMenuSummaryTests.swift; sourceTree = "<group>"; };
+		A2B7B198E488BA3E51DA3A24 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
+		A484699CA8F355BB0A62DBB9 /* OperationSyncModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperationSyncModels.swift; sourceTree = "<group>"; };
+		A7948F64E70B47681E8C5372 /* OperationStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperationStoreTests.swift; sourceTree = "<group>"; };
+		A8439F22E96C3058C3315594 /* ClipboardCollectionShortcut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCollectionShortcut.swift; sourceTree = "<group>"; };
+		A9CB26072E15DDC1505C9954 /* ClipboardCollectionShortcutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCollectionShortcutTests.swift; sourceTree = "<group>"; };
+		A9D9AD9834FD412DEA8C9D56 /* NativeServicesCatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeServicesCatalogTests.swift; sourceTree = "<group>"; };
+		AA6A54EDC97BF58B6FBB9062 /* ClipboardSyntaxExcerpt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardSyntaxExcerpt.swift; sourceTree = "<group>"; };
+		ACB438FA1CB5A061049C617E /* HIDConsumerUsageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HIDConsumerUsageTests.swift; sourceTree = "<group>"; };
+		AD36F68E9F6D4698E023CDCB /* ClipboardCloudSyncModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudSyncModelTests.swift; sourceTree = "<group>"; };
+		AD8D4D120D44610CA102E8DC /* PathHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathHistory.swift; sourceTree = "<group>"; };
+		AFE4796C01892A1AA4A0D6FB /* ClipboardCardAccentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCardAccentTests.swift; sourceTree = "<group>"; };
+		B0D0D9C2CC17499A6271530E /* PrivacyFeatureSwitchPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyFeatureSwitchPolicyTests.swift; sourceTree = "<group>"; };
+		B1F60348A7282D4817934433 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		B386DEE15AE4BBCDC60FDF2B /* ClipboardCloudKitCodecTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudKitCodecTests.swift; sourceTree = "<group>"; };
+		B42CB5CB98C334A4D36452FA /* ClipboardPasteSafety.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPasteSafety.swift; sourceTree = "<group>"; };
+		B44D1021DEFF2B8C33636328 /* ClipboardLinkTitlePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardLinkTitlePolicy.swift; sourceTree = "<group>"; };
+		B6A37B66201FEBDD48ED47F2 /* ClipboardSourceAttribution.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardSourceAttribution.swift; sourceTree = "<group>"; };
+		B72B3130B28146615401A40A /* ClipboardPanelPlacement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPanelPlacement.swift; sourceTree = "<group>"; };
+		B831BD92EDBA833799B3B62F /* ClipboardRemoteWebTitlePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardRemoteWebTitlePolicy.swift; sourceTree = "<group>"; };
+		B9255C839DE16DF174ECB2FA /* ClipboardCloudImageAssetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudImageAssetTests.swift; sourceTree = "<group>"; };
+		B953B801EFA44EEED10F695F /* ClipboardTextDuplicatePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardTextDuplicatePolicy.swift; sourceTree = "<group>"; };
+		B9829E11C07988CD69BB3F9E /* FinderSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderSync.swift; sourceTree = "<group>"; };
+		BA77D3AEE04461217B34994E /* InputStatisticsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputStatisticsStoreTests.swift; sourceTree = "<group>"; };
+		BA799E467AD7D448495DE603 /* ClipboardRemoteWebTitlePolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardRemoteWebTitlePolicyTests.swift; sourceTree = "<group>"; };
+		BAAD6EF601DC1307A943021C /* NexusStatusSuccessTemplate@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "NexusStatusSuccessTemplate@3x.png"; sourceTree = "<group>"; };
+		BBBDE057878C718F67297BFE /* NativeServicesCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeServicesCatalog.swift; sourceTree = "<group>"; };
+		BC35C842B19D4E268CFDCDCA /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		BD11F25DBCBD248F858AC149 /* AppSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsStore.swift; sourceTree = "<group>"; };
+		BD397FB6435292A500E64177 /* ClipboardMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardMonitor.swift; sourceTree = "<group>"; };
+		BF8BA2A3028D4B7B66623D8E /* InputCloudBackupRestoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputCloudBackupRestoreTests.swift; sourceTree = "<group>"; };
+		BFC99B04800D7D7A2C0A4674 /* NetworkSyncView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkSyncView.swift; sourceTree = "<group>"; };
+		C0ABB1BF482E70AF467A1EE6 /* ClipboardCloudSyncCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudSyncCoordinator.swift; sourceTree = "<group>"; };
+		C17E2730BA6129F3EFDA668B /* InputStatisticsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputStatisticsStore.swift; sourceTree = "<group>"; };
+		C1A7087C12DF6A19E820094E /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/ServicesMenu.strings"; sourceTree = "<group>"; };
+		C1B856A0577AA63F438DC24C /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
+		C34B34F0CA7F620F260F9FA5 /* ClipboardCollectionDropPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCollectionDropPolicyTests.swift; sourceTree = "<group>"; };
+		C3F914BEC3BA7064A49EB49E /* URLDropReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLDropReader.swift; sourceTree = "<group>"; };
+		C421754ACB96E31C4BB20A88 /* ClipboardCloudPurgeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudPurgeTests.swift; sourceTree = "<group>"; };
+		C53691DA188EB56C2FA4E472 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		C57D4C05D04362396E3E77D3 /* AppStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateTests.swift; sourceTree = "<group>"; };
+		CF2E24FE8D13822A0DC93E02 /* NexusStatusIdleTemplate@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "NexusStatusIdleTemplate@2x.png"; sourceTree = "<group>"; };
+		D01772B99A50A657E7C675D7 /* ClipboardRetentionActivityPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardRetentionActivityPolicyTests.swift; sourceTree = "<group>"; };
+		D12C23411CE5687AD03D58EF /* ClipboardLinkTitleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardLinkTitleView.swift; sourceTree = "<group>"; };
+		D26D03B7CE06B28231019DF9 /* NexusFinderSync.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = NexusFinderSync.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		D291CF120DCDF2DC02C6148B /* ClipboardCloudAutomaticSyncPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudAutomaticSyncPolicy.swift; sourceTree = "<group>"; };
+		D3C42F505F965E86C91FB3B0 /* ClipboardTextPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardTextPreview.swift; sourceTree = "<group>"; };
+		D3CA5A35C778746EC2BAE496 /* ClipboardCloudKitPrivateTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudKitPrivateTransport.swift; sourceTree = "<group>"; };
+		D509E36F05E1FCEEDC57B12F /* ClipboardSourceAppBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardSourceAppBadge.swift; sourceTree = "<group>"; };
+		D7396B233AA4F75532A054F8 /* ClipboardCloudUploadDecisionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudUploadDecisionTests.swift; sourceTree = "<group>"; };
+		D77870F67208BE52B34B407C /* ClipboardCloudConsentRevocationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudConsentRevocationTests.swift; sourceTree = "<group>"; };
+		D837162539F8148EDD0E4917 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		DAC6697D057ADBCBDED13D75 /* InputUploadPrivacyPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputUploadPrivacyPolicy.swift; sourceTree = "<group>"; };
+		DE6016E9C9A70F5C714EF369 /* ClipboardFullTextSearchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardFullTextSearchTests.swift; sourceTree = "<group>"; };
+		E33CE0223F8521F8D932E068 /* ClipboardCloudFileAsset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudFileAsset.swift; sourceTree = "<group>"; };
+		E3680A96678DA615BFE10204 /* OperationSyncPrivacyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperationSyncPrivacyTests.swift; sourceTree = "<group>"; };
+		E569D3D6F8E5D30999E5DAA4 /* ClipboardRTFParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardRTFParserTests.swift; sourceTree = "<group>"; };
+		E625C3806A42DC3FB35A01C2 /* ClipboardShelfSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardShelfSelection.swift; sourceTree = "<group>"; };
+		E84CFAE22F151E771C10035C /* FeedbackPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackPopoverView.swift; sourceTree = "<group>"; };
+		E9800E373563A808BB8E668F /* ClipboardRemoteWebTitleFetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardRemoteWebTitleFetcher.swift; sourceTree = "<group>"; };
+		EA3C2EC02E28F20B9A4800F7 /* StatisticsDeletionConfirmationPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsDeletionConfirmationPolicyTests.swift; sourceTree = "<group>"; };
+		F0E6744DFEAB66A3205FCCCB /* ClipboardSafeHTMLPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardSafeHTMLPreview.swift; sourceTree = "<group>"; };
+		F1BDED6E6F296AA5596E4B3B /* ClipboardRichTextPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardRichTextPreview.swift; sourceTree = "<group>"; };
+		F4A8679D1AA213E90318DD86 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		F5AEE362BDF3BAF2770D68BF /* MobileClipboardLocalStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileClipboardLocalStore.swift; sourceTree = "<group>"; };
+		F7FAD2BCF56A65F0D645729A /* SparkleUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkleUpdater.swift; sourceTree = "<group>"; };
+		FA42E7B81FAE699EB54714F9 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		FC04BDAB61F82D3189AC43C6 /* NexusApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NexusApp.swift; sourceTree = "<group>"; };
+		FC84CCF3614EF47A915385A0 /* ClipboardCodePreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCodePreview.swift; sourceTree = "<group>"; };
+		FCF0E4BE82C411A3DAAED3C7 /* Nexus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Nexus.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FE404EF3C45ED5AD43283B5C /* ClipboardCloudForegroundSyncPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudForegroundSyncPolicyTests.swift; sourceTree = "<group>"; };
+		FF61508CB809DFF5626F0D82 /* AppBuildInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppBuildInfo.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		04F75ED53ED3AF5B28042672 /* Frameworks */ = {
+		0717F30BCC141C38ED1CB4CD /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				5CFF9768C241F3CF9E869E7E /* libNexusCore.a in Frameworks */,
+				E37F1DC841F78E30E3F00D7F /* libNexusCore.a in Frameworks */,
+				E1AE1880E0973899257BE022 /* Sparkle in Frameworks */,
+				27CE07163F1A59A1F811C391 /* FinderSync.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		0E43003049B44CC2A758ECB5 /* Frameworks */ = {
+		A6F3914FC42C2F4A0BEF5C4D /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FE01C538B68B156B7B837EFC /* libNexusCore.a in Frameworks */,
-				6E9834685A8D402F424D7194 /* Sparkle in Frameworks */,
-				C1913A8A26BB67717CB40857 /* FinderSync.framework in Frameworks */,
+				159212F0F32A852C401DF8AB /* libNexusCore.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		28279ED9D7F55224F7ED2543 /* Frameworks */ = {
+		C2E0CCD8FACDEC5771054A7F /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A08EFB5DDE49EDDB19D35152 /* libNexusCore.a in Frameworks */,
+				CECDBE0A09FBA7E2BF589F98 /* libNexusCore.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		4940F1D964C1231827FCD0B8 /* Frameworks */ = {
+		F6F52D99DC9DB029D21C67C8 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8B3065EC2EA32D68327B488A /* libNexusCore.a in Frameworks */,
-				C8FCD72C5262BB19ED5316C3 /* AppKit.framework in Frameworks */,
-				8E900B2E3C373F1A40186776 /* FinderSync.framework in Frameworks */,
+				75983941BEDA2D881C06F8E1 /* CloudKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F9E70A4188639DB9CC59F542 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				74D8C3771F2FB6E44FACD35A /* libNexusCore.a in Frameworks */,
+				901C1EE10A8B1396ADAFCFD7 /* AppKit.framework in Frameworks */,
+				E190FFCA130421CDA51FAA38 /* FinderSync.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		072BC619064DD0560604556A /* NexusCore */ = {
+		06AE5C7DF58DFEFE5668FEAF /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				37D5C1E17F78130AF2B16AE8 /* AppSettingsStore.swift */,
-				261CA6D615E6A3AD6318385D /* ClipboardWriting.swift */,
-				FE25408AE6ABFFD0B0C481B6 /* PathCopyAction.swift */,
-				B8B12BC0AEB404FEA420631F /* PathFormat.swift */,
-				520793E18FEC0244139B65E7 /* PathFormatter.swift */,
-				F3B8AFF52C504B2489CEC476 /* PathHistory.swift */,
-				DE235382BF8FD4A45C936F3C /* SharedSettings.swift */,
-				A77000000000000000000004 /* InputStatisticsStore.swift */,
-				A77000000000000000000000 /* OperationStore.swift */,
-			);
-			name = NexusCore;
-			path = Sources/NexusCore;
-			sourceTree = "<group>";
-		};
-		30717CF12BE75C9A8CAE8161 /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-				4F161A2FEB03DFA07404D237 /* AppKit.framework */,
-				4CE40AEBFBCEAD630570FD36 /* FinderSync.framework */,
+				C1B856A0577AA63F438DC24C /* AppKit.framework */,
+				87B6A58301DA760DE711FACC /* CloudKit.framework */,
+				2EB8D67E67000A8C5E68237E /* FinderSync.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		4FCD9BE5A4B1F28B9CFDFA79 /* Assets */ = {
+		0EBCEF7719D6AE51AC9B466C /* NexusTests */ = {
 			isa = PBXGroup;
 			children = (
-				DE1FE00EC22958370680F84A /* AppIconDev.icon */,
-			);
-			name = Assets;
-			path = Scripts/Assets;
-			sourceTree = "<group>";
-		};
-		521FFB1C740B36B2B2CD8C34 /* Nexus */ = {
-			isa = PBXGroup;
-			children = (
-				477A7E0C8E1A707EF59780E2 /* AboutView.swift */,
-				F686E3E6F3481A522C34CECF /* AppBuildInfo.swift */,
-				11BAD4A499035B92935D803A /* AppDelegate.swift */,
-				58DA2E3C8E4CB65B70849186 /* AppIconProvider.swift */,
-				8E1606CC71339F799B1C024C /* AppKitClipboardWriter.swift */,
-				02053019567BBCD9272FA890 /* AppState.swift */,
-				D15C3A440DA410151305CB0E /* DropTargetStatusView.swift */,
-				8FB3C43BCF381CB862BFC53F /* DropZoneView.swift */,
-				FDD95A5C04775746B38BAF0F /* FeedbackPopoverView.swift */,
-				35443E504172B2256A8B7CDA /* FinderExtensionController.swift */,
-				24CD16C2072EE95A043C65A8 /* FinderExtensionMigrationController.swift */,
-				FF85D1DCCC976C5C8B55F7B2 /* FinderExtensionRegistry.swift */,
-				F0947B7DBA55BA576DB0CB44 /* FinderSettingsView.swift */,
-				A03420C2C711F975AE46DDC8 /* LaunchAtLoginController.swift */,
-				4220F2C6189F3FCC7CDCBC66 /* Localization.swift */,
-				5CE9AB57DEAEAA2FCA8394A2 /* MenuPopoverView.swift */,
-				A77000000000000000000011 /* ClipboardMonitor.swift */,
-				A77000000000000000000009 /* SystemServicesView.swift */,
-				A77000000000000000000008 /* NetworkSyncView.swift */,
-				A77000000000000000000006 /* InputStatisticsView.swift */,
-				A77000000000000000000005 /* InputMonitor.swift */,
-				A77000000000000000000003 /* NexusServiceProvider.swift */,
-				A77000000000000000000001 /* OperationTimelineView.swift */,
-				D8E1EA6EAA1AB8D328D8C6BC /* RecentPathRow.swift */,
-				BE2353C412D08A52ABBBE22B /* ResourceBundleLocator.swift */,
-				7BA812B6070D33F822475ED1 /* SettingsView.swift */,
-				8F5C252F970625C7E51DA10F /* NexusApp.swift */,
-				2BA89171F30DEB9CFF420617 /* SparkleUpdater.swift */,
-				C9B3754BE92EE7861906E41F /* StatusIconProvider.swift */,
-				DAE2E0F0F48A6AA04B26FEF2 /* StatusItemController.swift */,
-				1B0D1A8DB0FC5BC8E9438234 /* URLDropReader.swift */,
-				D0DE00000000000000000001 /* WelcomeGuideStore.swift */,
-				D0DE00000000000000000002 /* WelcomeGuideWindowController.swift */,
-				E2E9CB6930295B6F33431710 /* Resources */,
-			);
-			name = Nexus;
-			path = Sources/Nexus;
-			sourceTree = "<group>";
-		};
-		60470B06B141542696F8E47D /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				948A289AEB27C91F75854B19 /* libNexusCore.a */,
-				93B90C3411784397EFBF752A /* Nexus.app */,
-				3FF27331C449675FAA56F734 /* NexusCoreTests.xctest */,
-				C753CA21DD19F2A604E3C2C6 /* NexusFinderSync.appex */,
-				DF8A70B8B3247E025B12C045 /* NexusTests.xctest */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
-		7BA95BCD56CBF6D8AEA669EA /* NexusTests */ = {
-			isa = PBXGroup;
-			children = (
-				CB3361D05B27300417E70A67 /* AppStateTests.swift */,
-				94F2647388444EA8D131ECA7 /* FinderExtensionMigrationControllerTests.swift */,
-				2FDD5A4964105ABE2BAA7BF7 /* FinderExtensionRegistryTests.swift */,
-				D0DE00000000000000000003 /* WelcomeGuideStoreTests.swift */,
-				A338925A788BF66151DACC62 /* URLDropReaderTests.swift */,
+				C57D4C05D04362396E3E77D3 /* AppStateTests.swift */,
+				E569D3D6F8E5D30999E5DAA4 /* ClipboardRTFParserTests.swift */,
+				08664ED364C68EE32DC8EBF9 /* FinderExtensionMigrationControllerTests.swift */,
+				54810F013A8B89B8259CF8D2 /* FinderExtensionRegistryTests.swift */,
+				A1F5DE3ACFF763DF6F3F907D /* URLDropReaderTests.swift */,
+				863EE2EE866A92BB4134D5BD /* WelcomeGuideStoreTests.swift */,
 			);
 			name = NexusTests;
 			path = Tests/NexusTests;
 			sourceTree = "<group>";
 		};
-		9A2C2B5B771A3BBA303354DD /* StatusIcons */ = {
+		11E3CC88B7BCE0F356595ACA /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				3B9BF055D6BCEC6FD6C1AC03 /* NexusStatusActive.svg */,
-				8B8CA3D42590C59FFD6CB5BE /* NexusStatusActiveTemplate.png */,
-				11AB93DB773ADB4737FA607E /* NexusStatusActiveTemplate@2x.png */,
-				7F468B8CB61DF25946752FCD /* NexusStatusActiveTemplate@3x.png */,
-				FEE4FAC1F6AC1EE1182AE3B2 /* NexusStatusIdle.svg */,
-				853A8FFA576BB6840531DE14 /* NexusStatusIdleTemplate.png */,
-				3605173BD4994CA98BC56083 /* NexusStatusIdleTemplate@2x.png */,
-				7E77B50758754DAD91942EAD /* NexusStatusIdleTemplate@3x.png */,
-				730DAB348F1B45F6ECA5D84C /* NexusStatusSuccess.svg */,
-				F2408A315E8C3BA07B2FC375 /* NexusStatusSuccessTemplate.png */,
-				91C012A0E834E2813CEF0CDA /* NexusStatusSuccessTemplate@2x.png */,
-				7511140AEC09B7E96EB9F2F2 /* NexusStatusSuccessTemplate@3x.png */,
+				0B9221EEC53D5686B81BD38A /* libNexusCore.a */,
+				FCF0E4BE82C411A3DAAED3C7 /* Nexus.app */,
+				6D25BDD3993A4AB5EF33C603 /* NexusCoreTests.xctest */,
+				D26D03B7CE06B28231019DF9 /* NexusFinderSync.appex */,
+				69ED62341195FDE8DC9B5405 /* NexusTests.xctest */,
 			);
-			path = StatusIcons;
+			name = Products;
 			sourceTree = "<group>";
 		};
-		A1C4888217F40FC5EC1BCD73 /* NexusFinderSync */ = {
+		302C2A2141CED0697D403A78 /* NexusCoreTests */ = {
 			isa = PBXGroup;
 			children = (
-				1CE76D61F70EB6B45BBF6148 /* FinderSync.swift */,
-				0F97FFA2A4D84F1368DE663D /* InfoPlist.strings */,
-				81F038A4DA375E69FF419925 /* Localizable.strings */,
-			);
-			name = NexusFinderSync;
-			path = Sources/NexusFinderSync;
-			sourceTree = "<group>";
-		};
-		CBD949A7FD99A02C5E43C8E7 /* NexusCoreTests */ = {
-			isa = PBXGroup;
-			children = (
-				2FD17EC25F201121D8893384 /* AppSettingsStoreTests.swift */,
-				AB2ADD5C7E884CCEDDD5BB9B /* PathCopyActionTests.swift */,
-				4BC954E6A7D28C9705C5B9EC /* PathFormatterTests.swift */,
-				9768F96CACFD2C00656B22E8 /* PathHistoryTests.swift */,
-				A77000000000000000000007 /* InputStatisticsStoreTests.swift */,
-				D0DE00000000000000000004 /* LegacyStorageMigrationTests.swift */,
-				A77000000000000000000002 /* OperationStoreTests.swift */,
+				99BFD9A2B07A5C6A8397E396 /* AppSettingsStoreTests.swift */,
+				AFE4796C01892A1AA4A0D6FB /* ClipboardCardAccentTests.swift */,
+				08525F0A5611F9385A145BE3 /* ClipboardCloudAutomaticSyncPolicyTests.swift */,
+				D77870F67208BE52B34B407C /* ClipboardCloudConsentRevocationTests.swift */,
+				7BF413128F835CB085F5949E /* ClipboardCloudFileAssetTests.swift */,
+				FE404EF3C45ED5AD43283B5C /* ClipboardCloudForegroundSyncPolicyTests.swift */,
+				B9255C839DE16DF174ECB2FA /* ClipboardCloudImageAssetTests.swift */,
+				95A5754A7473187C5D59D5DE /* ClipboardCloudJournalTests.swift */,
+				B386DEE15AE4BBCDC60FDF2B /* ClipboardCloudKitCodecTests.swift */,
+				120B8D876EC443940083B2EA /* ClipboardCloudLocalSnapshotTests.swift */,
+				826B05947DBC651B9EE9971F /* ClipboardCloudPermanentCollectionsTests.swift */,
+				C421754ACB96E31C4BB20A88 /* ClipboardCloudPurgeTests.swift */,
+				8BBE5334D8DC1BA28DBBD66A /* ClipboardCloudRemoteHistoryTests.swift */,
+				6652CB2F1E47249473B30C9C /* ClipboardCloudRunSummaryTests.swift */,
+				17CF0F056668246477D13522 /* ClipboardCloudSyncCoordinatorTests.swift */,
+				AD36F68E9F6D4698E023CDCB /* ClipboardCloudSyncModelTests.swift */,
+				D7396B233AA4F75532A054F8 /* ClipboardCloudUploadDecisionTests.swift */,
+				004C00662528C28ACFE31143 /* ClipboardCodePreviewTests.swift */,
+				C34B34F0CA7F620F260F9FA5 /* ClipboardCollectionDropPolicyTests.swift */,
+				A9CB26072E15DDC1505C9954 /* ClipboardCollectionShortcutTests.swift */,
+				13B2E20F38AFBF8C8BD9F819 /* ClipboardCollectionsTests.swift */,
+				0D75F2387AE39BEBC7821FAF /* ClipboardFilePreviewPolicyTests.swift */,
+				DE6016E9C9A70F5C714EF369 /* ClipboardFullTextSearchTests.swift */,
+				239536B9C9968A10B2EBF8EF /* ClipboardHistorySearchTests.swift */,
+				4981A15FC515943172770432 /* ClipboardImageStoreTests.swift */,
+				74D9E4910CD3B6801B50B284 /* ClipboardLinkTitleTests.swift */,
+				193DB9530C37B3048EAC3BC3 /* ClipboardPanelPlacementTests.swift */,
+				7FB56AE1FBB62D4A18854218 /* ClipboardPasteSafetyTests.swift */,
+				A2B1A77B0EB623B853F3F85B /* ClipboardQuickMenuSummaryTests.swift */,
+				BA799E467AD7D448495DE603 /* ClipboardRemoteWebTitlePolicyTests.swift */,
+				D01772B99A50A657E7C675D7 /* ClipboardRetentionActivityPolicyTests.swift */,
+				58876D97A9FF15AA68631C91 /* ClipboardRichTextPreviewTests.swift */,
+				A2ABD0F71DAAC33886B9C295 /* ClipboardSafeHTMLPreviewTests.swift */,
+				11A17CD715EEC75522AA9320 /* ClipboardSearchScaleTests.swift */,
+				7C49AAAEF846E595BD5AFBF9 /* ClipboardSensitiveTypePolicyTests.swift */,
+				9857E8B6E29F3F14ACF98F3C /* ClipboardShelfSelectionTests.swift */,
+				0B65E6DB90029B119AF575D8 /* ClipboardShortcutSpecificationTests.swift */,
+				2A75D3ABF25AF550B345FBA5 /* ClipboardSourceAttributionTests.swift */,
+				6F53691E99ECEE08B710542B /* ClipboardTextDuplicatePolicyTests.swift */,
+				772883009FC434DFD6DA151A /* ClipboardTextPreviewTests.swift */,
+				3E444122654DBC4E35A99B8C /* FolderSizeScannerTests.swift */,
+				ACB438FA1CB5A061049C617E /* HIDConsumerUsageTests.swift */,
+				BF8BA2A3028D4B7B66623D8E /* InputCloudBackupRestoreTests.swift */,
+				1CA8CFF45716EC4723E7077D /* InputDashboardTests.swift */,
+				BA77D3AEE04461217B34994E /* InputStatisticsStoreTests.swift */,
+				7A2D736DED2F061B7C016FC2 /* InputUploadPrivacyPolicyTests.swift */,
+				7208CF5F616A0058ED8AA2AE /* LegacyStorageMigrationTests.swift */,
+				854B778A3F1FD042707B4E6D /* MobileClipboardLocalStoreTests.swift */,
+				A9D9AD9834FD412DEA8C9D56 /* NativeServicesCatalogTests.swift */,
+				1B55F7151B0DA6F5884CA77B /* OperationRetentionTests.swift */,
+				A7948F64E70B47681E8C5372 /* OperationStoreTests.swift */,
+				E3680A96678DA615BFE10204 /* OperationSyncPrivacyTests.swift */,
+				29D77C6F1330CF664C0C428B /* PathCopyActionTests.swift */,
+				6E34B007F95233137352E5B6 /* PathFormatterTests.swift */,
+				1B3D243389B143E420BCC1AC /* PathHistoryTests.swift */,
+				B0D0D9C2CC17499A6271530E /* PrivacyFeatureSwitchPolicyTests.swift */,
+				EA3C2EC02E28F20B9A4800F7 /* StatisticsDeletionConfirmationPolicyTests.swift */,
 			);
 			name = NexusCoreTests;
 			path = Tests/NexusCoreTests;
 			sourceTree = "<group>";
 		};
-		D33C9AA4B5D21676A5EC4D55 = {
+		345AEF26931E221BA7FC1D3C /* NexusCore */ = {
 			isa = PBXGroup;
 			children = (
-				4FCD9BE5A4B1F28B9CFDFA79 /* Assets */,
-				521FFB1C740B36B2B2CD8C34 /* Nexus */,
-				072BC619064DD0560604556A /* NexusCore */,
-				CBD949A7FD99A02C5E43C8E7 /* NexusCoreTests */,
-				A1C4888217F40FC5EC1BCD73 /* NexusFinderSync */,
-				7BA95BCD56CBF6D8AEA669EA /* NexusTests */,
-				30717CF12BE75C9A8CAE8161 /* Frameworks */,
-				60470B06B141542696F8E47D /* Products */,
+				BD11F25DBCBD248F858AC149 /* AppSettingsStore.swift */,
+				07244D78A8EDFCC451A389A9 /* ClipboardCardAccent.swift */,
+				D291CF120DCDF2DC02C6148B /* ClipboardCloudAutomaticSyncPolicy.swift */,
+				E33CE0223F8521F8D932E068 /* ClipboardCloudFileAsset.swift */,
+				8025CECCE430DE30907D64E7 /* ClipboardCloudForegroundSyncPolicy.swift */,
+				728EE320299C0E5E3CBB57CD /* ClipboardCloudImageAsset.swift */,
+				3CB0B6D94CCC7ED02A96FCF4 /* ClipboardCloudJournal.swift */,
+				432BD45E7C3554A41E8B686F /* ClipboardCloudKitCodec.swift */,
+				D3CA5A35C778746EC2BAE496 /* ClipboardCloudKitPrivateTransport.swift */,
+				6DFE05DA450B5E36794DD1E2 /* ClipboardCloudLocalSnapshot.swift */,
+				0744A266E1B42F05D9813207 /* ClipboardCloudPurgeCoordinator.swift */,
+				A02329EC860545AF15648DB0 /* ClipboardCloudRunSummary.swift */,
+				C0ABB1BF482E70AF467A1EE6 /* ClipboardCloudSyncCoordinator.swift */,
+				7267B7FECC57B6E25EE3C1D9 /* ClipboardCloudSyncModel.swift */,
+				0E17A7F14EA49226735FA34A /* ClipboardCloudUploadDecision.swift */,
+				FC84CCF3614EF47A915385A0 /* ClipboardCodePreview.swift */,
+				2EDDD84EBC993F67FD84C57D /* ClipboardCollection.swift */,
+				61CEADC23D3D8E5D3868C188 /* ClipboardCollectionDropPolicy.swift */,
+				A8439F22E96C3058C3315594 /* ClipboardCollectionShortcut.swift */,
+				1355AF2D111A4FBB7F3983AB /* ClipboardFilePreviewPolicy.swift */,
+				B44D1021DEFF2B8C33636328 /* ClipboardLinkTitlePolicy.swift */,
+				B72B3130B28146615401A40A /* ClipboardPanelPlacement.swift */,
+				B42CB5CB98C334A4D36452FA /* ClipboardPasteSafety.swift */,
+				58AC4C5573EFE39AFC9EA546 /* ClipboardQuickMenuSummary.swift */,
+				B831BD92EDBA833799B3B62F /* ClipboardRemoteWebTitlePolicy.swift */,
+				511F11251D9221A9B843401E /* ClipboardRetentionActivityPolicy.swift */,
+				F1BDED6E6F296AA5596E4B3B /* ClipboardRichTextPreview.swift */,
+				F0E6744DFEAB66A3205FCCCB /* ClipboardSafeHTMLPreview.swift */,
+				2C099BE65DB65BC38AF91128 /* ClipboardSensitiveTypePolicy.swift */,
+				E625C3806A42DC3FB35A01C2 /* ClipboardShelfSelection.swift */,
+				91303A4CECECC711D364C687 /* ClipboardShortcutSpecification.swift */,
+				B6A37B66201FEBDD48ED47F2 /* ClipboardSourceAttribution.swift */,
+				B953B801EFA44EEED10F695F /* ClipboardTextDuplicatePolicy.swift */,
+				D3C42F505F965E86C91FB3B0 /* ClipboardTextPreview.swift */,
+				941693DB535481CA67EAC98C /* ClipboardWriting.swift */,
+				242AE82C8C9F0C3F3601131E /* FolderSizeScanner.swift */,
+				4619D295FB1786DE565FB8C2 /* HIDConsumerUsage.swift */,
+				C17E2730BA6129F3EFDA668B /* InputStatisticsStore.swift */,
+				DAC6697D057ADBCBDED13D75 /* InputUploadPrivacyPolicy.swift */,
+				F5AEE362BDF3BAF2770D68BF /* MobileClipboardLocalStore.swift */,
+				BBBDE057878C718F67297BFE /* NativeServicesCatalog.swift */,
+				5D4F770545650C9F72CBD300 /* OperationStore.swift */,
+				A484699CA8F355BB0A62DBB9 /* OperationSyncModels.swift */,
+				281DDC0684E6520178361AAA /* PathCopyAction.swift */,
+				4121CFBDA282F9DFB5E9DFB9 /* PathFormat.swift */,
+				1FD2EA974083EB776E8FCB6E /* PathFormatter.swift */,
+				AD8D4D120D44610CA102E8DC /* PathHistory.swift */,
+				2D49327FB70E645ABA537981 /* PrivacyFeatureSwitchPolicy.swift */,
+				1AE40E30D60A7D9B1A2AB532 /* SharedSettings.swift */,
+				6C0963AEB0A67E3425933CD1 /* StatisticsDeletionConfirmationPolicy.swift */,
+			);
+			name = NexusCore;
+			path = Sources/NexusCore;
+			sourceTree = "<group>";
+		};
+		4C1E6137A6EA9FA191EB9AA8 = {
+			isa = PBXGroup;
+			children = (
+				C1FC2B5D1763D6A7B0EDB474 /* Assets */,
+				5E412486ED50A7F5F6A86C05 /* Nexus */,
+				345AEF26931E221BA7FC1D3C /* NexusCore */,
+				302C2A2141CED0697D403A78 /* NexusCoreTests */,
+				9FC5448A0BA912F7E359771C /* NexusFinderSync */,
+				0EBCEF7719D6AE51AC9B466C /* NexusTests */,
+				06AE5C7DF58DFEFE5668FEAF /* Frameworks */,
+				11E3CC88B7BCE0F356595ACA /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		E2E9CB6930295B6F33431710 /* Resources */ = {
+		5E412486ED50A7F5F6A86C05 /* Nexus */ = {
 			isa = PBXGroup;
 			children = (
-				204AAA7E668CAFCAD298F99F /* AppIcon.icon */,
-				780F73E05058090727A33135 /* Localizable.strings */,
-				A77000000000000000000010 /* InfoPlist.strings */,
-				9A2C2B5B771A3BBA303354DD /* StatusIcons */,
+				5CB0DEAC6BFF34FF26040B91 /* AboutView.swift */,
+				FF61508CB809DFF5626F0D82 /* AppBuildInfo.swift */,
+				4DF0AD568F74C0D430B4D53E /* AppDelegate.swift */,
+				06CEF114DA2256514B85DF73 /* AppIconProvider.swift */,
+				492AD1CE5253872F1B5B42F3 /* AppKitClipboardWriter.swift */,
+				FA42E7B81FAE699EB54714F9 /* AppState.swift */,
+				738879D7AC65C32298CE26F9 /* ClipboardCloudController.swift */,
+				445316B4BB963445FD7F530D /* ClipboardCloudSettingsView.swift */,
+				0413A98643C63D3CD6E425DA /* ClipboardFilePreview.swift */,
+				685E5B772ABCA7F14C62A747 /* ClipboardHotkeyController.swift */,
+				D12C23411CE5687AD03D58EF /* ClipboardLinkTitleView.swift */,
+				BD397FB6435292A500E64177 /* ClipboardMonitor.swift */,
+				E9800E373563A808BB8E668F /* ClipboardRemoteWebTitleFetcher.swift */,
+				2F3FE5D2518FAB1846D2C19D /* ClipboardRichTextExcerpt.swift */,
+				97BBF42F10F2BF8F40ACAEB1 /* ClipboardRTFParser.swift */,
+				38671A7F7C8802A89C8ED698 /* ClipboardShelfView.swift */,
+				D509E36F05E1FCEEDC57B12F /* ClipboardSourceAppBadge.swift */,
+				AA6A54EDC97BF58B6FBB9062 /* ClipboardSyntaxExcerpt.swift */,
+				1148A7B883CBF5B720694CD9 /* ClipboardThumbnailMaker.swift */,
+				2A779964EC2E3DC25D8839EF /* DropTargetStatusView.swift */,
+				7E5291495E09BDE70A479DB9 /* DropZoneView.swift */,
+				E84CFAE22F151E771C10035C /* FeedbackPopoverView.swift */,
+				2E26CBC8636210E5F120D99E /* FinderExtensionController.swift */,
+				2833B36380E20A767918361E /* FinderExtensionMigrationController.swift */,
+				8D0C8A20FDEDDECF6D3ADA1F /* FinderExtensionRegistry.swift */,
+				6EE7FE47B20C1AA9D6CA46E4 /* FinderSettingsView.swift */,
+				8FD6E2573CDB6ABD6C9FA967 /* GlobalServicesMenuControls.swift */,
+				0670D69CCB396404766D96B0 /* HIDConsumerMonitor.swift */,
+				85EF769D04144E1DC847D4FB /* InputCloudBackupController.swift */,
+				7B1E932FF1D477951D5D95D8 /* InputMonitor.swift */,
+				9F56A1D3F0D25029797D0222 /* InputStatisticsView.swift */,
+				3A98811D0A6FC0E99C57DCB4 /* LaunchAtLoginController.swift */,
+				2C296D44701D9CCA41F4200E /* Localization.swift */,
+				74449DBDFE1B1587CFFCB0CA /* MenuPopoverView.swift */,
+				BFC99B04800D7D7A2C0A4674 /* NetworkSyncView.swift */,
+				FC04BDAB61F82D3189AC43C6 /* NexusApp.swift */,
+				9426AE32A2FB52A3D45568D1 /* NexusServiceProvider.swift */,
+				0A77563C2DEE60B1405B5B3E /* OperationTimelineView.swift */,
+				85C7BC87BE45EEF10B470AB3 /* PrivacySettingsView.swift */,
+				1423E81827FDDB1A57F64FFD /* RecentPathRow.swift */,
+				20B3B6B94772E5C8E7760F88 /* ResourceBundleLocator.swift */,
+				5F17FC72B148C2675BF17F54 /* SettingsView.swift */,
+				F7FAD2BCF56A65F0D645729A /* SparkleUpdater.swift */,
+				92205905E9CC492D77937690 /* StatisticsDeletionChallengeView.swift */,
+				86973176D7BF83A1FB4D8045 /* StatusIconProvider.swift */,
+				8D00F8E30731489335226C13 /* StatusItemController.swift */,
+				6553B7FBBCF08D13FD471CD5 /* SystemServicesView.swift */,
+				C3F914BEC3BA7064A49EB49E /* URLDropReader.swift */,
+				5B49F26447A07B6DD0F3CAC3 /* WelcomeGuideStore.swift */,
+				3880BFEA01E53AC81AABD69C /* WelcomeGuideWindowController.swift */,
+				CB3BD153C333C590D8F0A581 /* Resources */,
+			);
+			name = Nexus;
+			path = Sources/Nexus;
+			sourceTree = "<group>";
+		};
+		615F397887DD22888E9D42B5 /* StatusIcons */ = {
+			isa = PBXGroup;
+			children = (
+				3C21A0BA9D02A10C26761B13 /* NexusStatusActive.svg */,
+				1B7247424CA0F5C3D9D81257 /* NexusStatusActiveTemplate.png */,
+				75F8F52BA4E60CB71A65BDAF /* NexusStatusActiveTemplate@2x.png */,
+				5D7ECEBDF61D63C9322EE2CE /* NexusStatusActiveTemplate@3x.png */,
+				9A39B2E3B1C2969906A7B9E9 /* NexusStatusIdle.svg */,
+				67DA70D81F564090554D4A70 /* NexusStatusIdleTemplate.png */,
+				CF2E24FE8D13822A0DC93E02 /* NexusStatusIdleTemplate@2x.png */,
+				A1FC21E9F1896B75A2D84696 /* NexusStatusIdleTemplate@3x.png */,
+				28600798B65430D12FBCFF91 /* NexusStatusSuccess.svg */,
+				10AEB0A773117402D279C620 /* NexusStatusSuccessTemplate.png */,
+				18CAA2A6D2E3DB7A3AE5A824 /* NexusStatusSuccessTemplate@2x.png */,
+				BAAD6EF601DC1307A943021C /* NexusStatusSuccessTemplate@3x.png */,
+			);
+			path = StatusIcons;
+			sourceTree = "<group>";
+		};
+		9FC5448A0BA912F7E359771C /* NexusFinderSync */ = {
+			isa = PBXGroup;
+			children = (
+				B9829E11C07988CD69BB3F9E /* FinderSync.swift */,
+				B1FD5B2E0645E2ADFB0FD1B5 /* InfoPlist.strings */,
+				D2615BC3D7AB03C2B6056DC1 /* Localizable.strings */,
+			);
+			name = NexusFinderSync;
+			path = Sources/NexusFinderSync;
+			sourceTree = "<group>";
+		};
+		C1FC2B5D1763D6A7B0EDB474 /* Assets */ = {
+			isa = PBXGroup;
+			children = (
+				2DE0263E6B64A1A791BB7EB6 /* AppIconDev.icon */,
+			);
+			name = Assets;
+			path = Scripts/Assets;
+			sourceTree = "<group>";
+		};
+		CB3BD153C333C590D8F0A581 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				A2B7B198E488BA3E51DA3A24 /* AppIcon.icon */,
+				0CECC4A8EEE21B88FEA8D535 /* InfoPlist.strings */,
+				F54AB5E994FE0FF69DCB76F5 /* Localizable.strings */,
+				4032E353C5F3C0DC2E917160 /* ServicesMenu.strings */,
+				615F397887DD22888E9D42B5 /* StatusIcons */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -448,55 +794,53 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		1EBF27416FFBAD492304355B /* Nexus */ = {
+		227B68F3F9A4F826145E54EF /* NexusFinderSync */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 4A54FCCA3F589ABF7D812D27 /* Build configuration list for PBXNativeTarget "Nexus" */;
+			buildConfigurationList = 8B2BD5C1BF6B313EBFD15C97 /* Build configuration list for PBXNativeTarget "NexusFinderSync" */;
 			buildPhases = (
-				0DAA3848FDD6082A87710C7C /* Sources */,
-				3C2F8B7EDF56CDDD5716E54E /* Resources */,
-				0E43003049B44CC2A758ECB5 /* Frameworks */,
-				500357D42DD6C940AE84D0C6 /* Embed Foundation Extensions */,
+				F117D89B5D3EEF11E576D028 /* Sources */,
+				6BA6A6F0A54E27FB7A233D5C /* Resources */,
+				F9E70A4188639DB9CC59F542 /* Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				FE8C7BB1654EDA44D99FEB01 /* PBXTargetDependency */,
-				8A627F7F62C2D0DF2D51469D /* PBXTargetDependency */,
-			);
-			name = Nexus;
-			packageProductDependencies = (
-				FEC73C675B1D6B9F09BF9105 /* Sparkle */,
-			);
-			productName = Nexus;
-			productReference = 93B90C3411784397EFBF752A /* Nexus.app */;
-			productType = "com.apple.product-type.application";
-		};
-		29D42AAF0A6B0855D8C30FE0 /* NexusFinderSync */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 211BE446D5DA2146F3EE80F7 /* Build configuration list for PBXNativeTarget "NexusFinderSync" */;
-			buildPhases = (
-				BE92881774EAC8ACDABBCA4F /* Sources */,
-				CF1E1E6017657D27EC8D19E4 /* Resources */,
-				4940F1D964C1231827FCD0B8 /* Frameworks */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				71CC1159FB119ED61EC9B2F6 /* PBXTargetDependency */,
+				E0E6DD6630D23ED8CF6920D0 /* PBXTargetDependency */,
 			);
 			name = NexusFinderSync;
 			packageProductDependencies = (
 			);
 			productName = NexusFinderSync;
-			productReference = C753CA21DD19F2A604E3C2C6 /* NexusFinderSync.appex */;
+			productReference = D26D03B7CE06B28231019DF9 /* NexusFinderSync.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
-		7F01D3E4AAC00660AA377414 /* NexusCore */ = {
+		2A1E5A123A1BF5FF36233484 /* NexusTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 148E6F99A9572868EB0A3036 /* Build configuration list for PBXNativeTarget "NexusCore" */;
+			buildConfigurationList = 126340C0FF895F25DCB8BA26 /* Build configuration list for PBXNativeTarget "NexusTests" */;
 			buildPhases = (
-				3068B971B576F413989EEDAA /* Sources */,
-				CA892B7FE321EFDB01835597 /* Copy Swift Objective-C Interface Header */,
+				2B0306F2350409CF18E1A3B3 /* Sources */,
+				A6F3914FC42C2F4A0BEF5C4D /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				64B63C38E4B0E2B503A2F82D /* PBXTargetDependency */,
+				3859CB9D1BC382F77883C5A5 /* PBXTargetDependency */,
+			);
+			name = NexusTests;
+			packageProductDependencies = (
+			);
+			productName = NexusTests;
+			productReference = 69ED62341195FDE8DC9B5405 /* NexusTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		565CDD8351093D81C0F2564D /* NexusCore */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6CF083717F1D2373E1AD314C /* Build configuration list for PBXNativeTarget "NexusCore" */;
+			buildPhases = (
+				9A2B9FF2999F15EEED8DE6CF /* Sources */,
+				5615A916A150270917498AAF /* Copy Swift Objective-C Interface Header */,
+				F6F52D99DC9DB029D21C67C8 /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -506,52 +850,55 @@
 			packageProductDependencies = (
 			);
 			productName = NexusCore;
-			productReference = 948A289AEB27C91F75854B19 /* libNexusCore.a */;
+			productReference = 0B9221EEC53D5686B81BD38A /* libNexusCore.a */;
 			productType = "com.apple.product-type.library.static";
 		};
-		8072BCFC6A8B92ED9F0C163B /* NexusTests */ = {
+		C33A72293F18700680F43B8C /* Nexus */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 55FDB521A7050A00CE0BF027 /* Build configuration list for PBXNativeTarget "NexusTests" */;
+			buildConfigurationList = 53C579BF4CA941AFC4DF3BAE /* Build configuration list for PBXNativeTarget "Nexus" */;
 			buildPhases = (
-				102AFB6455AA0548ADDB3EED /* Sources */,
-				28279ED9D7F55224F7ED2543 /* Frameworks */,
+				9BA272A32A7DD46181642993 /* Sources */,
+				E4E36D2B6206FD87DA07FBF4 /* Resources */,
+				0717F30BCC141C38ED1CB4CD /* Frameworks */,
+				E9A9035DE8C26E4EEBF3EB0B /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				04714E89343E47D46FEDD4AA /* PBXTargetDependency */,
-				43CE73EB1F758C44298225A2 /* PBXTargetDependency */,
+				5A7CE427CAAB9541F3BC3E63 /* PBXTargetDependency */,
+				29A798D74B78F7C11223856A /* PBXTargetDependency */,
 			);
-			name = NexusTests;
+			name = Nexus;
 			packageProductDependencies = (
+				5429C81C2DE2C3887E1F5363 /* Sparkle */,
 			);
-			productName = NexusTests;
-			productReference = DF8A70B8B3247E025B12C045 /* NexusTests.xctest */;
-			productType = "com.apple.product-type.bundle.unit-test";
+			productName = Nexus;
+			productReference = FCF0E4BE82C411A3DAAED3C7 /* Nexus.app */;
+			productType = "com.apple.product-type.application";
 		};
-		AD97FCB1E71A1E3D07B58C7F /* NexusCoreTests */ = {
+		E335706B5F575E9C41E691B4 /* NexusCoreTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 24977C9AAB0E643C442A93EF /* Build configuration list for PBXNativeTarget "NexusCoreTests" */;
+			buildConfigurationList = E73AA65581FDC415FA1B4993 /* Build configuration list for PBXNativeTarget "NexusCoreTests" */;
 			buildPhases = (
-				343DDFB926C834F76E0CD351 /* Sources */,
-				04F75ED53ED3AF5B28042672 /* Frameworks */,
+				92975C756B7F7326B1F0F88F /* Sources */,
+				C2E0CCD8FACDEC5771054A7F /* Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				6268BB554776A33B6A0D9316 /* PBXTargetDependency */,
+				0690196B138891F4BA4D10C6 /* PBXTargetDependency */,
 			);
 			name = NexusCoreTests;
 			packageProductDependencies = (
 			);
 			productName = NexusCoreTests;
-			productReference = 3FF27331C449675FAA56F734 /* NexusCoreTests.xctest */;
+			productReference = 6D25BDD3993A4AB5EF33C603 /* NexusCoreTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		22C639B72E02EA312BF69658 /* Project object */ = {
+		6E0546D7A1020B804447C56B /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
@@ -559,7 +906,7 @@
 				TargetAttributes = {
 				};
 			};
-			buildConfigurationList = 86B20690D2CB29CB1902F0BA /* Build configuration list for PBXProject "Nexus" */;
+			buildConfigurationList = 17896972B6EAD3EB1C3E2233 /* Build configuration list for PBXProject "Nexus" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -567,62 +914,63 @@
 				en,
 				"zh-Hans",
 			);
-			mainGroup = D33C9AA4B5D21676A5EC4D55;
+			mainGroup = 4C1E6137A6EA9FA191EB9AA8;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				68FB8F27C4AEF8D75566CF89 /* XCRemoteSwiftPackageReference "Sparkle" */,
+				2FFBE80ACC6E19C3A11684D0 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			preferredProjectObjectVersion = 77;
-			productRefGroup = 60470B06B141542696F8E47D /* Products */;
+			productRefGroup = 11E3CC88B7BCE0F356595ACA /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				7F01D3E4AAC00660AA377414 /* NexusCore */,
-				29D42AAF0A6B0855D8C30FE0 /* NexusFinderSync */,
-				1EBF27416FFBAD492304355B /* Nexus */,
-				AD97FCB1E71A1E3D07B58C7F /* NexusCoreTests */,
-				8072BCFC6A8B92ED9F0C163B /* NexusTests */,
+				565CDD8351093D81C0F2564D /* NexusCore */,
+				227B68F3F9A4F826145E54EF /* NexusFinderSync */,
+				C33A72293F18700680F43B8C /* Nexus */,
+				E335706B5F575E9C41E691B4 /* NexusCoreTests */,
+				2A1E5A123A1BF5FF36233484 /* NexusTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		3C2F8B7EDF56CDDD5716E54E /* Resources */ = {
+		6BA6A6F0A54E27FB7A233D5C /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FB2C9AE89548A16A51E6A246 /* AppIcon.icon in Resources */,
-				C498D3160A4B0C27AF083EA5 /* AppIconDev.icon in Resources */,
-				CA33814799F2BC44A9E51AAC /* Localizable.strings in Resources */,
-				B77000000000000000000010 /* InfoPlist.strings in Resources */,
-				F62E8CCEBD23E7E0D6401A3B /* NexusStatusActive.svg in Resources */,
-				4107795AED46F5A69E2262D4 /* NexusStatusActiveTemplate.png in Resources */,
-				591581BE477532587F89B6A5 /* NexusStatusActiveTemplate@2x.png in Resources */,
-				395F97A93599AB24C876B71B /* NexusStatusActiveTemplate@3x.png in Resources */,
-				2731169BBC049EE045FE7E83 /* NexusStatusIdle.svg in Resources */,
-				C8449EDBA5BB391BFD96D7E7 /* NexusStatusIdleTemplate.png in Resources */,
-				AE0ECC0A0CD5265D22CCEA87 /* NexusStatusIdleTemplate@2x.png in Resources */,
-				C9F35EFAE8185E3DD5746C39 /* NexusStatusIdleTemplate@3x.png in Resources */,
-				87A4F03D681F5AC0B16E6B58 /* NexusStatusSuccess.svg in Resources */,
-				14653E66C823381B5C29ACCB /* NexusStatusSuccessTemplate.png in Resources */,
-				1D0D3B9078D5E137B4E67DAB /* NexusStatusSuccessTemplate@2x.png in Resources */,
-				EDA857053F99A0B9CD04DC15 /* NexusStatusSuccessTemplate@3x.png in Resources */,
+				3F7D3E104D370332F0011270 /* InfoPlist.strings in Resources */,
+				1D2016CB9F97AD2ED15E2556 /* Localizable.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		CF1E1E6017657D27EC8D19E4 /* Resources */ = {
+		E4E36D2B6206FD87DA07FBF4 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4170D5E3B50075C5EF26DA20 /* InfoPlist.strings in Resources */,
-				79BD5A92D528829E34C88934 /* Localizable.strings in Resources */,
+				9E6C31E04879C38C7D3CEEB6 /* AppIcon.icon in Resources */,
+				ACEAB389E1B10AB840CA22B8 /* AppIconDev.icon in Resources */,
+				C20C463810988120FD362ABB /* InfoPlist.strings in Resources */,
+				0DC8FDD0B15138A9EE08AC6A /* Localizable.strings in Resources */,
+				DF00BDDA44D599C76AF36469 /* NexusStatusActive.svg in Resources */,
+				25B630E077C266AC12E82E66 /* NexusStatusActiveTemplate.png in Resources */,
+				1E79615423B7D2F32AE18984 /* NexusStatusActiveTemplate@2x.png in Resources */,
+				816ECC6653D6EB294FF8BAFC /* NexusStatusActiveTemplate@3x.png in Resources */,
+				4CC8BCD402A845104582A233 /* NexusStatusIdle.svg in Resources */,
+				8F347A723CA597BEDE4D1781 /* NexusStatusIdleTemplate.png in Resources */,
+				88C1595BE34658F9CF2D9B48 /* NexusStatusIdleTemplate@2x.png in Resources */,
+				11B1576D5CE676F75D21D303 /* NexusStatusIdleTemplate@3x.png in Resources */,
+				1C2D9D463B197D5A971A82B2 /* NexusStatusSuccess.svg in Resources */,
+				93C27736207640B1B1A6BAD2 /* NexusStatusSuccessTemplate.png in Resources */,
+				6AA5D150EACBD524F1FB45BA /* NexusStatusSuccessTemplate@2x.png in Resources */,
+				D96EC58DEF17D95D7C2236DE /* NexusStatusSuccessTemplate@3x.png in Resources */,
+				E064C098EF7B80236963F872 /* ServicesMenu.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		CA892B7FE321EFDB01835597 /* Copy Swift Objective-C Interface Header */ = {
+		5615A916A150270917498AAF /* Copy Swift Objective-C Interface Header */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -641,152 +989,290 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		0DAA3848FDD6082A87710C7C /* Sources */ = {
+		2B0306F2350409CF18E1A3B3 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F6165722D9A07D7972D7FFBB /* AboutView.swift in Sources */,
-				D0F5DC1FF9FFB68FA3C7ABD4 /* AppBuildInfo.swift in Sources */,
-				30AA1FB6DC6575390B404CA6 /* AppDelegate.swift in Sources */,
-				BAD81625C782C7A42F982240 /* AppIconProvider.swift in Sources */,
-				590FF5FE669A7D318396B972 /* AppKitClipboardWriter.swift in Sources */,
-				32E62280E7A8FA1D31093B96 /* AppState.swift in Sources */,
-				203CD9289213E4FBC55D5663 /* DropTargetStatusView.swift in Sources */,
-				10BBAC82E4B4150D1762FB9E /* DropZoneView.swift in Sources */,
-				E6EDB45DCBD3E4A63CA20AF3 /* FeedbackPopoverView.swift in Sources */,
-				5709F76395D0EA54672E60C2 /* FinderExtensionController.swift in Sources */,
-				326F0106A82FE7F0DA93F52D /* FinderExtensionMigrationController.swift in Sources */,
-				2A241EBC12789586A1F9D331 /* FinderExtensionRegistry.swift in Sources */,
-				EAC42B6ECE9D0B59D5D19AAC /* FinderSettingsView.swift in Sources */,
-				AAD0E5ED4E8383163DB1B384 /* LaunchAtLoginController.swift in Sources */,
-				8472A3274EEE2AF969F1BEFF /* Localization.swift in Sources */,
-				5F4699163AB014C0896ADB8F /* MenuPopoverView.swift in Sources */,
-				B77000000000000000000011 /* ClipboardMonitor.swift in Sources */,
-				B77000000000000000000009 /* SystemServicesView.swift in Sources */,
-				B77000000000000000000008 /* NetworkSyncView.swift in Sources */,
-				B77000000000000000000006 /* InputStatisticsView.swift in Sources */,
-				B77000000000000000000005 /* InputMonitor.swift in Sources */,
-				B77000000000000000000003 /* NexusServiceProvider.swift in Sources */,
-				B77000000000000000000001 /* OperationTimelineView.swift in Sources */,
-				F1100F78289B856517F3A128 /* RecentPathRow.swift in Sources */,
-				D99E4E0981D66F40FA400C3E /* ResourceBundleLocator.swift in Sources */,
-				8C52B471AE6A8EFF3A2D134D /* SettingsView.swift in Sources */,
-				538687532E50DA1C004BE48D /* NexusApp.swift in Sources */,
-				0C820E49347A4B94EF3FCA16 /* SparkleUpdater.swift in Sources */,
-				BD39369064E32AE51F746116 /* StatusIconProvider.swift in Sources */,
-				8C4A4665FF5D8741BF220CCE /* StatusItemController.swift in Sources */,
-				C0DE00000000000000000001 /* WelcomeGuideStore.swift in Sources */,
-				C0DE00000000000000000002 /* WelcomeGuideWindowController.swift in Sources */,
-				595CD8FE5D77535E275CC3A4 /* URLDropReader.swift in Sources */,
+				0F3994E821BFB6C0C88D1E42 /* AppStateTests.swift in Sources */,
+				6E5A58A6572B523105044E92 /* ClipboardRTFParserTests.swift in Sources */,
+				DC3B313BC9C6FCC99D18EE47 /* FinderExtensionMigrationControllerTests.swift in Sources */,
+				AB5EFACF692BF19F14938458 /* FinderExtensionRegistryTests.swift in Sources */,
+				BB8017259E2EF6C272F3DEE9 /* URLDropReaderTests.swift in Sources */,
+				19600C4BAA38DD48FBB21F23 /* WelcomeGuideStoreTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		102AFB6455AA0548ADDB3EED /* Sources */ = {
+		92975C756B7F7326B1F0F88F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				14D73976DD8073C5410D4D2D /* AppStateTests.swift in Sources */,
-				EFE8456FF3C2979D466C5437 /* FinderExtensionMigrationControllerTests.swift in Sources */,
-				BB9B352A07C9C946C9BA2D66 /* FinderExtensionRegistryTests.swift in Sources */,
-				C0DE00000000000000000003 /* WelcomeGuideStoreTests.swift in Sources */,
-				A87F5A6FCF29FB92F888E0BD /* URLDropReaderTests.swift in Sources */,
+				03492666CAC3F4F92E2D242D /* AppSettingsStoreTests.swift in Sources */,
+				EC09315A3E574EB3923528C8 /* ClipboardCardAccentTests.swift in Sources */,
+				572E313F44E40C9EB53698D1 /* ClipboardCloudAutomaticSyncPolicyTests.swift in Sources */,
+				2514A3F70DCC648BBA0E62BE /* ClipboardCloudConsentRevocationTests.swift in Sources */,
+				C5C56A88111C878D1474A282 /* ClipboardCloudFileAssetTests.swift in Sources */,
+				7C82BAB69C90CE358BCF2512 /* ClipboardCloudForegroundSyncPolicyTests.swift in Sources */,
+				8FF04E806F1747DB3E766630 /* ClipboardCloudImageAssetTests.swift in Sources */,
+				B3C9602210F6FC5F4BE8C92D /* ClipboardCloudJournalTests.swift in Sources */,
+				703E28F73956C0771C0C206F /* ClipboardCloudKitCodecTests.swift in Sources */,
+				58DEDC4EE9038FAFB5CE164E /* ClipboardCloudLocalSnapshotTests.swift in Sources */,
+				B498E5478441D27C1D499717 /* ClipboardCloudPermanentCollectionsTests.swift in Sources */,
+				8BBE5361A1C7E5E1FED3CF6A /* ClipboardCloudPurgeTests.swift in Sources */,
+				0829B923E068807C78D50517 /* ClipboardCloudRemoteHistoryTests.swift in Sources */,
+				567888EFA5F36CD38BD1B783 /* ClipboardCloudRunSummaryTests.swift in Sources */,
+				2A4B5B17839D11209FDC03CA /* ClipboardCloudSyncCoordinatorTests.swift in Sources */,
+				99F15AB3254C19D4A226DD86 /* ClipboardCloudSyncModelTests.swift in Sources */,
+				592AC8892EA8B12457554D71 /* ClipboardCloudUploadDecisionTests.swift in Sources */,
+				49C36D5988E23500BB50EAA6 /* ClipboardCodePreviewTests.swift in Sources */,
+				236341FF6F1925E08408F3C6 /* ClipboardCollectionDropPolicyTests.swift in Sources */,
+				238D20E11BCEFB4BE806D20A /* ClipboardCollectionShortcutTests.swift in Sources */,
+				1D6E7E4F5A1D587AEAA82C08 /* ClipboardCollectionsTests.swift in Sources */,
+				F3BC6D82E51B2C851945A34C /* ClipboardFilePreviewPolicyTests.swift in Sources */,
+				14B962BF8D602F0290D487D4 /* ClipboardFullTextSearchTests.swift in Sources */,
+				AEBEC65F7AF4255950BF1050 /* ClipboardHistorySearchTests.swift in Sources */,
+				ABC9D2B01387C1ABDCC24C0C /* ClipboardImageStoreTests.swift in Sources */,
+				1C1C5BD37D74DD495C040096 /* ClipboardLinkTitleTests.swift in Sources */,
+				158BFE83969EDC6119A88A1B /* ClipboardPanelPlacementTests.swift in Sources */,
+				7122263E71BC3F0E428EFCEF /* ClipboardPasteSafetyTests.swift in Sources */,
+				01F68207CC7C6AEA4ED02ABE /* ClipboardQuickMenuSummaryTests.swift in Sources */,
+				17A7844CE6883490F7ED8320 /* ClipboardRemoteWebTitlePolicyTests.swift in Sources */,
+				D7F43B81682F6421C4373C82 /* ClipboardRetentionActivityPolicyTests.swift in Sources */,
+				84471505F3B2A1E37A95F915 /* ClipboardRichTextPreviewTests.swift in Sources */,
+				E213F3E8A05A3AEFC6553AAA /* ClipboardSafeHTMLPreviewTests.swift in Sources */,
+				B7DEAA689DE9794A40905DA4 /* ClipboardSearchScaleTests.swift in Sources */,
+				704208C779D19C0269726BF3 /* ClipboardSensitiveTypePolicyTests.swift in Sources */,
+				C606DDD155BBE04A1DFEFFC7 /* ClipboardShelfSelectionTests.swift in Sources */,
+				49437EEEAD1FBC736B764E09 /* ClipboardShortcutSpecificationTests.swift in Sources */,
+				A9581A19F1A4B306227DCD52 /* ClipboardSourceAttributionTests.swift in Sources */,
+				C15A626913486FF5474A872C /* ClipboardTextDuplicatePolicyTests.swift in Sources */,
+				F68F1FBE1871DC1EB9B6A46C /* ClipboardTextPreviewTests.swift in Sources */,
+				A4D48B9360EF7FC4F46EFCD5 /* FolderSizeScannerTests.swift in Sources */,
+				BB70A4A265BC511BB364CEC2 /* HIDConsumerUsageTests.swift in Sources */,
+				FC858AB9C3E0474CCF2D1546 /* InputCloudBackupRestoreTests.swift in Sources */,
+				6BFC3A5E1914126499D05977 /* InputDashboardTests.swift in Sources */,
+				20A6FD5CBFA3ECB684F79B8A /* InputStatisticsStoreTests.swift in Sources */,
+				672F7AAB3752949FBBF17F26 /* InputUploadPrivacyPolicyTests.swift in Sources */,
+				6199ECCFF47E9C6D25D91661 /* LegacyStorageMigrationTests.swift in Sources */,
+				BFAFD6AA4064890D16B59614 /* MobileClipboardLocalStoreTests.swift in Sources */,
+				0E51D0BCBD7F287C9643969F /* NativeServicesCatalogTests.swift in Sources */,
+				2384BB5819540CC39E777848 /* OperationRetentionTests.swift in Sources */,
+				69A04982B82681B5A8016197 /* OperationStoreTests.swift in Sources */,
+				690C3857D60C621B9CDD1B46 /* OperationSyncPrivacyTests.swift in Sources */,
+				D0EAF3057EAC0ED7E7862FC5 /* PathCopyActionTests.swift in Sources */,
+				63726172BD92F341FA90B8D4 /* PathFormatterTests.swift in Sources */,
+				3B0634A76D4D5DDA195978A0 /* PathHistoryTests.swift in Sources */,
+				5BDC3408F27CF301AFB3E6E8 /* PrivacyFeatureSwitchPolicyTests.swift in Sources */,
+				C74C87E1007A8580FA6B474B /* StatisticsDeletionConfirmationPolicyTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		3068B971B576F413989EEDAA /* Sources */ = {
+		9A2B9FF2999F15EEED8DE6CF /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D64F65788CEFB48DEDF71C1B /* AppSettingsStore.swift in Sources */,
-				D2D45DCDE5BB34BFA15AF9A0 /* ClipboardWriting.swift in Sources */,
-				BD8CC093886242AC90E7832E /* PathCopyAction.swift in Sources */,
-				03E5A09A97B2D62296BEED92 /* PathFormat.swift in Sources */,
-				E0F3530926F262D99441B924 /* PathFormatter.swift in Sources */,
-				ECE7ABBA381F3456D7E72BE3 /* PathHistory.swift in Sources */,
-				6D394C1F3C93CD1C780A2BF9 /* SharedSettings.swift in Sources */,
-				B77000000000000000000004 /* InputStatisticsStore.swift in Sources */,
-				B77000000000000000000000 /* OperationStore.swift in Sources */,
+				FB33549053D36CA574E2EC14 /* AppSettingsStore.swift in Sources */,
+				F1F3A023464CFE85B0595F85 /* ClipboardCardAccent.swift in Sources */,
+				5F9DB1CAEE15D3FF7FEBA1B9 /* ClipboardCloudAutomaticSyncPolicy.swift in Sources */,
+				1DCA78AB4AB780E5CA0C28E8 /* ClipboardCloudFileAsset.swift in Sources */,
+				B02DCBB1DCE96337E07C220A /* ClipboardCloudForegroundSyncPolicy.swift in Sources */,
+				8BDEEF4FC1AF74FB5B8EF725 /* ClipboardCloudImageAsset.swift in Sources */,
+				D9514342C6F7EE8192CF8632 /* ClipboardCloudJournal.swift in Sources */,
+				33634364E2D5D7CF91B5F356 /* ClipboardCloudKitCodec.swift in Sources */,
+				54D52BAD3643226EA54DDFA4 /* ClipboardCloudKitPrivateTransport.swift in Sources */,
+				F3C38B07321F628E462787A9 /* ClipboardCloudLocalSnapshot.swift in Sources */,
+				6B9A125D1F2F0DCB35301281 /* ClipboardCloudPurgeCoordinator.swift in Sources */,
+				1732640B7D6219EBB6926394 /* ClipboardCloudRunSummary.swift in Sources */,
+				8BA57A095914EFA8C139648B /* ClipboardCloudSyncCoordinator.swift in Sources */,
+				74E883FC91ED0FBF857620A0 /* ClipboardCloudSyncModel.swift in Sources */,
+				9D55E3C2C65820499C1E9F4A /* ClipboardCloudUploadDecision.swift in Sources */,
+				22679896CAFDDADCEB0ED5BD /* ClipboardCodePreview.swift in Sources */,
+				EB9F1742D3EDCA64A711508E /* ClipboardCollection.swift in Sources */,
+				031741451698134F0E8D7124 /* ClipboardCollectionDropPolicy.swift in Sources */,
+				5BED3D12CE472DC0756F38F7 /* ClipboardCollectionShortcut.swift in Sources */,
+				A001104D778BE5C5499D6436 /* ClipboardFilePreviewPolicy.swift in Sources */,
+				E9196C8E047CBC2B9C1EFD23 /* ClipboardLinkTitlePolicy.swift in Sources */,
+				E3CF2A10D64DA674AB2F9976 /* ClipboardPanelPlacement.swift in Sources */,
+				CF40EC8D39759178E6E645BA /* ClipboardPasteSafety.swift in Sources */,
+				74E058D8D22947C5FE9163A8 /* ClipboardQuickMenuSummary.swift in Sources */,
+				18BB2F4E6C438BF468080CF5 /* ClipboardRemoteWebTitlePolicy.swift in Sources */,
+				5336D1948EBFB3D5BF31C785 /* ClipboardRetentionActivityPolicy.swift in Sources */,
+				2D18ABB5F8B0777D865FB2F7 /* ClipboardRichTextPreview.swift in Sources */,
+				197DA760724A0B83082B411A /* ClipboardSafeHTMLPreview.swift in Sources */,
+				E432D56B12222E4004B7C72C /* ClipboardSensitiveTypePolicy.swift in Sources */,
+				E23E7E3E5D5DAF2A28166265 /* ClipboardShelfSelection.swift in Sources */,
+				58EF864DE6A037328FFF9CB8 /* ClipboardShortcutSpecification.swift in Sources */,
+				95E2D0C7110339BC8AFACAD0 /* ClipboardSourceAttribution.swift in Sources */,
+				3250B401505932D465348490 /* ClipboardTextDuplicatePolicy.swift in Sources */,
+				93321B969BA83A9ADAC93785 /* ClipboardTextPreview.swift in Sources */,
+				3E5C57F63E42650804C17094 /* ClipboardWriting.swift in Sources */,
+				4E2C36BB192E5CCD1CB33906 /* FolderSizeScanner.swift in Sources */,
+				485EECAF8451BE30B68EADAF /* HIDConsumerUsage.swift in Sources */,
+				E484F2A657710630D1AA9E5C /* InputStatisticsStore.swift in Sources */,
+				80395F32BC4E431F64499853 /* InputUploadPrivacyPolicy.swift in Sources */,
+				B8984CF5A5DADAA3E5306C53 /* MobileClipboardLocalStore.swift in Sources */,
+				C97B7B2C7141DBE6DF92F818 /* NativeServicesCatalog.swift in Sources */,
+				D684BDA1FF24277C2E7AB100 /* OperationStore.swift in Sources */,
+				EE09AD111303AD4C63A827F6 /* OperationSyncModels.swift in Sources */,
+				85B8FB2B490E67699156F24B /* PathCopyAction.swift in Sources */,
+				934C04EA273F22B4E26BE873 /* PathFormat.swift in Sources */,
+				7649C58B73070703CE57478A /* PathFormatter.swift in Sources */,
+				26159011E8AEF3294F7C8F44 /* PathHistory.swift in Sources */,
+				EF6964F41E6C18B4435F5F88 /* PrivacyFeatureSwitchPolicy.swift in Sources */,
+				2F9204D2A9A7C68162460335 /* SharedSettings.swift in Sources */,
+				92C885721568997031E17160 /* StatisticsDeletionConfirmationPolicy.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		343DDFB926C834F76E0CD351 /* Sources */ = {
+		9BA272A32A7DD46181642993 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0623269B73680E7A2A47A699 /* AppSettingsStoreTests.swift in Sources */,
-				7B4D4C2931FB6E8B42EBA990 /* PathCopyActionTests.swift in Sources */,
-				739DC00883939B79F8FB12BE /* PathFormatterTests.swift in Sources */,
-				EC93AEDAFFDB4B220C016011 /* PathHistoryTests.swift in Sources */,
-				B77000000000000000000007 /* InputStatisticsStoreTests.swift in Sources */,
-				C0DE00000000000000000004 /* LegacyStorageMigrationTests.swift in Sources */,
-				B77000000000000000000002 /* OperationStoreTests.swift in Sources */,
+				101E08233C08D6F997E1D13C /* AboutView.swift in Sources */,
+				8C508A7C7B514FA753F04EEC /* AppBuildInfo.swift in Sources */,
+				32A1615B6054BE87ADE6F88D /* AppDelegate.swift in Sources */,
+				53F26F6709A726CA319B2556 /* AppIconProvider.swift in Sources */,
+				5E3FD34CAAAB60A148DFC871 /* AppKitClipboardWriter.swift in Sources */,
+				44FD4AA32AF4852DE9964AB1 /* AppState.swift in Sources */,
+				8D00F10062187BB8191FD9D9 /* ClipboardCloudController.swift in Sources */,
+				E4CC0A1E87B38E898035B5C3 /* ClipboardCloudSettingsView.swift in Sources */,
+				90E57658A8E273B5B3B155CF /* ClipboardFilePreview.swift in Sources */,
+				6A8CF34ACF3236810E43EAF3 /* ClipboardHotkeyController.swift in Sources */,
+				2232F1273A4BA9A8AA5F0C91 /* ClipboardLinkTitleView.swift in Sources */,
+				F21FBAFA4CCA9756871D8839 /* ClipboardMonitor.swift in Sources */,
+				A2BD062E5AA659A51BDA8F2A /* ClipboardRTFParser.swift in Sources */,
+				540C009FF4AF0E31630C2987 /* ClipboardRemoteWebTitleFetcher.swift in Sources */,
+				61F0AA4FAAB782E4C4203B48 /* ClipboardRichTextExcerpt.swift in Sources */,
+				FDEE67A95B9C4FCA58E80139 /* ClipboardShelfView.swift in Sources */,
+				48EED3BB0920223891BA00E8 /* ClipboardSourceAppBadge.swift in Sources */,
+				58C8EB693803CDBEA9A47103 /* ClipboardSyntaxExcerpt.swift in Sources */,
+				C947AEA9256D9FA1EE7165BB /* ClipboardThumbnailMaker.swift in Sources */,
+				CC0786708A09F34FBFE8DDC0 /* DropTargetStatusView.swift in Sources */,
+				3E4DED92EC15EA6E073E17B3 /* DropZoneView.swift in Sources */,
+				6F714D6803844883EBEABD1A /* FeedbackPopoverView.swift in Sources */,
+				25DEA4D606EC2B8DA6DFC76E /* FinderExtensionController.swift in Sources */,
+				3101198C9C1D8AE0D6C4C116 /* FinderExtensionMigrationController.swift in Sources */,
+				1BE9912DD2F5C4C2146540FA /* FinderExtensionRegistry.swift in Sources */,
+				C4D73EBFE29C5F453533FCF5 /* FinderSettingsView.swift in Sources */,
+				4462FE5334A19DDC9E91863C /* GlobalServicesMenuControls.swift in Sources */,
+				F09E2D7DC025137D6C8A61A7 /* HIDConsumerMonitor.swift in Sources */,
+				E90D407DBCDAA243A20D4E07 /* InputCloudBackupController.swift in Sources */,
+				6E124B25DDB7DB81F0D05579 /* InputMonitor.swift in Sources */,
+				5B3FEBB95FC239563F053731 /* InputStatisticsView.swift in Sources */,
+				64FD78739A0EB6DC81DD2E03 /* LaunchAtLoginController.swift in Sources */,
+				86045BE54AACF46F3B471156 /* Localization.swift in Sources */,
+				409843555A923BC09E089680 /* MenuPopoverView.swift in Sources */,
+				B093718C94CBF4C776C81BA0 /* NetworkSyncView.swift in Sources */,
+				56A1FC9C1A5285DA29A904AD /* NexusApp.swift in Sources */,
+				C8E4781819140BB7C1F67629 /* NexusServiceProvider.swift in Sources */,
+				19AC4A0E3C54B529A51BE010 /* OperationTimelineView.swift in Sources */,
+				F4E4B3AA684151DAB64145AF /* PrivacySettingsView.swift in Sources */,
+				BB7F54927FD4F51FA1393A47 /* RecentPathRow.swift in Sources */,
+				7553C880DF240C1C1450E663 /* ResourceBundleLocator.swift in Sources */,
+				BC5DCF110AF01CBCD075083C /* SettingsView.swift in Sources */,
+				C97C1D8B7076BA990FD98274 /* SparkleUpdater.swift in Sources */,
+				FF5C814EED05BC2E966635E2 /* StatisticsDeletionChallengeView.swift in Sources */,
+				5DFBA2FA841CB1B569B0764E /* StatusIconProvider.swift in Sources */,
+				9C36E198696720F0E536133C /* StatusItemController.swift in Sources */,
+				4E01651F3A1555FF625A445B /* SystemServicesView.swift in Sources */,
+				DDC06C5F170BB90F16C54755 /* URLDropReader.swift in Sources */,
+				54630772E30223B7BBB4A5E5 /* WelcomeGuideStore.swift in Sources */,
+				9C3C39F876A3D6889FCD1612 /* WelcomeGuideWindowController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		BE92881774EAC8ACDABBCA4F /* Sources */ = {
+		F117D89B5D3EEF11E576D028 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				159FA3F83E129E8AFFB26B89 /* FinderSync.swift in Sources */,
+				2BF639CEFA8DDDE505DFC40A /* FinderSync.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		04714E89343E47D46FEDD4AA /* PBXTargetDependency */ = {
+		0690196B138891F4BA4D10C6 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 1EBF27416FFBAD492304355B /* Nexus */;
-			targetProxy = 737531542591B5EF16BD7C23 /* PBXContainerItemProxy */;
+			target = 565CDD8351093D81C0F2564D /* NexusCore */;
+			targetProxy = DE59FA33F3082C16746397F9 /* PBXContainerItemProxy */;
 		};
-		43CE73EB1F758C44298225A2 /* PBXTargetDependency */ = {
+		29A798D74B78F7C11223856A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 7F01D3E4AAC00660AA377414 /* NexusCore */;
-			targetProxy = 9F8A550EA402256A02B8B618 /* PBXContainerItemProxy */;
+			target = 227B68F3F9A4F826145E54EF /* NexusFinderSync */;
+			targetProxy = 8C1E798DAB144422602BC1FC /* PBXContainerItemProxy */;
 		};
-		6268BB554776A33B6A0D9316 /* PBXTargetDependency */ = {
+		3859CB9D1BC382F77883C5A5 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 7F01D3E4AAC00660AA377414 /* NexusCore */;
-			targetProxy = F8D8860D9A4571F04504AEA8 /* PBXContainerItemProxy */;
+			target = 565CDD8351093D81C0F2564D /* NexusCore */;
+			targetProxy = 0015E78EA59943C89D7F34F1 /* PBXContainerItemProxy */;
 		};
-		71CC1159FB119ED61EC9B2F6 /* PBXTargetDependency */ = {
+		5A7CE427CAAB9541F3BC3E63 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 7F01D3E4AAC00660AA377414 /* NexusCore */;
-			targetProxy = 36C9F05A084524FF558A7F70 /* PBXContainerItemProxy */;
+			target = 565CDD8351093D81C0F2564D /* NexusCore */;
+			targetProxy = 788518737B0A6EA63789A75F /* PBXContainerItemProxy */;
 		};
-		8A627F7F62C2D0DF2D51469D /* PBXTargetDependency */ = {
+		64B63C38E4B0E2B503A2F82D /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 29D42AAF0A6B0855D8C30FE0 /* NexusFinderSync */;
-			targetProxy = CAF6C34621F42273CCAC997A /* PBXContainerItemProxy */;
+			target = C33A72293F18700680F43B8C /* Nexus */;
+			targetProxy = A5AC4F8A845CB0DFA21DF1E1 /* PBXContainerItemProxy */;
 		};
-		FE8C7BB1654EDA44D99FEB01 /* PBXTargetDependency */ = {
+		E0E6DD6630D23ED8CF6920D0 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 7F01D3E4AAC00660AA377414 /* NexusCore */;
-			targetProxy = 40EFAFA3CC8E2ECF187932FA /* PBXContainerItemProxy */;
+			target = 565CDD8351093D81C0F2564D /* NexusCore */;
+			targetProxy = 5130AEF0B3AEDA5FAC35D851 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
-/* Begin XCBuildConfiguration section */
-		11DF00EA603D159B6301535C /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				COMBINE_HIDPI_IMAGES = YES;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-					"@loader_path/../Frameworks",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				OTHER_LDFLAGS = (
-					"$(inherited)",
-					"-ObjC",
-				);
-				SDKROOT = macosx;
-			};
-			name = Debug;
+/* Begin PBXVariantGroup section */
+		0CECC4A8EEE21B88FEA8D535 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				C53691DA188EB56C2FA4E472 /* en */,
+				3DFE238B3A80AB0597CD289A /* zh-Hans */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
 		};
-		11E174094BBF517C8F11BAC2 /* Release */ = {
+		4032E353C5F3C0DC2E917160 /* ServicesMenu.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				7259ACECB8DF692280464066 /* en */,
+				C1A7087C12DF6A19E820094E /* zh-Hans */,
+			);
+			name = ServicesMenu.strings;
+			sourceTree = "<group>";
+		};
+		B1FD5B2E0645E2ADFB0FD1B5 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				BC35C842B19D4E268CFDCDCA /* en */,
+				F4A8679D1AA213E90318DD86 /* zh-Hans */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+		D2615BC3D7AB03C2B6056DC1 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				D837162539F8148EDD0E4917 /* en */,
+				22EEBC86012C9DA0E55E636C /* zh-Hans */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+		F54AB5E994FE0FF69DCB76F5 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				630E6FB142E81CCE4B8DF57B /* en */,
+				B1F60348A7282D4817934433 /* zh-Hans */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		00C285EA7F017BF8B60E5A8A /* ServicesOnly */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
@@ -798,36 +1284,15 @@
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
 			};
-			name = Release;
+			name = ServicesOnly;
 		};
-		54477B7684449CB2F2C2089A /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				COMBINE_HIDPI_IMAGES = YES;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-					"@loader_path/../Frameworks",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				OTHER_LDFLAGS = (
-					"$(inherited)",
-					"-ObjC",
-				);
-				SDKROOT = macosx;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/$(APP_DISPLAY_NAME).app/Contents/MacOS/$(APP_DISPLAY_NAME)";
-			};
-			name = Release;
-		};
-		5BD3D48ABB4C24A83BFC3D02 /* Debug */ = {
+		00EFA657DA51B02098A9D6ED /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				APP_BUNDLE_ID = com.qssedalto.nexus.dev;
 				APP_DISPLAY_NAME = "Nexus Dev";
 				APP_GROUP_ID = "$(DEVELOPMENT_TEAM).com.qssedalto.nexus.dev.shared";
-				LEGACY_APP_GROUP_ID = "$(DEVELOPMENT_TEAM).com.prof18.slashgrab.dev.shared";
 				APP_ICON_NAME = AppIconDev;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
@@ -880,11 +1345,13 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				LEGACY_APP_GROUP_ID = "$(DEVELOPMENT_TEAM).com.prof18.slashgrab.dev.shared";
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 0.0.5;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LDFLAGS = "$(inherited) -lsqlite3";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
@@ -893,29 +1360,135 @@
 			};
 			name = Debug;
 		};
-		792C00A1111A97579B9D1482 /* Debug */ = {
+		0558A058D9F0015541BA00EE /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = "$(APP_ICON_NAME)";
-				CODE_SIGN_ENTITLEMENTS = Config/Nexus.entitlements;
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = Config/NexusFinderSync.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
-				INFOPLIST_FILE = "Config/Nexus-Info.plist";
+				INFOPLIST_FILE = "Config/NexusFinderSync-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
 				);
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_ID)";
-				PRODUCT_MODULE_NAME = Nexus;
-				PRODUCT_NAME = "$(APP_DISPLAY_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FINDER_EXTENSION_BUNDLE_ID)";
+				PRODUCT_NAME = NexusFinderSync;
 				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
 			};
 			name = Debug;
 		};
-		89DF0BE5089D75264D5965D2 /* Release */ = {
+		1F6757257C5EF69D31160ADD /* ServicesOnly */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = Config/NexusFinderSync.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = "Config/NexusFinderSync-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FINDER_EXTENSION_BUNDLE_ID)";
+				PRODUCT_NAME = NexusFinderSync;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) NEXUS_SERVICE_PROTOTYPE";
+			};
+			name = ServicesOnly;
+		};
+		29EBE31FF4FBF3162B6CB3BE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_NAME = NexusCore;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+		2AD48363E4D22FBEB343CF4B /* Local */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				APP_BUNDLE_ID = com.qssedalto.nexus.local;
+				APP_DISPLAY_NAME = Nexus;
+				APP_GROUP_ID = "$(DEVELOPMENT_TEAM).com.qssedalto.nexus.local.shared";
+				APP_ICON_NAME = AppIcon;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 5;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				FINDER_EXTENSION_BUNDLE_ID = com.qssedalto.nexus.local.findersync;
+				FINDER_EXTENSION_DISPLAY_NAME = "Nexus Finder Extension";
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LEGACY_APP_GROUP_ID = "$(DEVELOPMENT_TEAM).com.prof18.slashgrab.local.shared";
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 0.0.5;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				OTHER_LDFLAGS = "$(inherited) -lsqlite3";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Local;
+		};
+		31506F6B136916F6C9AE4005 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "$(APP_ICON_NAME)";
@@ -937,7 +1510,183 @@
 			};
 			name = Release;
 		};
-		8A3472E8CF7ACF6EC8552554 /* Release */ = {
+		31CFB435AC1B5F3DB183FD08 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "$(APP_ICON_NAME)";
+				CODE_SIGN_ENTITLEMENTS = Config/Nexus.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = "Config/Nexus-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_ID)";
+				PRODUCT_MODULE_NAME = Nexus;
+				PRODUCT_NAME = "$(APP_DISPLAY_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		3918FBC88C5FF2371D7B1911 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		3DBEEDA5F2BF1DEF477D8A45 /* Local */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				SDKROOT = macosx;
+			};
+			name = Local;
+		};
+		4D1004B2304BADE49B1BA7E3 /* ServicesPrototype */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				APP_BUNDLE_ID = com.qssedalto.nexus.servicesprototype.dev;
+				APP_DISPLAY_NAME = "Nexus Services Prototype";
+				APP_GROUP_ID = "$(DEVELOPMENT_TEAM).com.qssedalto.nexus.servicesprototype.dev.shared";
+				APP_ICON_NAME = AppIconDev;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 5;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				FINDER_EXTENSION_BUNDLE_ID = com.qssedalto.nexus.servicesprototype.dev.findersync;
+				FINDER_EXTENSION_DISPLAY_NAME = "Nexus Services Prototype Finder Extension";
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LEGACY_APP_GROUP_ID = "$(DEVELOPMENT_TEAM).com.prof18.slashgrab.servicesprototype.dev.shared";
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 0.0.5;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LDFLAGS = "$(inherited) -lsqlite3";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = ServicesPrototype;
+		};
+		54088FBC5F50B7722F20509B /* ServicesPrototype */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "$(APP_ICON_NAME)";
+				CODE_SIGN_ENTITLEMENTS = Config/Nexus.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = "Config/Nexus-ServicesPrototype-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_ID)";
+				PRODUCT_MODULE_NAME = Nexus;
+				PRODUCT_NAME = "$(APP_DISPLAY_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) NEXUS_SERVICE_PROTOTYPE";
+			};
+			name = ServicesPrototype;
+		};
+		59C2285F0BD8AE959C3875EF /* ServicesPrototype */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				SDKROOT = macosx;
+			};
+			name = ServicesPrototype;
+		};
+		60E8A904EF3F893920205B28 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
@@ -960,14 +1709,32 @@
 			};
 			name = Release;
 		};
-		907A265CF052D99DE204318B /* Release */ = {
+		6D9646D343E48D0DE9DBE779 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		7B6D0F2FA6CAC67570A311F5 /* ServicesOnly */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				APP_BUNDLE_ID = com.qssedalto.nexus;
 				APP_DISPLAY_NAME = Nexus;
 				APP_GROUP_ID = "$(DEVELOPMENT_TEAM).com.qssedalto.nexus.shared";
-				LEGACY_APP_GROUP_ID = "$(DEVELOPMENT_TEAM).com.prof18.slashgrab.shared";
 				APP_ICON_NAME = AppIcon;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
@@ -1014,33 +1781,21 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				LEGACY_APP_GROUP_ID = "$(DEVELOPMENT_TEAM).com.prof18.slashgrab.shared";
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 0.0.5;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
+				OTHER_LDFLAGS = "$(inherited) -lsqlite3";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 6.0;
 			};
-			name = Release;
+			name = ServicesOnly;
 		};
-		9706FE3F7F5ECF068CE407BC /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				COMBINE_HIDPI_IMAGES = YES;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				PRODUCT_NAME = NexusCore;
-				SDKROOT = macosx;
-				SKIP_INSTALL = YES;
-			};
-			name = Debug;
-		};
-		DC0BFF425CAB5C1BE89A1A2D /* Debug */ = {
+		7E6DD7EC357D1EE2C556E1B8 /* ServicesPrototype */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -1058,28 +1813,90 @@
 				SDKROOT = macosx;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/$(APP_DISPLAY_NAME).app/Contents/MacOS/$(APP_DISPLAY_NAME)";
 			};
-			name = Debug;
+			name = ServicesPrototype;
 		};
-		DE788E44195F93CD9CCADACB /* Release */ = {
+		8C23734BD350DE0539C1D0E1 /* ServicesPrototype */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
 				COMBINE_HIDPI_IMAGES = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
-					"@loader_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				OTHER_LDFLAGS = (
-					"$(inherited)",
-					"-ObjC",
-				);
+				PRODUCT_NAME = NexusCore;
 				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = ServicesPrototype;
+		};
+		958B4D27785146E84A1E24AF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				APP_BUNDLE_ID = com.qssedalto.nexus;
+				APP_DISPLAY_NAME = Nexus;
+				APP_GROUP_ID = "$(DEVELOPMENT_TEAM).com.qssedalto.nexus.shared";
+				APP_ICON_NAME = AppIcon;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 5;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				FINDER_EXTENSION_BUNDLE_ID = com.qssedalto.nexus.findersync;
+				FINDER_EXTENSION_DISPLAY_NAME = "Nexus Finder Extension";
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LEGACY_APP_GROUP_ID = "$(DEVELOPMENT_TEAM).com.prof18.slashgrab.shared";
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 0.0.5;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				OTHER_LDFLAGS = "$(inherited) -lsqlite3";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
 			};
 			name = Release;
 		};
-		F0EBF3C41C167EF2306ACAB0 /* Debug */ = {
+		9E305D29DCD547A383FAFA7D /* Local */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
@@ -1100,61 +1917,275 @@
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
 			};
+			name = Local;
+		};
+		A8872443C6CB4A4CDDB0F27B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_NAME = NexusCore;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
 			name = Debug;
+		};
+		B7AFB0D60B1D8C8FCC42FB52 /* ServicesOnly */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				SDKROOT = macosx;
+			};
+			name = ServicesOnly;
+		};
+		BB7D5841F56E1DA164826C15 /* ServicesPrototype */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = Config/NexusFinderSync.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = "Config/NexusFinderSync-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FINDER_EXTENSION_BUNDLE_ID)";
+				PRODUCT_NAME = NexusFinderSync;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) NEXUS_SERVICE_PROTOTYPE";
+			};
+			name = ServicesPrototype;
+		};
+		BDF75B191E743B050BB1E453 /* Local */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/$(APP_DISPLAY_NAME).app/Contents/MacOS/$(APP_DISPLAY_NAME)";
+			};
+			name = Local;
+		};
+		CB349108CCF0300C63D67BE5 /* Local */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_NAME = NexusCore;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Local;
+		};
+		D17B27C8C2387F063C632FC0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/$(APP_DISPLAY_NAME).app/Contents/MacOS/$(APP_DISPLAY_NAME)";
+			};
+			name = Release;
+		};
+		DA1A129B45F0651E320D9A55 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/$(APP_DISPLAY_NAME).app/Contents/MacOS/$(APP_DISPLAY_NAME)";
+			};
+			name = Debug;
+		};
+		DA25967BDF74D1FBCEC0874C /* Local */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "$(APP_ICON_NAME)";
+				CODE_SIGN_ENTITLEMENTS = Config/Nexus.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = "Config/Nexus-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_ID)";
+				PRODUCT_MODULE_NAME = Nexus;
+				PRODUCT_NAME = "$(APP_DISPLAY_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Local;
+		};
+		E0938215E23E85730623B390 /* ServicesOnly */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/$(APP_DISPLAY_NAME).app/Contents/MacOS/$(APP_DISPLAY_NAME)";
+			};
+			name = ServicesOnly;
+		};
+		F285703B59232DE46A665665 /* ServicesOnly */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "$(APP_ICON_NAME)";
+				CODE_SIGN_ENTITLEMENTS = Config/Nexus.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = "Config/Nexus-ServicesPrototype-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_ID)";
+				PRODUCT_MODULE_NAME = Nexus;
+				PRODUCT_NAME = "$(APP_DISPLAY_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) NEXUS_SERVICE_PROTOTYPE";
+			};
+			name = ServicesOnly;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		148E6F99A9572868EB0A3036 /* Build configuration list for PBXNativeTarget "NexusCore" */ = {
+		126340C0FF895F25DCB8BA26 /* Build configuration list for PBXNativeTarget "NexusTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				9706FE3F7F5ECF068CE407BC /* Debug */,
-				11E174094BBF517C8F11BAC2 /* Release */,
+				DA1A129B45F0651E320D9A55 /* Debug */,
+				BDF75B191E743B050BB1E453 /* Local */,
+				D17B27C8C2387F063C632FC0 /* Release */,
+				E0938215E23E85730623B390 /* ServicesOnly */,
+				7E6DD7EC357D1EE2C556E1B8 /* ServicesPrototype */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		211BE446D5DA2146F3EE80F7 /* Build configuration list for PBXNativeTarget "NexusFinderSync" */ = {
+		17896972B6EAD3EB1C3E2233 /* Build configuration list for PBXProject "Nexus" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				F0EBF3C41C167EF2306ACAB0 /* Debug */,
-				8A3472E8CF7ACF6EC8552554 /* Release */,
+				00EFA657DA51B02098A9D6ED /* Debug */,
+				2AD48363E4D22FBEB343CF4B /* Local */,
+				958B4D27785146E84A1E24AF /* Release */,
+				7B6D0F2FA6CAC67570A311F5 /* ServicesOnly */,
+				4D1004B2304BADE49B1BA7E3 /* ServicesPrototype */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		24977C9AAB0E643C442A93EF /* Build configuration list for PBXNativeTarget "NexusCoreTests" */ = {
+		53C579BF4CA941AFC4DF3BAE /* Build configuration list for PBXNativeTarget "Nexus" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				11DF00EA603D159B6301535C /* Debug */,
-				DE788E44195F93CD9CCADACB /* Release */,
+				31CFB435AC1B5F3DB183FD08 /* Debug */,
+				DA25967BDF74D1FBCEC0874C /* Local */,
+				31506F6B136916F6C9AE4005 /* Release */,
+				F285703B59232DE46A665665 /* ServicesOnly */,
+				54088FBC5F50B7722F20509B /* ServicesPrototype */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		4A54FCCA3F589ABF7D812D27 /* Build configuration list for PBXNativeTarget "Nexus" */ = {
+		6CF083717F1D2373E1AD314C /* Build configuration list for PBXNativeTarget "NexusCore" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				792C00A1111A97579B9D1482 /* Debug */,
-				89DF0BE5089D75264D5965D2 /* Release */,
+				A8872443C6CB4A4CDDB0F27B /* Debug */,
+				CB349108CCF0300C63D67BE5 /* Local */,
+				29EBE31FF4FBF3162B6CB3BE /* Release */,
+				00C285EA7F017BF8B60E5A8A /* ServicesOnly */,
+				8C23734BD350DE0539C1D0E1 /* ServicesPrototype */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		55FDB521A7050A00CE0BF027 /* Build configuration list for PBXNativeTarget "NexusTests" */ = {
+		8B2BD5C1BF6B313EBFD15C97 /* Build configuration list for PBXNativeTarget "NexusFinderSync" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				DC0BFF425CAB5C1BE89A1A2D /* Debug */,
-				54477B7684449CB2F2C2089A /* Release */,
+				0558A058D9F0015541BA00EE /* Debug */,
+				9E305D29DCD547A383FAFA7D /* Local */,
+				60E8A904EF3F893920205B28 /* Release */,
+				1F6757257C5EF69D31160ADD /* ServicesOnly */,
+				BB7D5841F56E1DA164826C15 /* ServicesPrototype */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		86B20690D2CB29CB1902F0BA /* Build configuration list for PBXProject "Nexus" */ = {
+		E73AA65581FDC415FA1B4993 /* Build configuration list for PBXNativeTarget "NexusCoreTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				5BD3D48ABB4C24A83BFC3D02 /* Debug */,
-				907A265CF052D99DE204318B /* Release */,
+				6D9646D343E48D0DE9DBE779 /* Debug */,
+				3DBEEDA5F2BF1DEF477D8A45 /* Local */,
+				3918FBC88C5FF2371D7B1911 /* Release */,
+				B7AFB0D60B1D8C8FCC42FB52 /* ServicesOnly */,
+				59C2285F0BD8AE959C3875EF /* ServicesPrototype */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
@@ -1162,7 +2193,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		68FB8F27C4AEF8D75566CF89 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+		2FFBE80ACC6E19C3A11684D0 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sparkle-project/Sparkle";
 			requirement = {
@@ -1173,12 +2204,12 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		FEC73C675B1D6B9F09BF9105 /* Sparkle */ = {
+		5429C81C2DE2C3887E1F5363 /* Sparkle */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 68FB8F27C4AEF8D75566CF89 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			package = 2FFBE80ACC6E19C3A11684D0 /* XCRemoteSwiftPackageReference "Sparkle" */;
 			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
-	rootObject = 22C639B72E02EA312BF69658 /* Project object */;
+	rootObject = 6E0546D7A1020B804447C56B /* Project object */;
 }

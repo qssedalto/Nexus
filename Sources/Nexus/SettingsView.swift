@@ -1,11 +1,19 @@
 import AppKit
 import SwiftUI
+import NexusCore
 
 struct SettingsView<Updater: UpdaterControlling>: View {
     @ObservedObject var appState: AppState
     let buildInfo: AppBuildInfo
     @ObservedObject var updater: Updater
-    @ObservedObject private var clipboardMonitor = ClipboardMonitor.shared
+    @ObservedObject private var clipboardHotkey = ClipboardHotkeyController.shared
+    @State private var editingCustomShortcut = false
+    @State private var customKey: ClipboardShortcutKey = .v
+    @State private var customControl = true
+    @State private var customOption = true
+    @State private var customShift = false
+    @State private var customCommand = false
+    @AppStorage("nexusClipboardCollectionSwitchModifier") private var collectionShortcutModifier = "command"
 
     var body: some View {
         TabView {
@@ -19,7 +27,7 @@ struct SettingsView<Updater: UpdaterControlling>: View {
                     Label(localized("Finder"), systemImage: "folder")
                 }
 
-            SystemServicesView()
+            SystemServicesView(appState: appState)
                 .tabItem { Label(localized("System Services"), systemImage: "square.stack") }
 
             OperationTimelineView(appState: appState)
@@ -31,6 +39,12 @@ struct SettingsView<Updater: UpdaterControlling>: View {
             NetworkSyncView()
                 .tabItem { Label(localized("Network sync"), systemImage: "arrow.triangle.2.circlepath") }
 
+            ClipboardCloudSettingsView()
+                .tabItem { Label(localized("iCloud Clipboard"), systemImage: "icloud") }
+
+            PrivacySettingsView()
+                .tabItem { Label(localized("Privacy and Permissions"), systemImage: "hand.raised") }
+
             AboutView(
                 buildInfo: buildInfo,
                 canCheckForUpdates: updater.canCheckForUpdates,
@@ -40,7 +54,7 @@ struct SettingsView<Updater: UpdaterControlling>: View {
                 Label(localized("About"), systemImage: "info.circle")
             }
         }
-        .frame(minWidth: 520, idealWidth: 520, minHeight: 340, idealHeight: 340)
+        .frame(minWidth: 650, idealWidth: 760, minHeight: 410, idealHeight: 510)
         .font(.custom("Avenir Next", size: 13, relativeTo: .body))
         .onAppear {
             appState.refreshLaunchAtLoginStatus()
@@ -63,19 +77,45 @@ struct SettingsView<Updater: UpdaterControlling>: View {
                 Text(localized("Keeps Nexus ready in the menu bar after you sign in."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
-
+            }
+            Section(localized("Welcome")) {
                 Button {
                     NotificationCenter.default.post(name: .nexusShowWelcomeGuide, object: nil)
                 } label: {
                     Label(localized("Show Welcome Guide…"), systemImage: "questionmark.circle")
                 }
-                Text(localized("Reopen the guide if the menu bar icon is hidden."))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
-            Section(localized("Copy history")) {
-                Toggle(localized("Monitor file copies from the clipboard"), isOn: $clipboardMonitor.enabled)
-                Text(localized("Records file URLs when the clipboard changes. Source applications and file transfer completion may be unknown."))
+            Section(localized("Clipboard shortcut")) {
+                Picker(localized("Show or hide clipboard shelf"), selection: Binding(
+                    get: { clipboardHotkey.selected },
+                    set: { _ = clipboardHotkey.setPreset($0) }
+                )) {
+                    ForEach(ClipboardHotkeyController.Preset.allCases) { preset in
+                        Text(preset.label).tag(preset)
+                    }
+                }
+                Text(localized("Shortcuts are off by default. If the shortcut is occupied, the previous setting is kept."))
+                    .font(.caption).foregroundStyle(.secondary)
+                HStack {
+                    Button(localized("Configure custom shortcut…")) {
+                        loadCustomShortcut()
+                        editingCustomShortcut = true
+                    }
+                    if let current = clipboardHotkey.customShortcut {
+                        Text(current.displayName)
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Text(localized("Custom shortcuts require two or more modifiers. Keys use physical keyboard positions; system conflicts are rejected without losing the previous shortcut."))
+                    .font(.caption).foregroundStyle(.secondary)
+                Text(clipboardHotkey.status).font(.caption).foregroundStyle(.secondary)
+                Picker(localized("Switch collections while shelf is open"),
+                       selection: $collectionShortcutModifier) {
+                    Text("⌘ + 0…9").tag("command")
+                    Text("⌃⌥ + 0…9").tag("controlOption")
+                }
+                Text(localized("0 shows all history; 1–9 select named collections in display order. Command-F focuses clipboard search. These shortcuts work only while the shelf is focused."))
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section(localized("Copy feedback")) {
@@ -92,5 +132,62 @@ struct SettingsView<Updater: UpdaterControlling>: View {
         }
         .formStyle(.grouped)
         .padding(.horizontal, 8)
+        .sheet(isPresented: $editingCustomShortcut) {
+            customShortcutEditor
+        }
+    }
+
+    private var customShortcutEditor: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(localized("Custom clipboard shortcut"))
+                .font(.headline)
+            Picker(localized("Key"), selection: $customKey) {
+                ForEach(ClipboardShortcutKey.allCases) { key in
+                    Text(key.displayName).tag(key)
+                }
+            }
+            .frame(maxWidth: 260)
+            HStack(spacing: 14) {
+                Toggle("⌃ Control", isOn: $customControl)
+                Toggle("⌥ Option", isOn: $customOption)
+                Toggle("⇧ Shift", isOn: $customShift)
+                Toggle("⌘ Command", isOn: $customCommand)
+            }
+            .toggleStyle(.checkbox)
+            Text(localized("Choose at least two modifiers. If macOS already uses the combination, Nexus keeps the previous shortcut."))
+                .font(.caption).foregroundStyle(.secondary)
+            Text(clipboardHotkey.status)
+                .font(.caption).foregroundStyle(.secondary)
+            HStack {
+                Spacer()
+                Button(localized("Cancel")) { editingCustomShortcut = false }
+                Button(localized("Apply shortcut")) {
+                    var modifiers = Set<ClipboardShortcutModifier>()
+                    if customControl { modifiers.insert(.control) }
+                    if customOption { modifiers.insert(.option) }
+                    if customShift { modifiers.insert(.shift) }
+                    if customCommand { modifiers.insert(.command) }
+                    let candidate = ClipboardShortcutSpecification(
+                        key: customKey, modifiers: modifiers
+                    )
+                    if clipboardHotkey.setCustomShortcut(candidate) {
+                        editingCustomShortcut = false
+                    }
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(22)
+        .frame(minWidth: 520)
+    }
+
+    private func loadCustomShortcut() {
+        let candidate = clipboardHotkey.customShortcut ??
+            ClipboardShortcutSpecification(key: .v, modifiers: [.control, .option])
+        customKey = candidate.key
+        customControl = candidate.modifiers.contains(.control)
+        customOption = candidate.modifiers.contains(.option)
+        customShift = candidate.modifiers.contains(.shift)
+        customCommand = candidate.modifiers.contains(.command)
     }
 }

@@ -7,6 +7,8 @@
 
 Nexus (天枢) is a native macOS menu-bar utility for copying paths, inspecting file-copy activity, and viewing keyboard/mouse usage statistics. Optional network synchronization is available for usage statistics.
 
+> **Development integration preview — PR #70 only:** The unmerged integration branch also contains an opt-in clipboard shelf and searchable SQLite history, pinned cards and collections, image/file previews, optional private CloudKit synchronization, and a separate universal iPhone/iPad client with explicit clipboard import. These features are **not yet included in the default `main` download**. Private CloudKit requires signed, provisioned Apple entitlements and user authorization; unsigned Simulator success is not live iCloud verification. The first-launch welcome guide explains how to find the menu-bar app even when Hidden Bar hides its icon.
+
 Drop something on the menu bar icon, then paste the path wherever you need it.
 
 ![Nexus demo](assets/nexus-demo.gif)

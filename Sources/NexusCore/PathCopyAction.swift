@@ -19,7 +19,7 @@ public struct PathCopyAction: Sendable {
     }
 
     @discardableResult
-    public func copy(urls: [URL], as format: PathFormat) throws -> String? {
+    public func copy(urls: [URL], as format: PathFormat, sourceApplication: String = "Finder", detectionMethod: String = "finder_sync") throws -> String? {
         guard !urls.isEmpty else {
             return nil
         }
@@ -31,7 +31,7 @@ public struct PathCopyAction: Sendable {
         historyStore?.addHistoryEntry(output)
         if let operationStore {
             Task.detached(priority: .utility) {
-                try? operationStore.record(type: "path_copy", urls: urls, sourceApplication: "Finder", detectionMethod: "finder_sync", eventTimeMS: eventTimeMS, completedTimeMS: completedTimeMS, clipboardText: output)
+                try? operationStore.record(type: "path_copy", urls: urls, sourceApplication: sourceApplication, detectionMethod: detectionMethod, eventTimeMS: eventTimeMS, completedTimeMS: completedTimeMS, clipboardText: output)
             }
         }
         return output
