@@ -37,10 +37,13 @@ struct SettingsView<Updater: UpdaterControlling>: View {
                 .tabItem { Label(localized("Keyboard and Mouse"), systemImage: "keyboard") }
 
             NetworkSyncView()
-                .tabItem { Label(localized("Network sync"), systemImage: "arrow.triangle.2.circlepath") }
+                .tabItem { Label(localized(buildInfo.isDriveEdition
+                        ? "Server sync (advanced)" : "Network sync"),
+                      systemImage: "arrow.triangle.2.circlepath") }
 
             ClipboardCloudSettingsView()
-                .tabItem { Label(localized("iCloud Drive sync"), systemImage: "folder.badge.gearshape") }
+                .tabItem { Label(localized(buildInfo.isDriveEdition ? "Sync" : "iCloud Drive sync"),
+                      systemImage: "arrow.triangle.2.circlepath.circle") }
 
             PrivacySettingsView()
                 .tabItem { Label(localized("Privacy and Permissions"), systemImage: "hand.raised") }
