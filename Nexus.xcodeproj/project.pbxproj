@@ -193,6 +193,7 @@
 		F21FBAFA4CCA9756871D8839 /* ClipboardMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD397FB6435292A500E64177 /* ClipboardMonitor.swift */; };
 		F3BC6D82E51B2C851945A34C /* ClipboardFilePreviewPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D75F2387AE39BEBC7821FAF /* ClipboardFilePreviewPolicyTests.swift */; };
 		F3C38B07321F628E462787A9 /* ClipboardCloudLocalSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DFE05DA450B5E36794DD1E2 /* ClipboardCloudLocalSnapshot.swift */; };
+		F4814C71B907ABEBBF2CB27B /* NexusAppRelauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0EFA95551CA09D89C28E68 /* NexusAppRelauncher.swift */; };
 		F4E4B3AA684151DAB64145AF /* PrivacySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85C7BC87BE45EEF10B470AB3 /* PrivacySettingsView.swift */; };
 		F68F1FBE1871DC1EB9B6A46C /* ClipboardTextPreviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 772883009FC434DFD6DA151A /* ClipboardTextPreviewTests.swift */; };
 		F8224741C7A4AAC916AD7918 /* NexusFinderSync.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D26D03B7CE06B28231019DF9 /* NexusFinderSync.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -447,6 +448,7 @@
 		E84CFAE22F151E771C10035C /* FeedbackPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackPopoverView.swift; sourceTree = "<group>"; };
 		E9800E373563A808BB8E668F /* ClipboardRemoteWebTitleFetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardRemoteWebTitleFetcher.swift; sourceTree = "<group>"; };
 		EA3C2EC02E28F20B9A4800F7 /* StatisticsDeletionConfirmationPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsDeletionConfirmationPolicyTests.swift; sourceTree = "<group>"; };
+		ED0EFA95551CA09D89C28E68 /* NexusAppRelauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NexusAppRelauncher.swift; sourceTree = "<group>"; };
 		F0E6744DFEAB66A3205FCCCB /* ClipboardSafeHTMLPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardSafeHTMLPreview.swift; sourceTree = "<group>"; };
 		F1BDED6E6F296AA5596E4B3B /* ClipboardRichTextPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardRichTextPreview.swift; sourceTree = "<group>"; };
 		F4A8679D1AA213E90318DD86 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
@@ -720,6 +722,7 @@
 				74449DBDFE1B1587CFFCB0CA /* MenuPopoverView.swift */,
 				BFC99B04800D7D7A2C0A4674 /* NetworkSyncView.swift */,
 				FC04BDAB61F82D3189AC43C6 /* NexusApp.swift */,
+				ED0EFA95551CA09D89C28E68 /* NexusAppRelauncher.swift */,
 				9426AE32A2FB52A3D45568D1 /* NexusServiceProvider.swift */,
 				0A77563C2DEE60B1405B5B3E /* OperationTimelineView.swift */,
 				85C7BC87BE45EEF10B470AB3 /* PrivacySettingsView.swift */,
@@ -1163,6 +1166,7 @@
 				409843555A923BC09E089680 /* MenuPopoverView.swift in Sources */,
 				B093718C94CBF4C776C81BA0 /* NetworkSyncView.swift in Sources */,
 				56A1FC9C1A5285DA29A904AD /* NexusApp.swift in Sources */,
+				F4814C71B907ABEBBF2CB27B /* NexusAppRelauncher.swift in Sources */,
 				C8E4781819140BB7C1F67629 /* NexusServiceProvider.swift in Sources */,
 				19AC4A0E3C54B529A51BE010 /* OperationTimelineView.swift in Sources */,
 				F4E4B3AA684151DAB64145AF /* PrivacySettingsView.swift in Sources */,
