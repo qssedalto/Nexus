@@ -89,7 +89,7 @@ struct SystemServicesView: View {
                 }
 
                 if ownServices.isEmpty {
-                    Text(localized("This build has no additional NSServices entry, preventing duplicate copy-path menus. The isolated ServicesPrototype build has a single native service instead of a Finder Sync copy menu."))
+                    Text(localized("The installed app has not yet registered a native Service. Finder Sync can be hidden in iCloud Drive and other File Provider folders; the macOS Services fallback is listed after registration."))
                         .font(.caption).foregroundStyle(.secondary)
                 } else {
                     ForEach(ownServices) { service in

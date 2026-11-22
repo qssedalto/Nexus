@@ -50,6 +50,9 @@ struct FinderSettingsView: View {
         Text(localized("The extension comes with Nexus. Open System Settings to turn it on."))
             .font(.caption)
             .foregroundStyle(.secondary)
+        Text(localized("iCloud Drive and other File Provider locations may hide third-party Finder Sync commands. Use Finder > Services > Copy Selected Paths instead. Native Services must be enabled in macOS settings; macOS controls their menu placement."))
+            .font(.caption)
+            .foregroundStyle(.secondary)
     }
 
     private var installedExtensionsSection: some View {
