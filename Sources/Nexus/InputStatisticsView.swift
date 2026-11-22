@@ -466,18 +466,37 @@ struct InputStatisticsView: View {
                     .font(.caption).foregroundStyle(.secondary)
                 if controller.diagnosticsEnabled {
                     List(controller.diagnosticEvents) { event in
-                        HStack {
-                            Label(readableEvent(event.name), systemImage: icon(for: event.name))
-                            Text(readableSource(event.source)).font(.caption2).foregroundStyle(.secondary)
-                            Spacer()
-                            Text(event.supported ? localized("Recognized") : localized("Unknown / unsupported"))
-                                .font(.caption2)
-                            Text(Date(timeIntervalSince1970: TimeInterval(event.timeMS) / 1000)
-                                .formatted(date: .omitted, time: .complete))
-                                .font(.caption2.monospacedDigit())
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Label(readableEvent(event.name), systemImage: icon(for: event.name))
+                                Spacer(minLength: 8)
+                                Text(Date(timeIntervalSince1970: TimeInterval(event.timeMS) / 1000)
+                                    .formatted(date: .omitted, time: .complete))
+                                    .font(.caption2.monospacedDigit())
+                            }
+                            HStack(spacing: 8) {
+                                Text(readableSource(event.source)).lineLimit(1)
+                                if let code = event.keyCode {
+                                    Text("keyCode \(code)").monospacedDigit()
+                                }
+                                if !event.modifiers.isEmpty {
+                                    Text(event.modifiers.joined(separator: "+"))
+                                }
+                                if let kind = event.eventKind {
+                                    Text(kind)
+                                }
+                                if event.isRepeat {
+                                    Text(localized("Auto-repeat"))
+                                }
+                                if !event.supported {
+                                    Text(localized("Unknown / unsupported"))
+                                }
+                            }
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
                         }
                     }
-                    .frame(height: 130)
+                    .frame(height: 175)
                 }
             }
             HStack {

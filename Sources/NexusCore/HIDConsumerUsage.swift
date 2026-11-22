@@ -70,11 +70,23 @@ public struct InputDiagnosticEvent: Sendable, Identifiable, Equatable {
     public let name: String
     public let source: String
     public let supported: Bool
-    public init(timeMS: Int64, name: String, source: String, supported: Bool) {
+    /// Optional in-memory diagnostics; never store translated text.
+    public let keyCode: Int64?
+    public let modifiers: [String]
+    public let eventKind: String?
+    public let isRepeat: Bool
+
+    public init(timeMS: Int64, name: String, source: String, supported: Bool,
+                keyCode: Int64? = nil, modifiers: [String] = [],
+                eventKind: String? = nil, isRepeat: Bool = false) {
         id = UUID()
         self.timeMS = timeMS
         self.name = name
         self.source = source
         self.supported = supported
+        self.keyCode = keyCode
+        self.modifiers = modifiers
+        self.eventKind = eventKind
+        self.isRepeat = isRepeat
     }
 }

@@ -26,4 +26,22 @@ final class HIDConsumerUsageTests: XCTestCase {
         XCTAssertEqual(HIDConsumerUsage.macSystemKeyName(for: 2), "brightness_up")
         XCTAssertNil(HIDConsumerUsage.macSystemKeyName(for: 160))
     }
+    func testOptInDiagnosticIncludesOnlyPhysicalMetadata() {
+        let legacy = InputDiagnosticEvent(timeMS: 1, name: "f1", source: "test", supported: true)
+        XCTAssertNil(legacy.keyCode)
+        XCTAssertNil(legacy.eventKind)
+        XCTAssertTrue(legacy.modifiers.isEmpty)
+        XCTAssertFalse(legacy.isRepeat)
+
+        let sample = InputDiagnosticEvent(
+            timeMS: 2, name: "command_f1", source: "quartz_uptime",
+            supported: true, keyCode: 122, modifiers: ["Command"],
+            eventKind: "chord", isRepeat: true
+        )
+        XCTAssertEqual(sample.keyCode, 122)
+        XCTAssertEqual(sample.modifiers, ["Command"])
+        XCTAssertEqual(sample.eventKind, "chord")
+        XCTAssertTrue(sample.isRepeat)
+    }
+
 }

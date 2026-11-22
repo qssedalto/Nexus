@@ -30,7 +30,7 @@ final class InputMonitor: InputEventListening, @unchecked Sendable {
     func start() {
         guard tapState != .listening else { return }
         stop()
-        let eventTypes: [CGEventType] = [.keyDown, .flagsChanged, .leftMouseDown, .rightMouseDown, .otherMouseDown, .scrollWheel]
+        let eventTypes: [CGEventType] = [.keyDown, .keyUp, .flagsChanged, .leftMouseDown, .rightMouseDown, .otherMouseDown, .scrollWheel]
         let mask = eventTypes.reduce(CGEventMask(0)) { $0 | (CGEventMask(1) << $1.rawValue) }
         let callback: CGEventTapCallBack = { proxy, type, event, context in
             guard let context else { return Unmanaged.passUnretained(event) }
@@ -41,7 +41,7 @@ final class InputMonitor: InputEventListening, @unchecked Sendable {
                 }
                 return Unmanaged.passUnretained(event)
             }
-            if (type == .keyDown || type == .flagsChanged) && IsSecureEventInputEnabled() {
+            if (type == .keyDown || type == .keyUp || type == .flagsChanged) && IsSecureEventInputEnabled() {
                 return Unmanaged.passUnretained(event)
             }
             monitor.receivedEvents = true
@@ -95,11 +95,21 @@ final class InputMonitor: InputEventListening, @unchecked Sendable {
             let timestamp = category == "ordinary" ? (timeMS / 60_000) * 60_000 : timeMS
             store.enqueue(ClassifiedInputEvent(timeMS: timestamp, category: category, name: name, source: "quartz_uptime", isRepeat: repeated))
             if category != "ordinary" {
-                onDiagnostic?(InputDiagnosticEvent(timeMS: timeMS, name: name, source: "quartz_uptime", supported: true))
+                onDiagnostic?(InputDiagnosticEvent(
+                    timeMS: timeMS, name: name, source: "quartz_uptime",
+                    supported: true, keyCode: code,
+                    modifiers: Self.modifierNames(event.flags),
+                    eventKind: "keyDown", isRepeat: repeated
+                ))
             }
             if let shortcut = Self.shortcutName(code: code, flags: event.flags) {
                 store.enqueue(ClassifiedInputEvent(timeMS: timeMS, category: "shortcut", name: shortcut, source: "quartz_uptime", isRepeat: repeated))
-                onDiagnostic?(InputDiagnosticEvent(timeMS: timeMS, name: shortcut, source: "quartz_uptime", supported: true))
+                onDiagnostic?(InputDiagnosticEvent(
+                    timeMS: timeMS, name: shortcut, source: "quartz_uptime",
+                    supported: true, keyCode: code,
+                    modifiers: Self.modifierNames(event.flags),
+                    eventKind: "chord", isRepeat: repeated
+                ))
                 // This observes a keyboard request only. macOS provides no
                 // reliable third-party confirmation that a paste succeeded.
                 // It is independently opt-in and never reads clipboard text.
@@ -123,12 +133,28 @@ final class InputMonitor: InputEventListening, @unchecked Sendable {
                     }
                 }
             }
+        case .keyUp:
+            // Only known special-key releases are visible in opt-in,
+            // in-memory diagnostics. Never retain ordinary typing sequences.
+            guard onDiagnostic != nil else { return }
+            let code = event.getIntegerValueField(.keyboardEventKeycode)
+            guard let name = Self.specialKeys[code] else { return }
+            onDiagnostic?(InputDiagnosticEvent(
+                timeMS: timeMS, name: name, source: "quartz_uptime",
+                supported: true, keyCode: code,
+                modifiers: Self.modifierNames(event.flags), eventKind: "keyUp"
+            ))
         case .flagsChanged:
             let code = event.getIntegerValueField(.keyboardEventKeycode)
             guard let name = Self.modifiers[code] else { return }
             if name == "caps_lock" || event.flags.contains(Self.modifierFlag(for: name)) {
                 store.enqueue(ClassifiedInputEvent(timeMS: timeMS, category: "modifier", name: name, source: "quartz_uptime"))
-                onDiagnostic?(InputDiagnosticEvent(timeMS: timeMS, name: name, source: "quartz_uptime", supported: true))
+                onDiagnostic?(InputDiagnosticEvent(
+                    timeMS: timeMS, name: name, source: "quartz_uptime",
+                    supported: true, keyCode: code,
+                    modifiers: Self.modifierNames(event.flags),
+                    eventKind: "modifierChange"
+                ))
                 if name == "caps_lock" {
                     store.enqueue(ClassifiedInputEvent(timeMS: timeMS, category: "system", name: event.flags.contains(.maskAlphaShift) ? "caps_lock_on" : "caps_lock_off", source: "quartz_uptime"))
                 }
@@ -193,6 +219,15 @@ final class InputMonitor: InputEventListening, @unchecked Sendable {
     }
 
     private static let specialKeys = KeyboardEventClassifier.specialKeys
+
+    private static func modifierNames(_ flags: CGEventFlags) -> [String] {
+        let mappings: [(CGEventFlags, String)] = [
+            (.maskControl, "Control"), (.maskAlternate, "Option"),
+            (.maskCommand, "Command"), (.maskShift, "Shift"),
+            (.maskSecondaryFn, "Fn")
+        ]
+        return mappings.compactMap { flags.contains($0.0) ? $0.1 : nil }
+    }
 
     static func physicalKeyName(code: Int64, shifted: Bool) -> String {
         KeyboardEventClassifier.physicalKeyName(code: code, shifted: shifted)
