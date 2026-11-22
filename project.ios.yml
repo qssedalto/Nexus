@@ -31,15 +31,12 @@ targets:
       - Sources/NexusCore/ClipboardCloudSyncCoordinator.swift
       - Sources/NexusCore/ClipboardCloudPurgeCoordinator.swift
       - Sources/NexusCore/ClipboardCloudRunSummary.swift
-      - Sources/NexusCore/ClipboardCloudKitCodec.swift
-      - Sources/NexusCore/ClipboardCloudKitPrivateTransport.swift
       - Sources/NexusCore/ClipboardCloudImageAsset.swift
       - Sources/NexusCore/ClipboardCloudFileAsset.swift
+      - Sources/NexusCore/ClipboardFolderTransport.swift
       - Sources/NexusCore/ClipboardFilePreviewPolicy.swift
       - Sources/NexusCore/ClipboardCloudUploadDecision.swift
       - Sources/NexusCore/ClipboardCloudForegroundSyncPolicy.swift
-    dependencies:
-      - sdk: CloudKit.framework
     settings:
       base:
         PRODUCT_NAME: NexusMobileCore
@@ -62,7 +59,6 @@ targets:
         UILaunchScreen: {}
         UIRequiresFullScreen: false
         UIDeviceFamily: [1, 2]
-        NexusCloudKitContainerIdentifier: $(NEXUS_CLOUDKIT_CONTAINER_ID)
     settings:
       base:
         PRODUCT_NAME: NexusClipboardMobile
