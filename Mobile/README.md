@@ -52,3 +52,6 @@ Deliberate platform limitations:
 - There is NO iOS release signing, distribution, on-device test, universal
   clipboard integration or claimed production cross-device acceptance yet.
 - Existing macOS Nexus, Finder settings, Bundle IDs and user data are intact.
+
+
+**Downloadable CI preview:** The [Nexus iPhone and iPad simulator build](https://github.com/qssedalto/Nexus/actions/workflows/nexus-mobile.yml) workflow exports an unsigned `NexusClipboardMobile.app` ZIP for the iOS Simulator. It is not signed or provisioned for physical iPhone/iPad installation. A physical-device build requires the owner's Apple development team, a compatible iOS provisioning profile, CloudKit container configuration, and verification on actual hardware.
