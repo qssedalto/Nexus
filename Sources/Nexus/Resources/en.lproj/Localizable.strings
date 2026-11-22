@@ -611,3 +611,6 @@
 "Clipboard history or cloud journal database unavailable" = "Clipboard history or cloud journal database unavailable";
 "Remote text copied to system clipboard" = "Remote text copied to system clipboard";
 "To start, create a pairing key below, prepare the selected folder, then enable sync." = "To start, create a pairing key below, prepare the selected folder, then enable sync.";
+
+"View updates on GitHub" = "View updates on GitHub";
+"This edition is updated manually from GitHub." = "This edition is updated manually from GitHub.";
