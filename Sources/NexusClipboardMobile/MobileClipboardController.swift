@@ -44,6 +44,8 @@ final class MobileClipboardController: ObservableObject {
     private let deviceID: String
     private let folderTokenNamespace = "NexusClipboardFolderV1"
     @Published private(set) var selectedFolderLabel: String = ""
+    @Published private(set) var pairingKeyConfigured = ClipboardFolderPairingKey.isConfigured()
+    @Published var pairingKeyEntry = ""
     private var selectedFolderURL: URL?
     private var lastForegroundSyncAttempt: Date?
 
@@ -51,7 +53,7 @@ final class MobileClipboardController: ObservableObject {
         self.defaults = defaults
         lastSuccessfulSync = defaults.data(forKey: "nexusMobileFolderLastSuccess")
             .flatMap { try? JSONDecoder().decode(ClipboardCloudRunSummary.self, from: $0) }
-        cloudEnabled = defaults.bool(forKey: "nexusMobileFolderEnabled")
+        cloudEnabled = defaults.bool(forKey: "nexusMobileFolderEnabled") && ClipboardFolderPairingKey.isConfigured()
         foregroundSyncEnabled = defaults.bool(forKey: "nexusMobileForegroundSync")
         includeText = defaults.bool(forKey: "nexusMobileFolderText")
         includeNames = defaults.bool(forKey: "nexusMobileFolderNames")
@@ -116,6 +118,21 @@ final class MobileClipboardController: ObservableObject {
         }
         selectedFolderURL = url
         selectedFolderLabel = url.lastPathComponent
+    }
+
+
+    /// Explicitly supplied on this iPhone/iPad, never uploaded with the data.
+    func savePairingKey() {
+        do {
+            try ClipboardFolderPairingKey.save(
+                hex: pairingKeyEntry.trimmingCharacters(in: .whitespacesAndNewlines)
+            )
+            pairingKeyEntry = ""
+            pairingKeyConfigured = true
+            status = "Encryption key saved in this device's Keychain"
+        } catch {
+            status = "Invalid pairing key: \\(error.localizedDescription)"
+        }
     }
 
     private var consent: ClipboardCloudConsent {
@@ -291,8 +308,10 @@ final class MobileClipboardController: ObservableObject {
         running = true
         defer { running = false }
         do {
-            try await ClipboardFolderTransport(folderURL: selectedFolderURL)
-                .prepareFolderIfRequested()
+            let transport = try ClipboardFolderTransport(
+                folderURL: selectedFolderURL, keyData: ClipboardFolderPairingKey.load()
+            )
+            try await transport.prepareFolderIfRequested()
             status = "NexusClipboardSync folder is ready"
         } catch {
             status = "Could not prepare folder: \\(error.localizedDescription)"
@@ -471,6 +490,8 @@ final class MobileClipboardController: ObservableObject {
     private func makeTransport() async throws -> ClipboardFolderTransport {
         enum Unavailable: Error { case missingSelectedFolder }
         guard let selectedFolderURL else { throw Unavailable.missingSelectedFolder }
-        return ClipboardFolderTransport(folderURL: selectedFolderURL)
+        return try ClipboardFolderTransport(
+            folderURL: selectedFolderURL, keyData: ClipboardFolderPairingKey.load()
+        )
     }
 }
