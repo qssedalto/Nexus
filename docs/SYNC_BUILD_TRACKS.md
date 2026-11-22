@@ -25,7 +25,7 @@ Run without `--verify` only after build and signing have been checked on the int
 
 ## Free folder protocol limitations
 
-- **No Nexus end-to-end encryption in v1.** The selected folder contains JSON changes, and users should not enable sensitive text or file paths until encryption has been implemented and reviewed. The app defaults to upload permission OFF.
+- **Encrypted folder protocol v2:** sync change files are AES-256-GCM sealed using a randomly generated 256-bit pairing key stored in the device Keychain. The same 64-hex-character key must be entered on each device. Never place the key in the synchronized folder. Deleting the key makes old records unreadable. All clipboard sync permissions default OFF. The protocol still needs real multi-device verification.
 - The initial folder transport supports text and metadata only. Original image/file bytes do not transfer in this branch.
 - The File Provider/iCloud Drive system handles actual file propagation. Sync now only reads/writes local files; it does not guarantee another device has already downloaded them.
 - This is not an Apple CloudKit private database. Removing folder records is a best-effort File Provider deletion operation, not a verified remote purge or forensic erase.
