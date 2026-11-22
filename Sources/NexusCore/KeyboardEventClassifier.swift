@@ -31,7 +31,7 @@ public enum KeyboardEventClassifier {
     private static let shortcutKeys: [Int64: String] = physicalKeys.merging(specialKeys) {
         current, _ in current
     }
-    static func physicalKeyName(code: Int64, shifted: Bool) -> String {
+    public static func physicalKeyName(code: Int64, shifted: Bool) -> String {
         let name = physicalKeys[code].map { "key_" + $0 } ?? "character_total"
         return shifted ? "shift_" + name : name
     }
