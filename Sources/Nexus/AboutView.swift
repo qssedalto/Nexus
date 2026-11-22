@@ -66,15 +66,8 @@ struct AboutView: View {
                 }
             }
 
-            if canCheckForUpdates {
-                Button(localized("Check for Updates"), action: onCheckForUpdates)
-            } else if let builds = URL(string:
-                "https://github.com/qssedalto/Nexus/pull/73/checks") {
-                Link(localized("View updates on GitHub"), destination: builds)
-                Text(localized("This edition is updated manually from GitHub."))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+            Button(localized("Check for Updates"), action: onCheckForUpdates)
+                .disabled(!canCheckForUpdates)
 
             if let copyright {
                 Text(copyright)
@@ -92,25 +85,13 @@ struct AboutView: View {
                 systemImage: "chevron.left.forwardslash.chevron.right",
                 rawURL: "https://github.com/qssedalto/Nexus"
             ),
-            bundledProductSite.map {
-                AboutLink(
-                    id: "website",
-                    title: localized("Nexus product website"),
-                    systemImage: "globe",
-                    url: $0
-                )
-            },
+            makeLink(
+                id: "website",
+                title: localized("Website"),
+                systemImage: "globe",
+                rawURL: "https://qsseda.com/"
+            ),
         ].compactMap { $0 }
-    }
-
-    // Bundle the product page so preview users do not reach a generic
-    // corporate homepage or a not-yet-configured GitHub Pages deployment.
-    private var bundledProductSite: URL? {
-        #if SWIFT_PACKAGE
-        Bundle.module.url(forResource: "NexusWebsite", withExtension: "html")
-        #else
-        Bundle.main.url(forResource: "NexusWebsite", withExtension: "html")
-        #endif
     }
 
     private func makeLink(id: String, title: String, systemImage: String, rawURL: String) -> AboutLink? {
