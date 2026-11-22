@@ -8,6 +8,7 @@ public enum ClipboardFolderMirror {
         case files([URL])
         case text(String)
         case richText(text: String, rtf: Data)
+        case html(text: String, html: Data)
         case image(Data, extensionName: String)
     }
 
@@ -60,6 +61,11 @@ public enum ClipboardFolderMirror {
             let (sum, overflow) = Int64(text.utf8.count).addingReportingOverflow(Int64(rtf.count))
             if overflow { throw CocoaError(.fileReadTooLarge) }
             totalBytes = sum
+        case .html(let text, let html):
+            guard !text.isEmpty, !html.isEmpty else { throw MirrorError.empty }
+            let (sum, overflow) = Int64(text.utf8.count).addingReportingOverflow(Int64(html.count))
+            if overflow { throw CocoaError(.fileReadTooLarge) }
+            totalBytes = sum
         case .image(let data, _):
             guard !data.isEmpty else { throw MirrorError.empty }
             totalBytes = Int64(data.count)
@@ -97,6 +103,19 @@ public enum ClipboardFolderMirror {
             // Always include plain text for applications without RTF support.
             try rtf.write(to: temporary.appendingPathComponent("Rich Text.rtf"),
                           options: .atomic)
+            completedBytes = totalBytes
+            progress(completedBytes, totalBytes)
+        case .html(let text, let html):
+            guard !cancelled() else { throw MirrorError.cancelled }
+            try text.write(to: temporary.appendingPathComponent("Text.txt"),
+                           atomically: true, encoding: .utf8)
+            completedBytes = Int64(text.utf8.count)
+            progress(completedBytes, totalBytes)
+            guard !cancelled() else { throw MirrorError.cancelled }
+            // Preserve the public HTML pasteboard representation byte-for-byte.
+            // We never load, render or execute it as web content.
+            try html.write(to: temporary.appendingPathComponent("Rich Text.html"),
+                           options: .atomic)
             completedBytes = totalBytes
             progress(completedBytes, totalBytes)
         case .image(let data, let ext):

@@ -116,6 +116,53 @@ final class ClipboardFolderMirrorTests: XCTestCase {
             "1 folder/readme.txt"), encoding: .utf8), "hello")
     }
 
+    func testRTFMirrorRetainsOriginalPublicRichTextAndPlainText() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let original = Data(("{\\rtf1\\ansi Sample bold text}").utf8)
+        let out = try ClipboardFolderMirror.save(
+            .richText(text: "Sample bold text", rtf: original), to: folder
+        )
+        XCTAssertEqual(try Data(contentsOf: out.appendingPathComponent("Rich Text.rtf")), original)
+        XCTAssertEqual(try String(contentsOf: out.appendingPathComponent("Text.txt"),
+                                  encoding: .utf8), "Sample bold text")
+    }
+
+    func testHTMLMirrorPreservesPublicHTMLBytesAndPlainTextFallback() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let original = Data("<b>hello</b> &amp; <em>world</em>".utf8)
+        let output = try ClipboardFolderMirror.save(
+            .html(text: "hello & world", html: original), to: folder
+        )
+        XCTAssertEqual(try Data(contentsOf: output.appendingPathComponent("Rich Text.html")), original)
+        XCTAssertEqual(try String(contentsOf: output.appendingPathComponent("Text.txt"),
+                                  encoding: .utf8), "hello & world")
+        XCTAssertEqual(
+            try Set(FileManager.default.contentsOfDirectory(atPath: output.path)),
+            Set(["Rich Text.html", "Text.txt"])
+        )
+    }
+
+    func testHTMLMirrorCancellationLeavesNoPartialDirectory() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let state = RichTextCancellationState()
+        XCTAssertThrowsError(try ClipboardFolderMirror.save(
+            .html(text: "hello", html: Data("<b>hello</b>".utf8)),
+            to: folder, cancelled: { state.isCancelled },
+            progress: { _, _ in state.cancel() }
+        )) { error in
+            guard case ClipboardFolderMirror.MirrorError.cancelled = error else {
+                return XCTFail("Expected cancelled, received \(error)")
+            }
+        }
+        XCTAssertTrue(try FileManager.default.contentsOfDirectory(atPath: folder.path).isEmpty)
+    }
+
 }
 
 
@@ -133,17 +180,12 @@ private final class MirrorCopyProgressRecorder: @unchecked Sendable {
             expectedBytes = total
         }
     }
-    func testRTFMirrorRetainsOriginalPublicRichTextAndPlainText() throws {
-        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        defer { try? FileManager.default.removeItem(at: folder) }
-        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let original = Data(("{\\rtf1\\ansi Sample bold text}").utf8)
-        let out = try ClipboardFolderMirror.save(
-            .richText(text: "Sample bold text", rtf: original), to: folder
-        )
-        XCTAssertEqual(try Data(contentsOf: out.appendingPathComponent("Rich Text.rtf")), original)
-        XCTAssertEqual(try String(contentsOf: out.appendingPathComponent("Text.txt"),
-                                  encoding: .utf8), "Sample bold text")
-    }
 
+}
+
+private final class RichTextCancellationState: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = false
+    var isCancelled: Bool { lock.withLock { value } }
+    func cancel() { lock.withLock { value = true } }
 }

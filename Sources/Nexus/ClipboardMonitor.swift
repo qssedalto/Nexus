@@ -341,6 +341,11 @@ final class ClipboardMonitor: ObservableObject {
                 ClipboardCloudController.shared.mirrorCopied(
                     .richText(text: copiedText, rtf: originalRTF)
                 )
+            } else if let originalHTML = pasteboard.data(forType: .html),
+                      !originalHTML.isEmpty {
+                ClipboardCloudController.shared.mirrorCopied(
+                    .html(text: copiedText, html: originalHTML)
+                )
             } else {
                 ClipboardCloudController.shared.mirrorCopied(.text(copiedText))
             }
