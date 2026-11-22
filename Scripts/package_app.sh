@@ -293,7 +293,11 @@ if [[ -n "$ARCHES_VALUE" ]]; then
   XCODEBUILD_ARGS+=("ARCHS=$ARCHES_VALUE" ONLY_ACTIVE_ARCH=NO)
 fi
 
-/bin/rm -rf "$CONFIGURATION_PRODUCTS"
+# In local edit/build loops, keep Xcode's existing product outputs so only
+# modified modules need recompiling. CI retains the clean output behavior.
+if [[ "${NEXUS_FAST_LOCAL_BUILD:-0}" != "1" ]]; then
+  /bin/rm -rf "$CONFIGURATION_PRODUCTS"
+fi
 xcodebuild "${XCODEBUILD_ARGS[@]}" build -quiet
 
 APP_BUNDLE="$ROOT_DIR/$APP_NAME.app"
