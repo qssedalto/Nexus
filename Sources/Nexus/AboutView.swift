@@ -51,7 +51,7 @@ struct AboutView: View {
                 }
             }
 
-            Text("Your Mac. Your Control.")
+            Text(localized("Your Mac. Your Control."))
                 .font(.headline)
 
             Text(localized("Drop files on the menu bar and copy clean filesystem paths instantly."))
@@ -89,7 +89,7 @@ struct AboutView: View {
                 id: "website",
                 title: localized("Website"),
                 systemImage: "globe",
-                rawURL: "https://qsseda.com/"
+                rawURL: "https://qssedalto.github.io/Nexus/"
             ),
         ].compactMap { $0 }
     }
