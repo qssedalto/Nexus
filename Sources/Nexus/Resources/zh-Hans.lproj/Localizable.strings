@@ -57,7 +57,7 @@
 "The extension comes with Nexus. Open System Settings to turn it on." = "扩展随应用安装。在系统设置中找到 天枢 并启用访达扩展。";
 "Unsupported drop" = "无法读取拖入的项目";
 "Version %@ (%@)" = "版本 %1$@（%2$@）";
-"Website" = "官方网站";
+"Website" = "官网";
 "Timeline" = "时间轴";
 "From" = "开始";
 "To" = "结束";
@@ -671,3 +671,17 @@
 
 "View updates on GitHub" = "在 GitHub 查看更新";
 "This edition is updated manually from GitHub." = "此版本需要从 GitHub 手动下载更新。";
+
+"Step 1: Create pairing key" = "第一步：创建配对密钥";
+"Create a pairing key before enabling folder sync." = "先创建配对密钥，才能开启文件夹同步。";
+"The pairing key is saved in Keychain. Other devices must use the same key." = "配对密钥保存在本机钥匙串中，其他设备需要使用同一密钥。";
+"Folder is ready. You can enable sync." = "文件夹已准备好，可以开启同步。";
+"Step 2: Click Prepare selected folder before enabling sync." = "第二步：点击「准备所选文件夹」，然后开启同步。";
+"Step 1: Generate a pairing key using the button above. Sync controls remain unavailable until then." = "第一步：请先点击上方「生成加密配对密钥」，完成后才能使用同步功能。";
+"These controls require a pairing key. Use Generate encryption pairing key at the top of this page." = "这些按钮需要配对密钥。请先点击页面上方的「生成加密配对密钥」。";
+"Click Prepare selected folder first. The remaining buttons unlock after the folder is ready and sync is enabled." = "先点击「准备所选文件夹」，再开启同步，其他按钮才会解锁。";
+"Local statistics database unavailable" = "本地统计数据库不可用，暂时无法记录按键和鼠标。";
+"Input permission is enabled, but event monitoring could not start. Please reopen Nexus Drive after checking macOS Privacy settings." = "输入监控已授权，但监听未能启动。请检查 macOS 隐私设置并重新打开 Nexus Drive。";
+"Open Input Monitoring settings" = "打开输入监控设置";
+"Refresh permissions" = "刷新权限状态";
+"If you already approved access, confirm Nexus Drive is enabled in macOS Input Monitoring, then return here and refresh. Permissions for a previously installed Nexus app do not automatically transfer." = "如果已经授权，请确认「系统设置 → 隐私与安全性 → 输入监控」中开启的是 Nexus Drive，再返回刷新。以前授权给 Nexus 的权限不会自动转移。";
