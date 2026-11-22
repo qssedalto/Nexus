@@ -40,7 +40,7 @@ final class ClipboardCloudController: ObservableObject {
     @Published var includeFiles: Bool {
         didSet { defaults.set(includeFiles, forKey: "nexusFolderClipboardFiles") }
     }
-    @Published private(set) var status = "Folder synchronization is off"
+    @Published private(set) var status = localized("Folder synchronization is off")
     @Published private(set) var nextHistoryOffset: Int
     @Published private(set) var pendingCount = 0
     @Published private(set) var cachedRecords: [ClipboardCloudRecord] = []
@@ -192,7 +192,7 @@ final class ClipboardCloudController: ObservableObject {
         panel.canCreateDirectories = false
         guard panel.runModal() == .OK, let url = panel.url else { return }
         guard url.lastPathComponent == ClipboardFolderTransport.folderName else {
-            status = "Select the folder named NexusClipboardSync"
+            status = localized("Select the folder named NexusClipboardSync")
             return
         }
         do {
@@ -207,7 +207,7 @@ final class ClipboardCloudController: ObservableObject {
             defaults.set(bookmark, forKey: "nexusFolderSyncBookmark")
             selectedFolderURL = url
             selectedFolderPath = url.path
-            status = "Folder selected. Click Prepare folder before syncing."
+            status = localized("Folder selected. Click Prepare folder before syncing.")
             configureAutomaticSyncTimer()
         } catch {
             status = "Could not remember selected folder: \(error.localizedDescription)"
@@ -219,13 +219,13 @@ final class ClipboardCloudController: ObservableObject {
     /// an installed secret implicitly: older synced data would become unreadable.
     func generatePairingKey() {
         guard !pairingKeyConfigured else {
-            status = "An encryption key is already configured. Use Reveal to pair another device."
+            status = localized("An encryption key is already configured. Use Reveal to pair another device.")
             return
         }
         do {
             revealedPairingKey = try ClipboardFolderPairingKey.generate()
             pairingKeyConfigured = true
-            status = "Pairing key saved in Keychain. Transfer it only to devices you trust."
+            status = localized("Pairing key saved in Keychain. Transfer it only to devices you trust.")
         } catch { status = "Pairing key generation failed: \(error.localizedDescription)" }
     }
 
@@ -237,7 +237,7 @@ final class ClipboardCloudController: ObservableObject {
             pairingKeyEntry = ""
             revealedPairingKey = ""
             pairingKeyConfigured = true
-            status = "Encryption key saved in Keychain"
+            status = localized("Encryption key saved in Keychain")
         } catch { status = "Invalid pairing key: \(error.localizedDescription)" }
     }
 
@@ -245,7 +245,7 @@ final class ClipboardCloudController: ObservableObject {
         do {
             revealedPairingKey = try ClipboardFolderPairingKey.load()
                 .map { String(format: "%02x", $0) }.joined()
-            status = "Hide the pairing key once you have paired your other devices"
+            status = localized("Hide the pairing key once you have paired your other devices")
         } catch { status = "Cannot read pairing key: \(error.localizedDescription)" }
     }
 
@@ -257,7 +257,7 @@ final class ClipboardCloudController: ObservableObject {
         pasteboard.clearContents()
         _ = pasteboard.setString(revealedPairingKey, forType: .string)
         ClipboardMonitor.shared.ignoreCurrentChange()
-        status = "Pairing key copied. Clear the clipboard after securely transferring it."
+        status = localized("Pairing key copied. Clear the clipboard after securely transferring it.")
     }
 
     /// Stages one 200-record page and all local collections in an isolated
@@ -266,11 +266,11 @@ final class ClipboardCloudController: ObservableObject {
     func prepareLocalPage() async {
         guard !running else { return }
         guard enabled else {
-            status = "Enable iCloud clipboard consent first"
+            status = localized("Enable iCloud clipboard consent first")
             return
         }
         guard let store, let journal else {
-            status = "Local clipboard or journal database unavailable"
+            status = localized("Local clipboard or journal database unavailable")
             return
         }
         running = true
@@ -309,7 +309,7 @@ final class ClipboardCloudController: ObservableObject {
                 folderURL: selectedFolderURL, keyData: ClipboardFolderPairingKey.load()
             )
             try await transport.prepareFolderIfRequested()
-            status = "NexusClipboardSync folder is ready"
+            status = localized("NexusClipboardSync folder is ready")
         } catch {
             status = "Folder setup failed: \(error.localizedDescription)"
         }
@@ -317,9 +317,9 @@ final class ClipboardCloudController: ObservableObject {
 
     func syncNow(automaticRun: Bool = false) async {
         guard !running else { return }
-        guard enabled else { status = "Enable iCloud clipboard consent first"; return }
+        guard enabled else { status = localized("Enable iCloud clipboard consent first"); return }
         if automaticRun && (!automaticSyncEnabled || Task.isCancelled) { return }
-        guard let journal else { status = "Folder journal unavailable"; return }
+        guard let journal else { status = localized("Folder journal unavailable"); return }
         running = true
         defer { running = false }
         do {
@@ -360,7 +360,7 @@ final class ClipboardCloudController: ObservableObject {
         guard !running, enabled, let journal else { return }
         do {
             try journal.resetChangeToken(forZone: folderTokenNamespace)
-            status = "Cloud sync cursor reset. The next manual sync replays the zone."
+            status = localized("Cloud sync cursor reset. The next manual sync replays the zone.")
             refreshLocalCache()
         } catch {
             status = "Could not reset sync cursor: \(error.localizedDescription)"
@@ -373,7 +373,7 @@ final class ClipboardCloudController: ObservableObject {
     func restoreCachedHistory() async {
         guard !running, enabled else { return }
         guard let journal, let store else {
-            status = "Clipboard history or cloud journal database unavailable"
+            status = localized("Clipboard history or cloud journal database unavailable")
             return
         }
         running = true
@@ -436,7 +436,7 @@ final class ClipboardCloudController: ObservableObject {
         NSPasteboard.general.clearContents()
         if NSPasteboard.general.setString(text, forType: .string) {
             ClipboardMonitor.shared.ignoreCurrentChange()
-            status = "Remote text copied to system clipboard"
+            status = localized("Remote text copied to system clipboard")
         }
     }
 
