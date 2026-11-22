@@ -1,4 +1,3 @@
-import CloudKit
 import Foundation
 import NexusMobileCore
 import SwiftUI
@@ -9,7 +8,7 @@ import UIKit
 @MainActor
 final class MobileClipboardController: ObservableObject {
     @Published var cloudEnabled: Bool {
-        didSet { defaults.set(cloudEnabled, forKey: "nexusMobileCloudEnabled") }
+        didSet { defaults.set(cloudEnabled, forKey: "nexusMobileFolderEnabled") }
     }
     /// Foreground-only network sync; never implies a pasteboard read.
     @Published var foregroundSyncEnabled: Bool {
@@ -18,19 +17,19 @@ final class MobileClipboardController: ObservableObject {
         }
     }
     @Published var includeText: Bool {
-        didSet { defaults.set(includeText, forKey: "nexusMobileCloudText") }
+        didSet { defaults.set(includeText, forKey: "nexusMobileFolderText") }
     }
     @Published var includeNames: Bool {
-        didSet { defaults.set(includeNames, forKey: "nexusMobileCloudNames") }
+        didSet { defaults.set(includeNames, forKey: "nexusMobileFolderNames") }
     }
     @Published var includePaths: Bool {
-        didSet { defaults.set(includePaths, forKey: "nexusMobileCloudPaths") }
+        didSet { defaults.set(includePaths, forKey: "nexusMobileFolderPaths") }
     }
     @Published var includeImages: Bool {
-        didSet { defaults.set(includeImages, forKey: "nexusMobileCloudImages") }
+        didSet { defaults.set(includeImages, forKey: "nexusMobileFolderImages") }
     }
     @Published var includeFiles: Bool {
-        didSet { defaults.set(includeFiles, forKey: "nexusMobileCloudFiles") }
+        didSet { defaults.set(includeFiles, forKey: "nexusMobileFolderFiles") }
     }
     @Published private(set) var records: [ClipboardCloudRecord] = []
     @Published private(set) var localEntries: [MobileLocalClipboardEntry] = []
@@ -43,35 +42,35 @@ final class MobileClipboardController: ObservableObject {
     private let journal: ClipboardCloudJournal?
     private let localStore: MobileClipboardLocalStore?
     private let deviceID: String
-    private let zoneID = CKRecordZone.ID(
-        zoneName: "NexusClipboard", ownerName: CKCurrentUserDefaultName
-    )
+    private let folderTokenNamespace = "NexusClipboardFolderV1"
+    @Published private(set) var selectedFolderLabel: String = ""
+    private var selectedFolderURL: URL?
     private var lastForegroundSyncAttempt: Date?
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        lastSuccessfulSync = defaults.data(forKey: "nexusMobileCloudLastSuccess")
+        lastSuccessfulSync = defaults.data(forKey: "nexusMobileFolderLastSuccess")
             .flatMap { try? JSONDecoder().decode(ClipboardCloudRunSummary.self, from: $0) }
-        cloudEnabled = defaults.bool(forKey: "nexusMobileCloudEnabled")
+        cloudEnabled = defaults.bool(forKey: "nexusMobileFolderEnabled")
         foregroundSyncEnabled = defaults.bool(forKey: "nexusMobileForegroundSync")
-        includeText = defaults.bool(forKey: "nexusMobileCloudText")
-        includeNames = defaults.bool(forKey: "nexusMobileCloudNames")
-        includePaths = defaults.bool(forKey: "nexusMobileCloudPaths")
-        includeImages = defaults.bool(forKey: "nexusMobileCloudImages")
-        includeFiles = defaults.bool(forKey: "nexusMobileCloudFiles")
-        if let existing = defaults.string(forKey: "nexusMobileCloudDeviceID"),
+        includeText = defaults.bool(forKey: "nexusMobileFolderText")
+        includeNames = defaults.bool(forKey: "nexusMobileFolderNames")
+        includePaths = defaults.bool(forKey: "nexusMobileFolderPaths")
+        includeImages = defaults.bool(forKey: "nexusMobileFolderImages")
+        includeFiles = defaults.bool(forKey: "nexusMobileFolderFiles")
+        if let existing = defaults.string(forKey: "nexusMobileFolderDeviceID"),
            UUID(uuidString: existing) != nil {
             deviceID = existing
         } else {
             let generated = UUID().uuidString
-            defaults.set(generated, forKey: "nexusMobileCloudDeviceID")
+            defaults.set(generated, forKey: "nexusMobileFolderDeviceID")
             deviceID = generated
         }
         if let support = FileManager.default.urls(
             for: .applicationSupportDirectory, in: .userDomainMask
         ).first {
             journal = try? ClipboardCloudJournal(
-                url: support.appendingPathComponent("NexusMobileCloudJournal.sqlite")
+                url: support.appendingPathComponent("NexusMobileFolderJournal.sqlite")
             )
             localStore = try? MobileClipboardLocalStore(
                 url: support.appendingPathComponent("NexusMobileLocalHistory.sqlite")
@@ -80,17 +79,43 @@ final class MobileClipboardController: ObservableObject {
             journal = nil
             localStore = nil
         }
+        restoreSelectedFolder()
         refresh()
     }
 
-    var containerConfigured: Bool { containerID != nil }
+    var containerConfigured: Bool { selectedFolderURL != nil }
 
-    private var containerID: String? {
-        guard let value = Bundle.main.object(
-            forInfoDictionaryKey: "NexusCloudKitContainerIdentifier"
-        ) as? String, value.hasPrefix("iCloud."), !value.contains("$"),
-              value.utf8.count <= 200 else { return nil }
-        return value
+    /// The system document picker grants access to this selected directory.
+    func selectSyncFolder(_ url: URL) {
+        guard url.lastPathComponent == ClipboardFolderTransport.folderName else {
+            status = "Select the folder named NexusClipboardSync"
+            return
+        }
+        let accessed = url.startAccessingSecurityScopedResource()
+        defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+        do {
+            let bookmark = try url.bookmarkData()
+            defaults.set(bookmark, forKey: "nexusMobileFolderBookmark")
+            selectedFolderURL = url
+            selectedFolderLabel = url.lastPathComponent
+            status = "Folder selected. Prepare it before syncing."
+        } catch {
+            status = "Could not remember selected folder: \\(error.localizedDescription)"
+        }
+    }
+
+    private func restoreSelectedFolder() {
+        guard let bookmark = defaults.data(forKey: "nexusMobileFolderBookmark") else {
+            return
+        }
+        var stale = false
+        guard let url = try? URL(resolvingBookmarkData: bookmark, options: [],
+            relativeTo: nil, bookmarkDataIsStale: &stale),
+              !stale, url.lastPathComponent == ClipboardFolderTransport.folderName else {
+            return
+        }
+        selectedFolderURL = url
+        selectedFolderLabel = url.lastPathComponent
     }
 
     private var consent: ClipboardCloudConsent {
@@ -122,7 +147,7 @@ final class MobileClipboardController: ObservableObject {
                 text, detectedTimeMS: stamp
             )
             // A successful user-triggered local save is independent of
-            // CloudKit consent. CloudKit staging requires explicit opt-in.
+            // CloudKit consent. folder staging requires explicit opt-in.
             if cloudEnabled, let journal {
                 let local = RecordedOperation(
                     id: saved.id, detectedTimeMS: stamp, clipboardText: text
@@ -261,16 +286,16 @@ final class MobileClipboardController: ObservableObject {
         status = NSLocalizedString("Text copied to system clipboard", comment: "")
     }
 
-    func setupPrivateZone() async {
-        guard !running, cloudEnabled else { return }
+    func prepareSelectedFolder() async {
+        guard !running, let selectedFolderURL else { return }
         running = true
         defer { running = false }
         do {
-            let transport = try await makeTransport()
-            try await transport.createZoneIfRequested()
-            status = NSLocalizedString("iCloud private zone ready", comment: "")
+            try await ClipboardFolderTransport(folderURL: selectedFolderURL)
+                .prepareFolderIfRequested()
+            status = "NexusClipboardSync folder is ready"
         } catch {
-            status = "iCloud setup unavailable: \(error.localizedDescription)"
+            status = "Could not prepare folder: \\(error.localizedDescription)"
         }
     }
 
@@ -298,7 +323,7 @@ final class MobileClipboardController: ObservableObject {
         do {
             let transport = try await makeTransport()
             let coordinator = try ClipboardCloudSyncCoordinator(
-                journal: journal, transport: transport, zoneID: zoneID.zoneName
+                journal: journal, transport: transport, zoneID: folderTokenNamespace
             )
             let report = try await coordinator.syncOnce(consentProvider: { [weak self] in
                 await MainActor.run {
@@ -314,7 +339,7 @@ final class MobileClipboardController: ObservableObject {
             ) {
                 lastSuccessfulSync = summary
                 if let encoded = try? JSONEncoder().encode(summary) {
-                    defaults.set(encoded, forKey: "nexusMobileCloudLastSuccess")
+                    defaults.set(encoded, forKey: "nexusMobileFolderLastSuccess")
                 }
             }
             refresh()
@@ -328,7 +353,7 @@ final class MobileClipboardController: ObservableObject {
     func resetServerCursor() {
         guard !running, cloudEnabled, let journal else { return }
         do {
-            try journal.resetChangeToken(forZone: zoneID.zoneName)
+            try journal.resetChangeToken(forZone: folderTokenNamespace)
             status = NSLocalizedString("Sync cursor reset; next sync replays remote changes", comment: "")
             refresh()
         } catch {
@@ -337,7 +362,7 @@ final class MobileClipboardController: ObservableObject {
     }
 
     /// Read only a previously downloaded, verified image from the private
-    /// CloudKit cache. No remote network or system pasteboard read occurs.
+    /// folder sync cache. No remote network or system pasteboard read occurs.
     /// For a user-triggered document exporter only. The original file name
     /// has been validated and remote binary bytes remain in the app cache.
     func cachedRemoteFile(recordID: String) -> ClipboardCloudFileAsset? {
@@ -382,7 +407,7 @@ final class MobileClipboardController: ObservableObject {
         }
     }
 
-    /// Explicit offline-only removal of CloudKit cache/outbox/cursors.
+    /// Explicit offline-only removal of folder sync cache/outbox/cursors.
     /// The separately saved iPhone/iPad local clipboard history is retained.
     func clearLocalCloudData() async {
         guard !running, let journal else { return }
@@ -407,7 +432,7 @@ final class MobileClipboardController: ObservableObject {
 
     /// Explicitly erases the dedicated Nexus private iCloud zone after the
     /// UI obtains a separate typed confirmation. No background invocation.
-    func erasePrivateNexusCloudZone(confirmation: String) async {
+    func eraseSyncedFolderData(confirmation: String) async {
         guard confirmation == "DELETE", !running, let journal else { return }
         cloudEnabled = false
         foregroundSyncEnabled = false
@@ -424,7 +449,7 @@ final class MobileClipboardController: ObservableObject {
             resetCloudPreferencesAfterPurge()
             refresh()
             status = NSLocalizedString(
-                "Nexus iCloud zone deleted. Disable syncing on other devices.",
+                "Nexus folder sync records deleted. Disable syncing on other devices.",
                 comment: ""
             )
         } catch {
@@ -440,28 +465,12 @@ final class MobileClipboardController: ObservableObject {
         includeImages = false
         includeFiles = false
         lastSuccessfulSync = nil
-        defaults.removeObject(forKey: "nexusMobileCloudLastSuccess")
+        defaults.removeObject(forKey: "nexusMobileFolderLastSuccess")
     }
 
-    private func makeTransport() async throws -> ClipboardCloudKitPrivateTransport {
-        enum Unavailable: Error { case missingContainer, signedOut }
-        guard let id = containerID else { throw Unavailable.missingContainer }
-        let container = CKContainer(identifier: id)
-        guard try await container.accountStatus() == .available else {
-            throw Unavailable.signedOut
-        }
-        return try ClipboardCloudKitPrivateTransport(
-            database: container.privateCloudDatabase, zoneID: zoneID,
-            mayDownloadImages: { [weak self] in
-                await MainActor.run {
-                    self?.consent.includeImages == true
-                }
-            },
-            mayDownloadFiles: { [weak self] in
-                await MainActor.run {
-                    self?.consent.includeFiles == true
-                }
-            }
-        )
+    private func makeTransport() async throws -> ClipboardFolderTransport {
+        enum Unavailable: Error { case missingSelectedFolder }
+        guard let selectedFolderURL else { throw Unavailable.missingSelectedFolder }
+        return ClipboardFolderTransport(folderURL: selectedFolderURL)
     }
 }
