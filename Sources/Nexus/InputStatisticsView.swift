@@ -19,6 +19,7 @@ final class InputStatisticsController: ObservableObject {
     @Published var selectedCategory = ""
     @Published var selectedKeyName = ""
     @Published private(set) var permissionGranted = false
+    @Published private(set) var monitoringActive = false
     /// Defaults to on for existing users but remains under their control.
     /// Turning this off stops the event tap and related diagnostics.
     @Published var enabled: Bool {
@@ -101,6 +102,7 @@ final class InputStatisticsController: ObservableObject {
         } else {
             monitor.stop()
         }
+        monitoringActive = monitor.isRunning
     }
 
     /// Called when System Settings returns to the foreground and by the
@@ -111,12 +113,14 @@ final class InputStatisticsController: ObservableObject {
         if !granted {
             monitor?.stop()
             permissionGranted = false
+            monitoringActive = false
             return
         }
         permissionGranted = true
         if enabled && !paused && monitor?.isRunning != true {
             startIfPermitted()
         }
+        monitoringActive = monitor?.isRunning ?? false
     }
 
     func openInputMonitoringSettings() {
@@ -225,6 +229,15 @@ struct InputStatisticsView: View {
                 if !controller.permissionGranted { Button(localized("Grant input permission")) { controller.requestPermission() } }
             }
             Toggle(localized("Enable keyboard and mouse statistics"), isOn: $controller.enabled)
+            if controller.enabled && !controller.paused && controller.permissionGranted {
+                Label(localized(controller.monitoringActive
+                    ? "Keyboard and mouse monitoring is running."
+                    : "Permission is granted, but event monitoring is not running."),
+                    systemImage: controller.monitoringActive
+                        ? "checkmark.circle" : "exclamationmark.triangle")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             Toggle(localized("Pause statistics"), isOn: $controller.paused)
                 .disabled(!controller.enabled)
             Toggle(localized("Count held-key repeats"), isOn: Binding(
