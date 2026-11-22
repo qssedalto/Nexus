@@ -775,3 +775,5 @@
 "Keyboard and mouse monitoring is running." = "键盘和鼠标监听正在运行。";
 "Permission is granted, but event monitoring is not running." = "系统已授权，但输入监听尚未运行。";
 "Input access is granted, but the event listener is not running." = "输入监控已授权，但监听程序未启动。";
+
+"Verify the server connection before uploading." = "请先验证服务器连接，再授权上传。";
