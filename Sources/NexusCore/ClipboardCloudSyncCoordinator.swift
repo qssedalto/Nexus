@@ -443,8 +443,10 @@ public enum ClipboardFolderPairingKey {
 
     public static func generate() throws -> String {
         var bytes = [UInt8](repeating: 0, count: 32)
-        guard SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes) == errSecSuccess
-        else { throw KeyError.generationFailed }
+        let result = bytes.withUnsafeMutableBytes { buffer in
+            SecRandomCopyBytes(kSecRandomDefault, buffer.count, buffer.baseAddress!)
+        }
+        guard result == errSecSuccess else { throw KeyError.generationFailed }
         let hex = bytes.map { String(format: "%02x", $0) }.joined()
         try save(hex: hex)
         return hex
