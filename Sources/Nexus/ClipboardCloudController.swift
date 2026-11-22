@@ -1,49 +1,46 @@
 import AppKit
-import CloudKit
-import Security
 import Foundation
 import NexusCore
 import SwiftUI
 
-/// CloudKit clipboard integration. Network access is manual unless the user
-/// explicitly enables the separate scheduled sync control. Simply opening
-/// Settings never contacts CloudKit. A signed app must supply
-/// NexusCloudKitContainerIdentifier in Info.plist.
+/// Explicit, opt-in clipboard synchronization through a user-selected folder.
+/// The system File Provider syncs that folder; no iCloud Drive API or entitlement
+/// is requested. Old iCloud Drive journals and preferences are not opened.
 @MainActor
 final class ClipboardCloudController: ObservableObject {
     static let shared = ClipboardCloudController()
 
     @Published var enabled: Bool {
         didSet {
-            defaults.set(enabled, forKey: "nexusCloudClipboardEnabled")
+            defaults.set(enabled, forKey: "nexusFolderClipboardEnabled")
             configureAutomaticSyncTimer()
         }
     }
-    /// Separate consent for timed CloudKit access. The default is OFF even
+    /// Separate consent for timed iCloud Drive access. The default is OFF even
     /// when the user previously enabled manual iCloud clipboard sync.
     @Published var automaticSyncEnabled: Bool {
         didSet {
-            defaults.set(automaticSyncEnabled, forKey: "nexusCloudClipboardAutomaticSync")
+            defaults.set(automaticSyncEnabled, forKey: "nexusFolderClipboardAutomaticSync")
             configureAutomaticSyncTimer()
         }
     }
     @Published var includeNames: Bool {
-        didSet { defaults.set(includeNames, forKey: "nexusCloudClipboardNames") }
+        didSet { defaults.set(includeNames, forKey: "nexusFolderClipboardNames") }
     }
     @Published var includeText: Bool {
-        didSet { defaults.set(includeText, forKey: "nexusCloudClipboardText") }
+        didSet { defaults.set(includeText, forKey: "nexusFolderClipboardText") }
     }
     @Published var includePaths: Bool {
-        didSet { defaults.set(includePaths, forKey: "nexusCloudClipboardPaths") }
+        didSet { defaults.set(includePaths, forKey: "nexusFolderClipboardPaths") }
     }
     /// Independent, revocable permission for image CKAsset transfer.
     @Published var includeImages: Bool {
-        didSet { defaults.set(includeImages, forKey: "nexusCloudClipboardImages") }
+        didSet { defaults.set(includeImages, forKey: "nexusFolderClipboardImages") }
     }
     @Published var includeFiles: Bool {
-        didSet { defaults.set(includeFiles, forKey: "nexusCloudClipboardFiles") }
+        didSet { defaults.set(includeFiles, forKey: "nexusFolderClipboardFiles") }
     }
-    @Published private(set) var status = "iCloud clipboard sync is off"
+    @Published private(set) var status = "Folder synchronization is off"
     @Published private(set) var nextHistoryOffset: Int
     @Published private(set) var pendingCount = 0
     @Published private(set) var cachedRecords: [ClipboardCloudRecord] = []
@@ -54,9 +51,9 @@ final class ClipboardCloudController: ObservableObject {
     private let deviceID: String
     private let journal: ClipboardCloudJournal?
     private let store: OperationStore?
-    private let zoneID = CKRecordZone.ID(
-        zoneName: "NexusClipboard", ownerName: CKCurrentUserDefaultName
-    )
+    private let folderTokenNamespace = "NexusClipboardFolderV1"
+    @Published private(set) var selectedFolderPath: String = ""
+    private var selectedFolderURL: URL?
     private let maximumHistoryPage = 200
     private var automaticSyncTimer: Timer?
     private var automaticSyncTask: Task<Void, Never>?
@@ -65,24 +62,25 @@ final class ClipboardCloudController: ObservableObject {
     private init() {
         let defaults = UserDefaults.standard
         self.defaults = defaults
-        lastSuccessfulSync = defaults.data(forKey: "nexusCloudClipboardLastSuccess")
+        lastSuccessfulSync = defaults.data(forKey: "nexusFolderClipboardLastSuccess")
             .flatMap { try? JSONDecoder().decode(ClipboardCloudRunSummary.self, from: $0) }
-        enabled = defaults.bool(forKey: "nexusCloudClipboardEnabled")
-        automaticSyncEnabled = defaults.bool(forKey: "nexusCloudClipboardAutomaticSync")
-        includeNames = defaults.bool(forKey: "nexusCloudClipboardNames")
-        includeText = defaults.bool(forKey: "nexusCloudClipboardText")
-        includePaths = defaults.bool(forKey: "nexusCloudClipboardPaths")
-        includeImages = defaults.bool(forKey: "nexusCloudClipboardImages")
-        includeFiles = defaults.bool(forKey: "nexusCloudClipboardFiles")
-        nextHistoryOffset = max(0, defaults.integer(forKey: "nexusCloudClipboardHistoryOffset"))
-        if let saved = defaults.string(forKey: "nexusCloudClipboardDeviceID"),
+        enabled = defaults.bool(forKey: "nexusFolderClipboardEnabled")
+        automaticSyncEnabled = defaults.bool(forKey: "nexusFolderClipboardAutomaticSync")
+        includeNames = defaults.bool(forKey: "nexusFolderClipboardNames")
+        includeText = defaults.bool(forKey: "nexusFolderClipboardText")
+        includePaths = defaults.bool(forKey: "nexusFolderClipboardPaths")
+        includeImages = defaults.bool(forKey: "nexusFolderClipboardImages")
+        includeFiles = defaults.bool(forKey: "nexusFolderClipboardFiles")
+        nextHistoryOffset = max(0, defaults.integer(forKey: "nexusFolderClipboardHistoryOffset"))
+        if let saved = defaults.string(forKey: "nexusFolderClipboardDeviceID"),
            UUID(uuidString: saved) != nil {
             deviceID = saved
         } else {
             let newID = UUID().uuidString
             deviceID = newID
-            defaults.set(newID, forKey: "nexusCloudClipboardDeviceID")
+            defaults.set(newID, forKey: "nexusFolderClipboardDeviceID")
         }
+        restoreSelectedFolder()
         store = OperationStore.shared()
         if let group = Bundle.main.object(
             forInfoDictionaryKey: SharedSettings.appGroupIdentifierInfoKey
@@ -91,7 +89,7 @@ final class ClipboardCloudController: ObservableObject {
                forSecurityApplicationGroupIdentifier: group
            ) {
             journal = try? ClipboardCloudJournal(
-                url: home.appendingPathComponent("NexusClipboardCloudJournal.sqlite")
+                url: home.appendingPathComponent("NexusClipboardFolderJournal.sqlite")
             )
         } else {
             journal = nil
@@ -101,7 +99,7 @@ final class ClipboardCloudController: ObservableObject {
     }
 
     /// The timer is created only under both independent user consents and a
-    /// signed CloudKit configuration. A disabled toggle prevents future
+    /// signed iCloud Drive configuration. A disabled toggle prevents future
     /// network attempts and cancels our scheduled in-flight task.
     private func configureAutomaticSyncTimer() {
         automaticSyncTimer?.invalidate()
@@ -159,32 +157,62 @@ final class ClipboardCloudController: ObservableObject {
         )
     }
 
-    var containerConfigured: Bool { configuredContainerID != nil }
+    var containerConfigured: Bool { selectedFolderURL != nil }
 
-    private var configuredContainerID: String? {
-        guard let id = Bundle.main.object(
-            forInfoDictionaryKey: "NexusCloudKitContainerIdentifier"
-        ) as? String, id.hasPrefix("iCloud."), !id.contains("$"),
-              id.utf8.count < 200 else { return nil }
-        // An Info.plist string alone does not grant CloudKit access.
-        // Refuse to create CKContainer until the app's *actual* code signature
-        // also includes CloudKit and this same container identifier.
-        guard let signingTask = SecTaskCreateFromSelf(kCFAllocatorDefault),
-              let services = SecTaskCopyValueForEntitlement(
-                signingTask, "com.apple.developer.icloud-services" as CFString, nil
-              ) as? [String],
-              let containers = SecTaskCopyValueForEntitlement(
-                signingTask, "com.apple.developer.icloud-container-identifiers" as CFString, nil
-              ) as? [String],
-              services.contains("CloudKit"), containers.contains(id) else {
-            return nil
+    private func restoreSelectedFolder() {
+        guard let bookmark = defaults.data(forKey: "nexusFolderSyncBookmark") else { return }
+        var stale = false
+        let location = (try? URL(
+            resolvingBookmarkData: bookmark, options: [.withSecurityScope],
+            relativeTo: nil, bookmarkDataIsStale: &stale
+        )) ?? (try? URL(
+            resolvingBookmarkData: bookmark, options: [],
+            relativeTo: nil, bookmarkDataIsStale: &stale
+        ))
+        guard let location, location.lastPathComponent == ClipboardFolderTransport.folderName else {
+            return
         }
-        return id
+        selectedFolderURL = location
+        selectedFolderPath = location.path
+    }
+
+    /// The dialog is the only way to grant this build access to the user's
+    /// explicitly selected iCloud Drive folder. Never choose a guessed path.
+    func chooseSyncFolder() {
+        let panel = NSOpenPanel()
+        panel.title = localized("Choose Nexus clipboard sync folder")
+        panel.message = localized("Select your existing NexusClipboardSync folder in iCloud Drive.")
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.canCreateDirectories = false
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        guard url.lastPathComponent == ClipboardFolderTransport.folderName else {
+            status = "Select the folder named NexusClipboardSync"
+            return
+        }
+        do {
+            let bookmark: Data
+            do {
+                bookmark = try url.bookmarkData(options: [.withSecurityScope],
+                    includingResourceValuesForKeys: nil, relativeTo: nil)
+            } catch {
+                bookmark = try url.bookmarkData(options: [],
+                    includingResourceValuesForKeys: nil, relativeTo: nil)
+            }
+            defaults.set(bookmark, forKey: "nexusFolderSyncBookmark")
+            selectedFolderURL = url
+            selectedFolderPath = url.path
+            status = "Folder selected. Click Prepare folder before syncing."
+            configureAutomaticSyncTimer()
+        } catch {
+            status = "Could not remember selected folder: \\(error.localizedDescription)"
+        }
     }
 
     /// Stages one 200-record page and all local collections in an isolated
     /// utility task; the card UI never waits for SQLite/image work. This is a
-    /// local preparatory action, not an implicit CloudKit upload.
+    /// local preparatory action, not an implicit iCloud Drive upload.
     func prepareLocalPage() async {
         guard !running else { return }
         guard enabled else {
@@ -213,7 +241,7 @@ final class ClipboardCloudController: ObservableObject {
                 return (page, collectionCount)
             }.value
             nextHistoryOffset = result.0.nextOffset ?? 0
-            defaults.set(nextHistoryOffset, forKey: "nexusCloudClipboardHistoryOffset")
+            defaults.set(nextHistoryOffset, forKey: "nexusFolderClipboardHistoryOffset")
             refreshLocalCache()
             status = "Prepared \(result.0.staged) history records and \(result.1) collection changes locally"
         } catch {
@@ -221,19 +249,17 @@ final class ClipboardCloudController: ObservableObject {
         }
     }
 
-    /// This is the ONLY place a CloudKit container may be created. It is
-    /// invoked by a direct user click after an explicit account consent.
-    func setupPrivateZone() async {
-        guard !running else { return }
-        guard enabled else { status = "Enable iCloud clipboard consent first"; return }
+    /// User-initiated folder initialization, not an Apple container request.
+    func prepareSelectedFolder() async {
+        guard !running, let selectedFolderURL else { return }
         running = true
         defer { running = false }
         do {
-            let transport = try await makeTransport()
-            try await transport.createZoneIfRequested()
-            status = "Private iCloud clipboard zone ready"
+            let transport = ClipboardFolderTransport(folderURL: selectedFolderURL)
+            try await transport.prepareFolderIfRequested()
+            status = "NexusClipboardSync folder is ready"
         } catch {
-            status = "iCloud zone unavailable: \(error.localizedDescription)"
+            status = "Folder setup failed: \\(error.localizedDescription)"
         }
     }
 
@@ -241,13 +267,13 @@ final class ClipboardCloudController: ObservableObject {
         guard !running else { return }
         guard enabled else { status = "Enable iCloud clipboard consent first"; return }
         if automaticRun && (!automaticSyncEnabled || Task.isCancelled) { return }
-        guard let journal else { status = "Cloud journal unavailable"; return }
+        guard let journal else { status = "Folder journal unavailable"; return }
         running = true
         defer { running = false }
         do {
             let transport = try await makeTransport()
             let coordinator = try ClipboardCloudSyncCoordinator(
-                journal: journal, transport: transport, zoneID: zoneID.zoneName
+                journal: journal, transport: transport, zoneID: folderTokenNamespace
             )
             // Current privacy settings are rechecked when the coordinator
             // decides whether old, queued metadata can leave this Mac.
@@ -265,14 +291,14 @@ final class ClipboardCloudController: ObservableObject {
             ) {
                 lastSuccessfulSync = summary
                 if let encoded = try? JSONEncoder().encode(summary) {
-                    defaults.set(encoded, forKey: "nexusCloudClipboardLastSuccess")
+                    defaults.set(encoded, forKey: "nexusFolderClipboardLastSuccess")
                 }
             }
             refreshLocalCache()
             status = "Uploaded \(report.uploaded), received \(report.downloaded), pending \(report.pending)" +
                 (report.moreComing ? " — more cloud pages available" : "")
         } catch {
-            status = "iCloud clipboard sync failed: \(error.localizedDescription)"
+            status = "Folder sync failed: \(error.localizedDescription)"
         }
     }
 
@@ -281,7 +307,7 @@ final class ClipboardCloudController: ObservableObject {
     func resetServerCursor() {
         guard !running, enabled, let journal else { return }
         do {
-            try journal.resetChangeToken(forZone: zoneID.zoneName)
+            try journal.resetChangeToken(forZone: folderTokenNamespace)
             status = "Cloud sync cursor reset. The next manual sync replays the zone."
             refreshLocalCache()
         } catch {
@@ -289,7 +315,7 @@ final class ClipboardCloudController: ObservableObject {
         }
     }
 
-    /// Explicitly restore sanitized metadata/text from the local CloudKit
+    /// Explicitly restore sanitized metadata/text from the local iCloud Drive
     /// journal into the normal history shelf. Never materializes remote file
     /// paths as working local file URL references.
     func restoreCachedHistory() async {
@@ -382,11 +408,11 @@ final class ClipboardCloudController: ObservableObject {
         }
     }
 
-    /// Erases the dedicated NexusClipboard private CloudKit zone ONLY after
+    /// Erases the dedicated NexusClipboard private iCloud Drive zone ONLY after
     /// a separate typed confirmation in the settings sheet. Sync is disabled
     /// before network access to prevent any new local uploads during cleanup.
     /// If the network fails, the local journal remains available for retry.
-    func erasePrivateNexusCloudZone(confirmation: String) async {
+    func eraseSyncedFolderData(confirmation: String) async {
         guard confirmation == "DELETE", !running,
               let journal, let store else { return }
         enabled = false
@@ -401,16 +427,16 @@ final class ClipboardCloudController: ObservableObject {
             try await purge.purgeCloudZoneAndLocalCache(
                 confirmation: confirmation,
                 afterRemoteDeletion: {
-                    // If local mirror removal fails, preserve CloudKit's
+                    // If local mirror removal fails, preserve iCloud Drive's
                     // outbox and cursor for a safe, idempotent retry.
                     _ = try store.discardImportedCloudMirrors()
                 }
             )
             resetCloudPreferencesAfterPurge()
             refreshLocalCache()
-            status = localized("Nexus private iCloud clipboard zone deleted. Disable sync on other devices to prevent recreation.")
+            status = localized("NexusClipboardSync documents deleted. Disable sync on other devices to prevent re-upload.")
         } catch {
-            status = localized("Cloud deletion failed; sync remains disabled and local recovery data may remain")
+            status = localized("Folder deletion failed; sync remains disabled and local recovery data may remain")
                 + ": " + error.localizedDescription
         }
     }
@@ -432,12 +458,12 @@ final class ClipboardCloudController: ObservableObject {
         includeImages = false
         includeFiles = false
         nextHistoryOffset = 0
-        defaults.removeObject(forKey: "nexusCloudClipboardHistoryOffset")
+        defaults.removeObject(forKey: "nexusFolderClipboardHistoryOffset")
         lastSuccessfulSync = nil
-        defaults.removeObject(forKey: "nexusCloudClipboardLastSuccess")
+        defaults.removeObject(forKey: "nexusFolderClipboardLastSuccess")
     }
 
-    /// User-triggered local export of a verified CloudKit file asset.
+    /// User-triggered local export of a verified iCloud Drive file asset.
     /// Never writes a remote path or file name to disk without SavePanel.
     func saveCachedRemoteFile(recordID: String) {
         guard enabled, includeFiles, let journal else { return }
@@ -460,42 +486,9 @@ final class ClipboardCloudController: ObservableObject {
         }
     }
 
-    private func makeTransport() async throws -> ClipboardCloudKitPrivateTransport {
-        enum Availability: Error { case missingContainer, unavailableAccount }
-        guard let id = configuredContainerID else { throw Availability.missingContainer }
-        let container = CKContainer(identifier: id)
-        guard try await container.accountStatus() == .available else {
-            throw Availability.unavailableAccount
-        }
-        let store = store
-        return try ClipboardCloudKitPrivateTransport(
-            database: container.privateCloudDatabase, zoneID: zoneID,
-            imageProvider: { id in
-                guard id.hasPrefix("operation:"),
-                      let store, let image = try store.imageContent(
-                        operationID: String(id.dropFirst("operation:".count))
-                      ) else { return nil }
-                return ClipboardCloudImageAsset(
-                    bytes: image.data, pasteboardType: image.pasteboardType
-                )
-            },
-            mayDownloadImages: { [weak self] in
-                await MainActor.run {
-                    self?.currentConsent.includeImages == true
-                }
-            },
-            fileProvider: { id in
-                guard id.hasPrefix("operation:"),
-                      let store else { return nil }
-                return try store.cloudFileAsset(
-                    operationID: String(id.dropFirst("operation:".count))
-                )
-            },
-            mayDownloadFiles: { [weak self] in
-                await MainActor.run {
-                    self?.currentConsent.includeFiles == true
-                }
-            }
-        )
+    private func makeTransport() async throws -> ClipboardFolderTransport {
+        enum Availability: Error { case missingSelectedFolder }
+        guard let selectedFolderURL else { throw Availability.missingSelectedFolder }
+        return ClipboardFolderTransport(folderURL: selectedFolderURL)
     }
 }
