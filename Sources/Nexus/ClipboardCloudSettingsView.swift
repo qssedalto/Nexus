@@ -30,6 +30,8 @@ struct ClipboardCloudSettingsView: View {
                     .disabled(!cloud.enabled || !cloud.containerConfigured)
                 Text(localized("Synchronization is off by default. Nexus only reads and writes the folder you select, when authorized. Apple Files synchronizes it between devices independently."))
                     .font(.caption).foregroundStyle(.secondary)
+                Text(localized("Folder sync v1 stores unencrypted JSON. Do not synchronize passwords, private text or sensitive file paths."))
+                    .font(.caption).foregroundStyle(.secondary)
             }
 
             Section(localized("End-to-end encryption and device pairing")) {
