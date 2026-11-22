@@ -6,6 +6,33 @@ import Testing
 @Suite("App state")
 @MainActor
 struct AppStateTests {
+    @Test("Refreshing after a new copy keeps the selected timeline range")
+    func timelineRefreshPreservesSelectedRange() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = try OperationStore(url: directory.appendingPathComponent("history.sqlite"))
+        let now = Int64(Date().timeIntervalSince1970 * 1_000)
+        try store.record(type: "text_copy", urls: [], sourceApplication: nil,
+                         detectionMethod: "test", eventTimeMS: now, clipboardText: "Outside range")
+        let appState = AppState(
+            settings: AppSettingsStore(defaults: makeDefaults()),
+            clipboardWriter: SpyClipboardWriter(),
+            launchAtLoginController: FakeLaunchAtLoginController(),
+            finderExtensionController: FakeFinderExtensionController(),
+            operationStore: store
+        )
+        appState.refreshOperations(from: now + 1, to: now + 100)
+        try store.record(type: "text_copy", urls: [], sourceApplication: nil,
+                         detectionMethod: "test", eventTimeMS: now + 10, clipboardText: "Inside range")
+        appState.refreshOperations()
+        let deadline = ContinuousClock.now.advanced(by: .seconds(2))
+        while appState.loadingOperations && ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        #expect(!appState.loadingOperations)
+        #expect(appState.operations.compactMap(\.clipboardText) == ["Inside range"])
+    }
+
     @Test("Dropped URLs are formatted, copied, and persisted")
     func droppedURLsAreCopiedAndPersisted() {
         let defaults = makeDefaults()
@@ -64,9 +91,10 @@ struct AppStateTests {
             launchAtLoginController: FakeLaunchAtLoginController(),
             finderExtensionController: FakeFinderExtensionController()
         )
-        appState.clipboardDidChange("Paste request detected")
+        appState.clipboardDidChange("Paste detected")
         #expect(appState.feedback?.kind == .observation)
-        #expect(appState.feedback?.message == localized("Paste request detected"))
+        #expect(appState.feedback?.message == localized("Paste detected"))
+        #expect(appState.feedback?.detail == nil)
         appState.finderCopyDidSucceed()
         #expect(appState.feedback?.kind == .success)
     }

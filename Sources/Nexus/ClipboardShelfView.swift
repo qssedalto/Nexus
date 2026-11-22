@@ -11,6 +11,7 @@ struct ClipboardShelfView: View {
     let onPasteRequested: () -> Void
     let onCloseRequested: () -> Void
     @State private var selectedOperationID: String?
+    @State private var detailOperation: RecordedOperation?
     @FocusState private var shelfFocused: Bool
     @FocusState private var searchFocused: Bool
     @State private var search = ""
@@ -359,16 +360,16 @@ struct ClipboardShelfView: View {
                 }
                 .frame(maxWidth: .infinity, minHeight: 225)
             } else {
-                ScrollView(.horizontal, showsIndicators: true) {
-                    LazyHStack(spacing: 12) {
+                ScrollView(.vertical, showsIndicators: true) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 230, maximum: 340), spacing: 14)],
+                              alignment: .leading, spacing: 14) {
                         ForEach(operations) { operation in
                             card(for: operation)
                         }
                     }
-                    .padding(.vertical, 6)
-                    .padding(.horizontal, 2)
+                    .padding(4)
                 }
-                .frame(height: 270)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
 
             if shouldQueryDatabase
@@ -398,7 +399,7 @@ struct ClipboardShelfView: View {
             }
         }
         .padding(18)
-        .frame(minWidth: 750, idealWidth: 960, minHeight: 430, idealHeight: 540)
+        .frame(minWidth: 820, idealWidth: 1080, minHeight: 580, idealHeight: 680)
         .background(.regularMaterial)
         .focusable()
         .focused($shelfFocused)
@@ -415,6 +416,21 @@ struct ClipboardShelfView: View {
         // background writer and miss the newly inserted clipboard event.
         .onChange(of: clipboard.savedRevision) { _ in
             refreshShelf()
+        }
+        .sheet(item: $detailOperation) { operation in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(categoryTitle(for: operation)).font(.title3.weight(.semibold))
+                    Text(operation.clipboardText ?? operation.items.compactMap(\.source).joined(separator: "\n"))
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text(localized("The foreground app at detection time may differ from the actual copy source."))
+                        .font(.caption).foregroundStyle(.secondary)
+                    Button(localized("Copy again")) { _ = copyAgain(operation) }
+                }
+                .padding(22)
+            }
+            .frame(minWidth: 480, minHeight: 300)
         }
         .onChange(of: filterFingerprint) { _ in searchPageCount = 1 }
         .task(id: searchFingerprint) {
@@ -618,17 +634,17 @@ struct ClipboardShelfView: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                 Spacer(minLength: 4)
-                Button {
-                    copyAgain(operation)
-                } label: {
-                    Image(systemName: "doc.on.doc")
+                Button(localized("Details")) { detailOperation = operation }
+                    .buttonStyle(.borderless)
+                Button { _ = copyAgain(operation) } label: {
+                    Label(localized("Copy"), systemImage: "doc.on.doc")
                 }
                 .buttonStyle(.borderless)
                 .help(localized("Copy again"))
             }
         }
         .padding(14)
-        .frame(width: 202, height: 250)
+        .frame(maxWidth: .infinity, minHeight: 250, maxHeight: 300)
         .background(accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 16))
         .overlay {
             RoundedRectangle(cornerRadius: 16)
@@ -661,14 +677,9 @@ struct ClipboardShelfView: View {
         }
         .onTapGesture {
             selectedOperationID = operation.id
-            if NSEvent.modifierFlags.contains(.control) {
-                // On macOS Control+click may open the native context menu
-                // instead; the menu also exposes Paste as plain text.
-                requestPaste(operation, plainText: true)
-            }
         }
         .onTapGesture(count: 2) {
-            requestPaste(operation, plainText: NSEvent.modifierFlags.contains(.control))
+            detailOperation = operation
         }
         .contextMenu {
             Button(localized("Copy again")) { _ = copyAgain(operation) }
@@ -1060,42 +1071,13 @@ struct ClipboardShelfView: View {
 
     @discardableResult
     private func copyAgain(_ operation: RecordedOperation) -> Bool {
-        if operation.type == "image_copy" {
-            guard let image = try? OperationStore.shared()?.imageContent(operationID: operation.id) else {
-                message = localized("Original clipboard image unavailable")
-                return false
-            }
-            let pasteboard = NSPasteboard.general
-            pasteboard.clearContents()
-            let copied = pasteboard.setData(
-                image.data, forType: NSPasteboard.PasteboardType(image.pasteboardType)
-            )
-            if copied { ClipboardMonitor.shared.ignoreCurrentChange() }
-            message = localized(copied ? "Copied again" : "Clipboard write failed")
-            return copied
-        }
-        if let text = operation.clipboardText, !text.isEmpty {
-            let copied = appState.copyAgain(text)
-            message = localized(copied ? "Copied again" : "Clipboard write failed")
-            return copied
-        }
-        let urls = operation.items.compactMap { item -> NSURL? in
-            guard let source = item.source, source.hasPrefix("/") else { return nil }
-            return NSURL(fileURLWithPath: source)
-        }
-        guard !urls.isEmpty && urls.count == operation.items.count else {
-            message = localized("Source file unavailable")
+        if let error = ClipboardRecordRestorer.restore(operation) {
+            message = error
             return false
-        }
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        if pasteboard.writeObjects(urls) {
-            ClipboardMonitor.shared.ignoreCurrentChange()
+        } else {
+            appState.clipboardCopyDidSucceed()
             message = localized("Copied again")
             return true
-        } else {
-            message = localized("Clipboard write failed")
-            return false
         }
     }
 

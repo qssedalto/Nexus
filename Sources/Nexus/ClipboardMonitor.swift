@@ -100,6 +100,7 @@ final class ClipboardMonitor: ObservableObject {
     private let store = OperationStore.shared()
     /// A missing SQLite store must never look like successful recording.
     var storageAvailable: Bool { store != nil }
+    var isCollectingHistory: Bool { timer != nil && storageAvailable }
 
     private var timer: Timer?
     private var retentionTimer: Timer?
@@ -135,6 +136,10 @@ final class ClipboardMonitor: ObservableObject {
     /// observer does not record a second duplicate operation.
     func ignoreCurrentChange() {
         lastChangeCount = NSPasteboard.general.changeCount
+    }
+
+    func historyDidChange() {
+        savedRevision &+= 1
     }
 
     private func configureTimer() {
@@ -188,7 +193,7 @@ final class ClipboardMonitor: ObservableObject {
                 if removed > 0 {
                     // Refresh the visible shelf after retained history is
                     // committed, not before the background cleanup finishes.
-                    savedRevision &+= 1
+                    historyDidChange()
                 }
             case .failure(let error):
                 cleanupStatus = error.localizedDescription
@@ -210,7 +215,7 @@ final class ClipboardMonitor: ObservableObject {
             // This actor-bound revision is only a freshness signal. Clipboard
             // text and image bytes never travel through notifications.
             if committed {
-                self?.savedRevision &+= 1
+                self?.historyDidChange()
                 // Only notify after the history entry is durable. Detection
                 // alone must not be represented as a successfully saved copy.
                 if let feedbackKey { self?.onDetected?(feedbackKey) }
