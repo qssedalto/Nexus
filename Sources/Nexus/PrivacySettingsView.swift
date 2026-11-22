@@ -45,29 +45,43 @@ struct PrivacySettingsView: View {
             Section(localized("Input monitoring and permissions")) {
                 HStack {
                     Label(
-                        localized(statistics.permissionGranted ? "Input permission granted" : "Input permission required"),
-                        systemImage: statistics.permissionGranted ? "checkmark.shield" : "lock.shield"
+                        localized(statistics.permissionGranted
+                            ? "Input monitoring: granted" : "Input monitoring: not granted"),
+                        systemImage: statistics.permissionGranted
+                            ? "checkmark.shield.fill" : "lock.shield"
                     )
                     Spacer()
                     if !statistics.permissionGranted {
-                        Button(localized("Grant input permission")) {
+                        Button(localized("Grant permission…")) {
                             statistics.requestPermission()
-                        }
-                        Button(localized("Open Input Monitoring settings")) {
-                            statistics.openInputMonitoringSettings()
                         }
                     }
                 }
-                Toggle(localized("Enable keyboard and mouse statistics"), isOn: $statistics.enabled)
+                if !statistics.permissionGranted {
+                    Text(localized("For keyboard and mouse counts, enable Nexus Drive in System Settings > Privacy & Security > Input Monitoring."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Button(localized("Open Input Monitoring settings")) {
+                        statistics.openInputMonitoringSettings()
+                    }
+                }
+                Toggle(localized("Enable keyboard and mouse statistics"),
+                       isOn: $statistics.enabled)
                 Toggle(localized("Pause statistics"), isOn: $statistics.paused)
                     .disabled(!statistics.enabled)
+
+                Divider()
+
                 HStack {
-                    Text(localized("Accessibility permission for quick paste"))
+                    Label(localized("Quick paste (Accessibility)"),
+                          systemImage: accessibilityGranted
+                            ? "checkmark.shield.fill" : "hand.raised")
                     Spacer()
-                    Text(localized(accessibilityGranted ? "Granted" : "Not granted"))
-                        .foregroundStyle(.secondary)
+                    Text(localized(accessibilityGranted
+                        ? "Granted" : "Not granted"))
+                        .foregroundStyle(accessibilityGranted ? .green : .secondary)
                     if !accessibilityGranted {
-                        Button(localized("Request access…")) {
+                        Button(localized("Grant permission…")) {
                             accessibilityGranted = AXIsProcessTrustedWithOptions([
                                 "AXTrustedCheckOptionPrompt": true
                             ] as CFDictionary)
@@ -78,23 +92,31 @@ struct PrivacySettingsView: View {
                             }
                         }
                     }
-                    Button(localized("Refresh permissions")) {
-                        statistics.refreshPermissionStatus()
-                        accessibilityGranted = AXIsProcessTrusted()
-                    }
                 }
-                if !statistics.permissionGranted {
-                    Text(localized("If you already approved access, confirm Nexus Drive is enabled in macOS Input Monitoring, then return here and refresh. Permissions for a previously installed Nexus app do not automatically transfer."))
-                        .font(.caption)
+                Text(localized("Accessibility permission is only needed for quick paste. It is separate from Input Monitoring."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                if !statistics.permissionGranted || !accessibilityGranted {
+                    Button(localized("Restart Nexus Drive to apply permissions")) {
+                        NexusAppRelauncher.restart()
+                    }
+                    .help(localized("Restarts this exact application automatically. Your saved history is preserved."))
+                } else {
+                    Label(localized("Permissions are active"),
+                          systemImage: "checkmark.circle")
                         .foregroundStyle(.secondary)
                 }
-                if !statistics.dataStatus.isEmpty {
+
+                if !statistics.dataStatus.isEmpty,
+                   statistics.dataStatus != localized("Statistics query complete") {
                     Text(statistics.dataStatus)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                Text(localized("Nexus never reads typed text, password fields, or browser pages. Statistical key categories are stored locally unless you explicitly configure network sync."))
-                    .font(.caption).foregroundStyle(.secondary)
+                Text(localized("Keyboard and mouse counts stay on this Mac unless you separately enable server uploads."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section(localized("Clipboard history privacy")) {
@@ -198,6 +220,7 @@ struct PrivacySettingsView: View {
             Section(localized("Network consent")) {
                 Toggle(localized("Allow statistics upload to configured server"), isOn: $sync.statisticsUploadEnabled)
                 Toggle(localized("Automatic sync"), isOn: $sync.automatic)
+                    .disabled(!sync.hasToken || !sync.statisticsUploadEnabled)
                 Toggle(localized("Precise non-text events"), isOn: $sync.preciseEvents)
                     .disabled(!sync.statisticsUploadEnabled)
                 Toggle(localized("Allow operation metadata sync"), isOn: $sync.operationSyncEnabled)
