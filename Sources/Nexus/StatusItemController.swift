@@ -10,7 +10,7 @@ final class StatusItemController {
     private let buildInfo = AppBuildInfo.current()
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let popover = NSPopover()
-    private let feedbackPopover = NSPopover()
+    private var feedbackWindow: NSPanel?
     private let dropReadyPopover = NSPopover()
     private var clipboardShelfPanel: NSPanel?
     private var previousFrontmostApp: NSRunningApplication?
@@ -90,9 +90,6 @@ final class StatusItemController {
             )
         )
 
-        feedbackPopover.behavior = .transient
-        feedbackPopover.contentSize = NSSize(width: 280, height: 66)
-
         dropReadyPopover.behavior = .transient
         dropReadyPopover.contentSize = NSSize(width: 280, height: 66)
 
@@ -108,7 +105,7 @@ final class StatusItemController {
         keepStatusViewOnTop()
         feedbackDismissTask?.cancel()
         hideDropReadyCue()
-        feedbackPopover.performClose(nil)
+        feedbackWindow?.orderOut(nil)
         popover.performClose(nil)
     }
 
@@ -261,33 +258,53 @@ final class StatusItemController {
         }
     }
 
+    /// The menu-bar icon may be hidden by Hidden Bar, so an NSPopover
+    /// anchored to that icon can never be seen. Reuse the same feedback view
+    /// inside one short-lived, non-activating click-through toast.
     private func showFeedbackPopover(_ feedback: DropFeedback) {
-        guard let anchorView = statusItem.button else {
-            return
-        }
-
+        guard appState.feedbackDuration > 0 else { return }
         feedbackDismissTask?.cancel()
         hideDropReadyCue()
-        if feedbackPopover.isShown {
-            feedbackPopover.performClose(nil)
-        }
 
-        if popover.isShown {
-            feedbackPopover.performClose(nil)
+        let toast: NSPanel
+        if let existing = feedbackWindow {
+            toast = existing
         } else {
-            feedbackPopover.contentViewController = NSHostingController(
-                rootView: FeedbackPopoverView(feedback: feedback)
+            let created = NSPanel(
+                contentRect: NSRect(x: 0, y: 0, width: 300, height: 78),
+                styleMask: [.borderless, .nonactivatingPanel],
+                backing: .buffered,
+                defer: false
             )
-            feedbackPopover.show(relativeTo: anchorView.bounds, of: anchorView, preferredEdge: .minY)
-            feedbackPopover.contentViewController?.view.window?.ignoresMouseEvents = true
+            created.isReleasedWhenClosed = false
+            created.isOpaque = false
+            created.backgroundColor = .clear
+            created.hasShadow = true
+            created.level = .floating
+            created.hidesOnDeactivate = false
+            created.ignoresMouseEvents = true
+            created.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+            feedbackWindow = created
+            toast = created
         }
-
-        feedbackDismissTask = Task { [weak feedbackPopover] in
+        toast.contentViewController = NSHostingController(
+            rootView: FeedbackPopoverView(feedback: feedback)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+        )
+        let mouse = NSEvent.mouseLocation
+        let screen = NSScreen.screens.first(where: { $0.frame.contains(mouse) })
+            ?? NSScreen.main
+        if let visible = screen?.visibleFrame {
+            toast.setFrameOrigin(NSPoint(
+                x: max(visible.minX, visible.maxX - toast.frame.width - 20),
+                y: max(visible.minY, visible.maxY - toast.frame.height - 18)
+            ))
+        }
+        toast.orderFrontRegardless()
+        feedbackDismissTask = Task { [weak toast] in
             try? await Task.sleep(for: .seconds(appState.feedbackDuration))
-            await MainActor.run {
-                if !Task.isCancelled {
-                    feedbackPopover?.performClose(nil)
-                }
+            if !Task.isCancelled {
+                toast?.orderOut(nil)
             }
         }
     }
