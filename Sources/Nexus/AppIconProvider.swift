@@ -8,7 +8,9 @@ enum AppIconProvider {
             return image
         }
 
-        let image = NSApp.applicationIconImage ?? NSImage(size: NSSize(width: 128, height: 128))
+        let image = NSImage(named: NSImage.Name("AppIconDev"))
+            ?? NSApp.applicationIconImage
+            ?? NSImage(size: NSSize(width: 128, height: 128))
         image.isTemplate = false
         return image
     }
