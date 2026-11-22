@@ -432,6 +432,7 @@ public enum ClipboardFolderPairingKey {
 
     public enum KeyError: Error, LocalizedError {
         case invalidFormat, generationFailed, keychainFailure(OSStatus), notConfigured
+        case alreadyConfigured
 
         public var errorDescription: String? {
             switch self {
@@ -439,6 +440,7 @@ public enum ClipboardFolderPairingKey {
             case .generationFailed: "Could not generate a secure random pairing key."
             case .keychainFailure(let code): "Could not access the Keychain (\(code))."
             case .notConfigured: "Generate or import a folder sync pairing key first."
+            case .alreadyConfigured: "A different pairing key is already saved. Nexus will not replace it silently."
             }
         }
     }
@@ -473,12 +475,9 @@ public enum ClipboardFolderPairingKey {
         insertion[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         let status = SecItemAdd(insertion as CFDictionary, nil)
         if status == errSecDuplicateItem {
-            let updates = [
-                kSecValueData as String: data,
-                kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-            ] as [String: Any]
-            let updateStatus = SecItemUpdate(query as CFDictionary, updates as CFDictionary)
-            guard updateStatus == errSecSuccess else { throw KeyError.keychainFailure(updateStatus) }
+            // Never rotate or destroy the only decryption key as a side
+            // effect of typing a different key into Settings.
+            guard try load() == data else { throw KeyError.alreadyConfigured }
         } else if status != errSecSuccess {
             throw KeyError.keychainFailure(status)
         }
