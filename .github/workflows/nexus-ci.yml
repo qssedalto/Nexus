@@ -79,8 +79,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          APP_NAME="Nexus CloudKit Dev" BUNDLE_ID="com.qssedalto.nexus.cloudkit.dev" ARCHES=arm64 ./Scripts/package_app.sh release --dev
-          APP="Nexus CloudKit Dev.app"
+          APP_NAME="Nexus CloudKit" APP_ICON_NAME=AppIcon BUNDLE_ID="com.qssedalto.nexus.cloudkit.dev" ARCHES=arm64 ./Scripts/package_app.sh release --dev
+          APP="Nexus CloudKit.app"
           INFO="$APP/Contents/Info.plist"
           EXT="$APP/Contents/PlugIns/NexusFinderSync.appex"
           test -d "$APP" && test -d "$EXT"
@@ -97,15 +97,15 @@ jobs:
             echo "::error::Unprovisioned preview must not have iCloud services entitlement."
             exit 1
           fi
-          test "$(/usr/bin/lipo -archs "$APP/Contents/MacOS/Nexus CloudKit Dev")" = arm64
+          test "$(/usr/bin/lipo -archs "$APP/Contents/MacOS/Nexus CloudKit")" = arm64
           mkdir -p "$RUNNER_TEMP/nexus-cloudkit-preview-dist"
-          ZIP="$RUNNER_TEMP/nexus-cloudkit-preview-dist/Nexus-CloudKit-Dev-unprovisioned-preview-macOS-arm64.zip"
+          ZIP="$RUNNER_TEMP/nexus-cloudkit-preview-dist/Nexus-CloudKit-preview-macOS-arm64.zip"
           /usr/bin/ditto --norsrc -c -k --keepParent "$APP" "$ZIP"
           /usr/bin/unzip -tq "$ZIP"
           {
             echo "## Nexus CloudKit-track compatibility preview"
             echo ""
-            echo "- Artifact: **Nexus-CloudKit-Dev-unprovisioned-preview-macOS-arm64-${GITHUB_RUN_NUMBER}**"
+            echo "- Artifact: **Nexus-CloudKit-preview-macOS-arm64-${GITHUB_RUN_NUMBER}**"
             echo "- No CloudKit container or entitlement. **Cross-device CloudKit sync WILL NOT work**."
             echo "- This ZIP is for UI/compatibility preview only; paid Apple Developer team, registered container and matching profile are needed to build the enabled variant."
             echo "- Isolated bundle ID; Ad Hoc signed, not notarized."
@@ -115,8 +115,8 @@ jobs:
         if: github.event_name == 'pull_request' && github.head_ref == 'feat/cloudkit-provisioned-track'
         uses: actions/upload-artifact@v4
         with:
-          name: Nexus-CloudKit-Dev-unprovisioned-preview-macOS-arm64-${{ github.run_number }}
-          path: ${{ runner.temp }}/nexus-cloudkit-preview-dist/Nexus-CloudKit-Dev-unprovisioned-preview-macOS-arm64.zip
+          name: Nexus-CloudKit-preview-macOS-arm64-${{ github.run_number }}
+          path: ${{ runner.temp }}/nexus-cloudkit-preview-dist/Nexus-CloudKit-preview-macOS-arm64.zip
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
