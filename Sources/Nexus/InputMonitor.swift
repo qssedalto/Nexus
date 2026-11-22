@@ -17,6 +17,8 @@ final class InputMonitor: @unchecked Sendable {
     init(store: InputStatisticsStore) { self.store = store }
 
     var hasPermission: Bool { CGPreflightListenEventAccess() }
+    var isRunning: Bool { tap != nil }
+
 
     @discardableResult
     func start() -> Bool {
