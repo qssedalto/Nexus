@@ -178,7 +178,14 @@ final class ClipboardFolderMirrorTests: XCTestCase {
         let other = folder.appendingPathComponent(".\(UUID().uuidString).partial")
         try FileManager.default.createSymbolicLink(at: other, withDestinationURL: interrupted)
 
-        XCTAssertEqual(try ClipboardFolderMirror.interruptedCopies(in: folder), [interrupted])
+        // macOS temporaryDirectory may use /var while directory enumeration
+        // resolves the same path through /private/var. Compare canonical paths.
+        XCTAssertEqual(
+            try ClipboardFolderMirror.interruptedCopies(in: folder).map {
+                $0.resolvingSymlinksInPath().path
+            },
+            [interrupted.resolvingSymlinksInPath().path]
+        )
         XCTAssertTrue(FileManager.default.fileExists(atPath: interrupted.path))
         XCTAssertTrue(FileManager.default.fileExists(atPath: normal.path))
     }
