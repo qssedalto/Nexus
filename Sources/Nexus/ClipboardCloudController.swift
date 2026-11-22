@@ -3,12 +3,20 @@ import Foundation
 import NexusCore
 import SwiftUI
 
+enum NexusSyncStorage: String, CaseIterable, Identifiable {
+    case iCloudDrive
+    case localFolder
+    var id: String { rawValue }
+}
+
 /// Explicit, opt-in clipboard synchronization through a user-selected folder.
 /// The system File Provider syncs that folder; no iCloud Drive API or entitlement
 /// is requested. Old iCloud Drive journals and preferences are not opened.
 @MainActor
 final class ClipboardCloudController: ObservableObject {
     static let shared = ClipboardCloudController()
+
+    @Published private(set) var storage: NexusSyncStorage
 
     @Published var enabled: Bool {
         didSet {
@@ -66,6 +74,9 @@ final class ClipboardCloudController: ObservableObject {
     private init() {
         let defaults = UserDefaults.standard
         self.defaults = defaults
+        storage = NexusSyncStorage(rawValue:
+            defaults.string(forKey: "nexusFolderSyncStorage") ?? ""
+        ) ?? .iCloudDrive
         lastSuccessfulSync = defaults.data(forKey: "nexusFolderClipboardLastSuccess")
             .flatMap { try? JSONDecoder().decode(ClipboardCloudRunSummary.self, from: $0) }
         enabled = defaults.bool(forKey: "nexusFolderClipboardEnabled") && ClipboardFolderPairingKey.isConfigured()
@@ -162,6 +173,41 @@ final class ClipboardCloudController: ObservableObject {
 
     var containerConfigured: Bool { selectedFolderURL != nil }
 
+    /// Changing the destination must not silently upload the old destination's
+    /// pending journal into a different folder. Only local sync state is
+    /// discarded; original clipboard history and either folder are untouched.
+    private func resetDestinationJournal() -> Bool {
+        guard !running else {
+            status = localized("Finish the current sync before changing folders.")
+            return false
+        }
+        do {
+            try journal?.discardAllLocalCloudData()
+        } catch {
+            status = localized("Could not reset the local sync queue: ") + error.localizedDescription
+            return false
+        }
+        enabled = false
+        automaticSyncEnabled = false
+        nextHistoryOffset = 0
+        defaults.removeObject(forKey: "nexusFolderClipboardHistoryOffset")
+        lastSuccessfulSync = nil
+        defaults.removeObject(forKey: "nexusFolderClipboardLastSuccess")
+        refreshLocalCache()
+        return true
+    }
+
+    func changeStorage(to newStorage: NexusSyncStorage) {
+        guard newStorage != storage, resetDestinationJournal() else { return }
+        storage = newStorage
+        defaults.set(newStorage.rawValue, forKey: "nexusFolderSyncStorage")
+        selectedFolderURL = nil
+        selectedFolderPath = ""
+        folderPrepared = false
+        defaults.removeObject(forKey: "nexusFolderSyncBookmark")
+        status = localized("Choose a folder to continue.")
+    }
+
     private func restoreSelectedFolder() {
         guard let bookmark = defaults.data(forKey: "nexusFolderSyncBookmark") else { return }
         var stale = false
@@ -172,7 +218,9 @@ final class ClipboardCloudController: ObservableObject {
             resolvingBookmarkData: bookmark, options: [],
             relativeTo: nil, bookmarkDataIsStale: &stale
         ))
-        guard let location, location.lastPathComponent == ClipboardFolderTransport.folderName else {
+        guard let location,
+              (storage == .localFolder
+               || location.lastPathComponent == ClipboardFolderTransport.folderName) else {
             return
         }
         selectedFolderURL = location
@@ -182,19 +230,35 @@ final class ClipboardCloudController: ObservableObject {
         )
     }
 
-    /// The dialog is the only way to grant this build access to the user's
-    /// explicitly selected iCloud Drive folder. Never choose a guessed path.
+    /// Explicit user choice; iCloud mode requires the dedicated protocol
+    /// folder. Local mode permits an arbitrary chosen folder but the transport
+    /// still confines writes and deletes to Nexus-owned files inside it.
     func chooseSyncFolder() {
         let panel = NSOpenPanel()
-        panel.title = localized("Choose Nexus clipboard sync folder")
-        panel.message = localized("Select your existing NexusClipboardSync folder in iCloud Drive.")
+        panel.title = localized("Choose sync folder")
+        panel.message = localized(storage == .iCloudDrive
+            ? "Select NexusClipboardSync in iCloud Drive."
+            : "Choose a local folder for encrypted backups.")
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
-        panel.canCreateDirectories = false
+        panel.canCreateDirectories = true
+        if storage == .iCloudDrive {
+            let cloud = FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent("Library/Mobile Documents/com~apple~CloudDocs")
+            if FileManager.default.fileExists(atPath: cloud.path) {
+                panel.directoryURL = cloud
+            }
+        }
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        guard url.lastPathComponent == ClipboardFolderTransport.folderName else {
+        if storage == .iCloudDrive,
+           url.lastPathComponent != ClipboardFolderTransport.folderName {
             status = localized("Select the folder named NexusClipboardSync")
+            return
+        }
+        guard url.standardizedFileURL.path != "/",
+              url.standardizedFileURL != FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL else {
+            status = localized("Choose a dedicated folder, not the disk root or home folder.")
             return
         }
         do {
@@ -206,6 +270,7 @@ final class ClipboardCloudController: ObservableObject {
                 bookmark = try url.bookmarkData(options: [],
                     includingResourceValuesForKeys: nil, relativeTo: nil)
             }
+            guard resetDestinationJournal() else { return }
             defaults.set(bookmark, forKey: "nexusFolderSyncBookmark")
             selectedFolderURL = url
             selectedFolderPath = url.path
@@ -307,6 +372,36 @@ final class ClipboardCloudController: ObservableObject {
         }
     }
 
+    func startSync() async {
+        guard containerConfigured, pairingKeyConfigured else {
+            status = localized("Choose a folder and create a pairing key first.")
+            return
+        }
+        guard includeText || includeNames || includePaths else {
+            status = localized("Select at least one type of content to sync.")
+            return
+        }
+        if !folderPrepared {
+            await prepareSelectedFolder()
+        }
+        guard folderPrepared else { return }
+        enabled = true
+        await syncIncludingLocalHistory()
+    }
+
+    /// The one user-facing sync action handles staging and transfer together.
+    /// Do not require two obscure, consecutive buttons for each sync cycle.
+    func syncIncludingLocalHistory() async {
+        guard !running, enabled else { return }
+        guard includeText || includeNames || includePaths else {
+            status = localized("Select at least one type of content to sync.")
+            return
+        }
+        await prepareLocalPage()
+        guard !running else { return }
+        await syncNow()
+    }
+
     /// User-initiated folder initialization, not an Apple container request.
     func prepareSelectedFolder() async {
         guard !running, let selectedFolderURL else { return }
@@ -314,7 +409,8 @@ final class ClipboardCloudController: ObservableObject {
         defer { running = false }
         do {
             let transport = try ClipboardFolderTransport(
-                folderURL: selectedFolderURL, keyData: ClipboardFolderPairingKey.load()
+                folderURL: selectedFolderURL, keyData: ClipboardFolderPairingKey.load(),
+                allowSelectedLocalFolder: storage == .localFolder
             )
             try await transport.prepareFolderIfRequested()
             folderPrepared = true
@@ -555,7 +651,8 @@ final class ClipboardCloudController: ObservableObject {
         enum Availability: Error { case missingSelectedFolder }
         guard let selectedFolderURL else { throw Availability.missingSelectedFolder }
         return try ClipboardFolderTransport(
-            folderURL: selectedFolderURL, keyData: ClipboardFolderPairingKey.load()
+            folderURL: selectedFolderURL, keyData: ClipboardFolderPairingKey.load(),
+            allowSelectedLocalFolder: storage == .localFolder
         )
     }
 }
