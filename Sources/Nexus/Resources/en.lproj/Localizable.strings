@@ -714,3 +714,7 @@
 "When you hold a key, macOS may repeat it. On: count each repeated press. Off: count only the initial press." = "When you hold a key, macOS may repeat it. On: count each repeated press. Off: count only the initial press.";
 "Nexus website is unavailable" = "Nexus website is unavailable";
 "The product page is missing from this build. Rebuild Nexus Drive to restore it." = "The product page is missing from this build. Rebuild Nexus Drive to restore it.";
+
+"Keyboard and mouse monitoring is running." = "Keyboard and mouse monitoring is running.";
+"Permission is granted, but event monitoring is not running." = "Permission is granted, but event monitoring is not running.";
+"Input access is granted, but the event listener is not running." = "Input access is granted, but the event listener is not running.";
