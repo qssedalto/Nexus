@@ -322,6 +322,10 @@ final class ClipboardCloudController: ObservableObject {
     func syncNow(automaticRun: Bool = false) async {
         guard !running else { return }
         guard enabled else { status = localized("Enable iCloud clipboard consent first"); return }
+        guard containerConfigured, folderPrepared, pairingKeyConfigured else {
+            status = localized("Generate a pairing key, prepare your chosen folder, then enable sync.")
+            return
+        }
         if automaticRun && (!automaticSyncEnabled || Task.isCancelled) { return }
         guard let journal else { status = localized("Folder journal unavailable"); return }
         running = true
