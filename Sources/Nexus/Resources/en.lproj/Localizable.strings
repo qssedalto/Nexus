@@ -718,3 +718,5 @@
 "Keyboard and mouse monitoring is running." = "Keyboard and mouse monitoring is running.";
 "Permission is granted, but event monitoring is not running." = "Permission is granted, but event monitoring is not running.";
 "Input access is granted, but the event listener is not running." = "Input access is granted, but the event listener is not running.";
+
+"Verify the server connection before uploading." = "Verify the server connection before uploading.";
