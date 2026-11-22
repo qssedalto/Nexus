@@ -17,9 +17,11 @@ enum AppIconProvider {
 
     private static func loadBundledAppIcon() -> NSImage? {
         for bundle in ResourceBundleLocator.bundles {
-            if let url = bundle.url(forResource: "AppIcon", withExtension: "icns"),
-               let image = NSImage(contentsOf: url) {
-                return image
+            for name in ["AppIcon", "AppIconDev"] {
+                if let url = bundle.url(forResource: name, withExtension: "icns"),
+                   let image = NSImage(contentsOf: url) {
+                    return image
+                }
             }
         }
 
