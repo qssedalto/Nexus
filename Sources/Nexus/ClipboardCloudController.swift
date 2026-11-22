@@ -53,6 +53,7 @@ final class ClipboardCloudController: ObservableObject {
     private let store: OperationStore?
     private let folderTokenNamespace = "NexusClipboardFolderV1"
     @Published private(set) var selectedFolderPath: String = ""
+    @Published private(set) var folderPrepared = false
     @Published var pairingKeyEntry = ""
     @Published private(set) var pairingKeyConfigured = ClipboardFolderPairingKey.isConfigured()
     @Published private(set) var revealedPairingKey = ""
@@ -173,6 +174,9 @@ final class ClipboardCloudController: ObservableObject {
         }
         selectedFolderURL = location
         selectedFolderPath = location.path
+        folderPrepared = FileManager.default.fileExists(
+            atPath: location.appendingPathComponent(".nexus-folder-sync-v2").path
+        )
     }
 
     /// The dialog is the only way to grant this build access to the user's
@@ -202,6 +206,10 @@ final class ClipboardCloudController: ObservableObject {
             defaults.set(bookmark, forKey: "nexusFolderSyncBookmark")
             selectedFolderURL = url
             selectedFolderPath = url.path
+            folderPrepared = FileManager.default.fileExists(
+                atPath: url.appendingPathComponent(".nexus-folder-sync-v2").path
+            )
+            if !folderPrepared { enabled = false }
             status = localized("Folder selected. Click Prepare folder before syncing.")
             configureAutomaticSyncTimer()
         } catch {
@@ -304,6 +312,7 @@ final class ClipboardCloudController: ObservableObject {
                 folderURL: selectedFolderURL, keyData: ClipboardFolderPairingKey.load()
             )
             try await transport.prepareFolderIfRequested()
+            folderPrepared = true
             status = localized("NexusClipboardSync folder is ready")
         } catch {
             status = "Folder setup failed: \(error.localizedDescription)"
