@@ -1,0 +1,36 @@
+name: Refresh Nexus 0.0.6 Xcode project (one-time)
+on:
+  push:
+    branches:
+      - fix/cloudkit-layout-icloud-services-20261122
+    paths:
+      - '.github/workflows/sync-nexus-project-once.yml'
+permissions:
+  contents: write
+jobs:
+  regenerate:
+    if: github.ref == 'refs/heads/fix/cloudkit-layout-icloud-services-20261122'
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/cloudkit-layout-icloud-services-20261122
+          persist-credentials: true
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Regenerate native Nexus Xcode project
+        run: bash Scripts/generate_project.sh
+      - name: Update only tracked Xcode project files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -u -- Nexus.xcodeproj
+          if git diff --cached --quiet; then
+            echo "No tracked Xcode project changes."
+            exit 0
+          fi
+          git commit -m "build: update checked-in Nexus Xcode project for native Services"
+          git push origin HEAD:refs/heads/fix/cloudkit-layout-icloud-services-20261122
