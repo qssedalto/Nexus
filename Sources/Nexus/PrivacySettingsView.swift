@@ -79,7 +79,7 @@ struct PrivacySettingsView: View {
                     Spacer()
                     Text(localized(accessibilityGranted
                         ? "Granted" : "Not granted"))
-                        .foregroundStyle(accessibilityGranted ? .green : .secondary)
+                        .foregroundColor(accessibilityGranted ? .green : .secondary)
                     if !accessibilityGranted {
                         Button(localized("Grant permission…")) {
                             accessibilityGranted = AXIsProcessTrustedWithOptions([
