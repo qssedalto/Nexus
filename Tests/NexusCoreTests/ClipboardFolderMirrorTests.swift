@@ -163,6 +163,26 @@ final class ClipboardFolderMirrorTests: XCTestCase {
         XCTAssertTrue(try FileManager.default.contentsOfDirectory(atPath: folder.path).isEmpty)
     }
 
+
+    func testDetectsInterruptedCopiesWithoutDeletingUserFiles() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let interrupted = folder.appendingPathComponent(".\(UUID().uuidString).partial")
+        try FileManager.default.createDirectory(at: interrupted, withIntermediateDirectories: false)
+        try "unfinished".write(
+            to: interrupted.appendingPathComponent("data.bin"), atomically: true, encoding: .utf8
+        )
+        let normal = folder.appendingPathComponent("visible.partial")
+        try FileManager.default.createDirectory(at: normal, withIntermediateDirectories: false)
+        let other = folder.appendingPathComponent(".\(UUID().uuidString).partial")
+        try FileManager.default.createSymbolicLink(at: other, withDestinationURL: interrupted)
+
+        XCTAssertEqual(try ClipboardFolderMirror.interruptedCopies(in: folder), [interrupted])
+        XCTAssertTrue(FileManager.default.fileExists(atPath: interrupted.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: normal.path))
+    }
+
 }
 
 

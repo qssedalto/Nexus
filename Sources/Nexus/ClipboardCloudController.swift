@@ -114,6 +114,7 @@ final class ClipboardCloudController: ObservableObject {
     @Published private(set) var mirrorPending = 0
     @Published private(set) var mirrorCompletedBytes: Int64 = 0
     @Published private(set) var mirrorTotalBytes: Int64 = 0
+    @Published private(set) var mirrorInterruptedCount = 0
     @Published private(set) var lastSuccessfulSync: ClipboardCloudRunSummary?
 
     private let defaults: UserDefaults
@@ -330,6 +331,9 @@ final class ClipboardCloudController: ObservableObject {
             self?.mirrorProgressByID[id] = nil
             self?.mirrorPending = self?.mirrorTasks.count ?? 0
             self?.updateMirrorProgress()
+            if self?.mirrorPending == 0 {
+                await self?.refreshInterruptedCopies()
+            }
         }
     }
 
@@ -342,6 +346,34 @@ final class ClipboardCloudController: ObservableObject {
         for task in mirrorTasks.values { task.cancel() }
     }
 
+    /// Only inspect a user-authorized folder, and never remove an abandoned
+    /// copy without an explicit user action in Finder.
+    func refreshInterruptedCopies() async {
+        guard let folder = selectedFolderURL else {
+            mirrorInterruptedCount = 0
+            return
+        }
+        do {
+            let count = try await Task.detached(priority: .utility) {
+                let scoped = folder.startAccessingSecurityScopedResource()
+                defer { if scoped { folder.stopAccessingSecurityScopedResource() } }
+                return try ClipboardFolderMirror.interruptedCopies(in: folder).count
+            }.value
+            if selectedFolderURL == folder { mirrorInterruptedCount = count }
+        } catch {
+            if selectedFolderURL == folder {
+                mirrorInterruptedCount = 0
+                mirrorStatus = localized("Cannot inspect incomplete folder copies") +
+                    ": " + error.localizedDescription
+            }
+        }
+    }
+
+    func revealInterruptedCopies() {
+        guard let folder = selectedFolderURL else { return }
+        NSWorkspace.shared.activateFileViewerSelecting([folder])
+    }
+
     func changeStorage(to newStorage: NexusSyncStorage) {
         guard newStorage != storage, resetDestinationJournal() else { return }
         storage = newStorage
@@ -349,6 +381,7 @@ final class ClipboardCloudController: ObservableObject {
         selectedFolderURL = nil
         selectedFolderPath = ""
         folderPrepared = false
+        mirrorInterruptedCount = 0
         defaults.removeObject(forKey: "nexusFolderSyncBookmark")
         status = localized("Choose a folder to continue.")
     }
@@ -373,6 +406,7 @@ final class ClipboardCloudController: ObservableObject {
         folderPrepared = FileManager.default.fileExists(
             atPath: location.appendingPathComponent(".nexus-folder-sync-v2").path
         )
+        Task { await refreshInterruptedCopies() }
     }
 
     /// Explicit user choice; iCloud mode requires the dedicated protocol
@@ -427,6 +461,7 @@ final class ClipboardCloudController: ObservableObject {
                 ? "Folder selected. Click Prepare folder before syncing."
                 : "Folder selected. Generate a pairing key to continue.")
             configureAutomaticSyncTimer()
+            Task { await refreshInterruptedCopies() }
         } catch {
             status = "Could not remember selected folder: \(error.localizedDescription)"
         }

@@ -196,6 +196,29 @@ struct ClipboardCloudSettingsView: View {
                 if !cloud.mirrorStatus.isEmpty {
                     Text(cloud.mirrorStatus).font(.caption)
                 }
+                if cloud.mirrorInterruptedCount > 0 {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Label(
+                            "\(cloud.mirrorInterruptedCount) " +
+                            localized("incomplete folder copies found after interruption"),
+                            systemImage: "exclamationmark.triangle"
+                        )
+                        .font(.caption)
+                        Text(localized(
+                            "Unfinished copies are kept for review. Nexus never removes them automatically."
+                        ))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        HStack {
+                            Button(localized("Show sync folder in Finder")) {
+                                cloud.revealInterruptedCopies()
+                            }
+                            Button(localized("Check again")) {
+                                Task { await cloud.refreshInterruptedCopies() }
+                            }
+                        }
+                    }
+                }
                 Text(cloud.status)
                     .font(.caption)
                     .textSelection(.enabled)

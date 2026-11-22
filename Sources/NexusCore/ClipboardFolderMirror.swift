@@ -18,6 +18,24 @@ public enum ClipboardFolderMirror {
 
     private static let chunkBytes = 1_048_576
 
+    /// Find orphaned temporary copies after an app crash or power loss.
+    /// Detection is read-only: neither partial data nor user files are
+    /// deleted automatically. The caller may reveal these in Finder.
+    public static func interruptedCopies(in folder: URL) throws -> [URL] {
+        let manager = FileManager.default
+        return try manager.contentsOfDirectory(
+            at: folder, includingPropertiesForKeys: [.isDirectoryKey, .isSymbolicLinkKey],
+            options: []
+        ).filter { url in
+            let name = url.lastPathComponent
+            guard name.hasPrefix("."), name.hasSuffix(".partial") else { return false }
+            let id = String(name.dropFirst().dropLast(".partial".count))
+            guard UUID(uuidString: id) != nil else { return false }
+            let values = try? url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
+            return values?.isDirectory == true && values?.isSymbolicLink != true
+        }.sorted { $0.lastPathComponent < $1.lastPathComponent }
+    }
+
     @discardableResult
     public static func save(
         _ content: Content, to folder: URL, id: UUID = UUID(),

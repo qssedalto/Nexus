@@ -129,4 +129,57 @@ final class InputDashboardTests: XCTestCase {
         XCTAssertEqual(try store.sourceCounts(from: 2001, to: 2003).count, 2)
     }
 
+    func testUTCHourBucketsAcrossDenverDaylightSavingTransitions() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try InputStatisticsStore(url: root.appendingPathComponent("input.sqlite"))
+        let formatter = ISO8601DateFormatter()
+        let transitions = [
+            ["2026-03-08T09:59:59Z", "2026-03-08T10:00:00Z"],
+            ["2026-11-01T07:59:59Z", "2026-11-01T08:00:00Z"],
+        ]
+        var local = Calendar(identifier: .gregorian)
+        local.timeZone = TimeZone(identifier: "America/Denver")!
+        let hours = transitions.map { pair -> [Date] in pair.compactMap(formatter.date(from:)) }
+        XCTAssertEqual(hours.map(\.count), [2, 2])
+        // Spring skips one local hour; fall repeats it. The underlying UTC
+        // event bucket must not merge or duplicate either physical hour.
+        XCTAssertEqual(
+            local.component(.hour, from: hours[0][0]),
+            1
+        )
+        XCTAssertEqual(local.component(.hour, from: hours[0][1]), 3)
+        XCTAssertEqual(local.component(.hour, from: hours[1][0]), 1)
+        XCTAssertEqual(local.component(.hour, from: hours[1][1]), 1)
+        for (idx, pair) in hours.enumerated() {
+            let times = pair.map { Int64($0.timeIntervalSince1970 * 1_000) }
+            store.enqueue(ClassifiedInputEvent(
+                timeMS: times[0], category: "mouse", name: "mouse_left",
+                source: "dst-\(idx)"
+            ))
+            store.enqueue(ClassifiedInputEvent(
+                timeMS: times[1], category: "mouse", name: "mouse_left",
+                source: "dst-\(idx)"
+            ))
+            // Another event category shares the exact wall-clock transition,
+            // but category filtering must not double-count it.
+            store.enqueue(ClassifiedInputEvent(
+                timeMS: times[1], category: "scroll", name: "scroll_up",
+                source: "dst-\(idx)"
+            ))
+            let rows = try store.trend(
+                from: times[0] - 1000, to: times[1] + 1000,
+                resolution: .hour, category: "mouse", source: "dst-\(idx)"
+            )
+            XCTAssertEqual(rows.count, 2)
+            XCTAssertEqual(rows.map(\.count), [1, 1])
+            XCTAssertEqual(rows[1].startMS - rows[0].startMS, 3_600_000)
+            let all = try store.trend(
+                from: times[0] - 1000, to: times[1] + 1000,
+                resolution: .hour, source: "dst-\(idx)"
+            )
+            XCTAssertEqual(all.reduce(Int64(0)) { $0 + $1.count }, 3)
+        }
+    }
+
 }
