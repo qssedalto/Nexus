@@ -23,7 +23,14 @@ final class ClipboardCloudController: ObservableObject {
             defaults.set(enabled, forKey: "nexusFolderClipboardEnabled")
             if !enabled { cancelMirrorTasks() }
             configureAutomaticSyncTimer()
-            ClipboardMonitor.shared.refreshObservationConfiguration()
+            // Do not touch ClipboardMonitor.shared synchronously here:
+            // the controller may still be initializing and ClipboardMonitor
+            // queries this controller while configuring its own timer.
+            // Defer the refresh to the next MainActor turn to avoid a
+            // recursive static-singleton initialization trap.
+            Task { @MainActor in
+                ClipboardMonitor.shared.refreshObservationConfiguration()
+            }
         }
     }
     /// Separate consent for timed iCloud Drive access. The default is OFF even
@@ -62,19 +69,40 @@ final class ClipboardCloudController: ObservableObject {
     @Published var mirrorFiles: Bool {
         didSet {
             defaults.set(mirrorFiles, forKey: "nexusFolderMirrorFiles")
-            ClipboardMonitor.shared.refreshObservationConfiguration()
+            // Do not touch ClipboardMonitor.shared synchronously here:
+            // the controller may still be initializing and ClipboardMonitor
+            // queries this controller while configuring its own timer.
+            // Defer the refresh to the next MainActor turn to avoid a
+            // recursive static-singleton initialization trap.
+            Task { @MainActor in
+                ClipboardMonitor.shared.refreshObservationConfiguration()
+            }
         }
     }
     @Published var mirrorText: Bool {
         didSet {
             defaults.set(mirrorText, forKey: "nexusFolderMirrorText")
-            ClipboardMonitor.shared.refreshObservationConfiguration()
+            // Do not touch ClipboardMonitor.shared synchronously here:
+            // the controller may still be initializing and ClipboardMonitor
+            // queries this controller while configuring its own timer.
+            // Defer the refresh to the next MainActor turn to avoid a
+            // recursive static-singleton initialization trap.
+            Task { @MainActor in
+                ClipboardMonitor.shared.refreshObservationConfiguration()
+            }
         }
     }
     @Published var mirrorImages: Bool {
         didSet {
             defaults.set(mirrorImages, forKey: "nexusFolderMirrorImages")
-            ClipboardMonitor.shared.refreshObservationConfiguration()
+            // Do not touch ClipboardMonitor.shared synchronously here:
+            // the controller may still be initializing and ClipboardMonitor
+            // queries this controller while configuring its own timer.
+            // Defer the refresh to the next MainActor turn to avoid a
+            // recursive static-singleton initialization trap.
+            Task { @MainActor in
+                ClipboardMonitor.shared.refreshObservationConfiguration()
+            }
         }
     }
     @Published private(set) var status = localized("Folder synchronization is off")
