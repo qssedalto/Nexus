@@ -80,7 +80,6 @@ final class ClipboardCloudController: ObservableObject {
             deviceID = newID
             defaults.set(newID, forKey: "nexusFolderClipboardDeviceID")
         }
-        restoreSelectedFolder()
         store = OperationStore.shared()
         if let group = Bundle.main.object(
             forInfoDictionaryKey: SharedSettings.appGroupIdentifierInfoKey
@@ -94,6 +93,7 @@ final class ClipboardCloudController: ObservableObject {
         } else {
             journal = nil
         }
+        restoreSelectedFolder()
         refreshLocalCache()
         configureAutomaticSyncTimer()
     }
