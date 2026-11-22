@@ -33,7 +33,7 @@ function bounds(url) {
 
 // Accept bounded physical-key identifiers and combinations, never raw input
 // text. Keep legacy aggregate names for backward-compatible synchronization.
-const physicalKey = /^(?:[a-z0-9]|semicolon|comma|slash|period)$/;
+const physicalKey = /^(?:[a-z0-9]|semicolon|comma|slash|period|equal|minus|left_bracket|right_bracket|quote|backslash|grave|keypad_(?:[0-9]|decimal|multiply|plus|clear|divide|enter|minus|equal))$/;
 const functionKey = /^f(?:[1-9]|1\d|2[0-4])$/;
 const modifiers = new Set(["control", "option", "command", "shift", "fn"]);
 

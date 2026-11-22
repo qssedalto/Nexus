@@ -68,9 +68,11 @@ class NexusAPITests(unittest.TestCase):
         accepted = [
             ("ordinary", "character_total"), ("ordinary", "key_a"),
             ("ordinary", "shift_key_1"), ("ordinary", "key_semicolon"),
+            ("ordinary", "key_keypad_9"), ("ordinary", "shift_key_quote"),
             ("keyboard", "f24"), ("keyboard", "num_lock"),
             ("shortcut", "control_shift_a"), ("shortcut", "command_shift_4"),
-            ("shortcut", "option_command_semicolon"), ("shortcut", "fn_f1"),
+            ("shortcut", "option_command_semicolon"), ("shortcut", "command_keypad_3"),
+            ("shortcut", "command_fn_f13"), ("shortcut", "fn_f1"),
             ("system", "spotlight_search"), ("system", "power"),
         ]
         events = [
@@ -85,6 +87,7 @@ class NexusAPITests(unittest.TestCase):
         self.assertEqual(sum(row["count"] for row in summary["statistics"]), len(events))
         rejected = [
             ("ordinary", "typed_password"), ("ordinary", "key_password"),
+            ("ordinary", "key_keypad_password"),
             ("shortcut", "shift_a"), ("shortcut", "command_command_c"),
             ("shortcut", "command_private_text"),
             ("system", "unrecognized_system_key_99"),

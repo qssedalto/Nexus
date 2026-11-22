@@ -38,7 +38,11 @@ def open_database(path):
 
 # A bounded, non-text protocol: these are physical-key names and combinations,
 # never captured characters, passwords, or arbitrary input strings.
-_PHYSICAL_KEY = re.compile(r"(?:[a-z0-9]|semicolon|comma|slash|period)\Z")
+_PHYSICAL_KEY = re.compile(
+    r"(?:[a-z0-9]|semicolon|comma|slash|period|equal|minus|left_bracket|"
+    r"right_bracket|quote|backslash|grave|keypad_(?:[0-9]|decimal|"
+    r"multiply|plus|clear|divide|enter|minus|equal))\Z"
+)
 _FUNCTION_KEY = re.compile(r"f(?:[1-9]|1\d|2[0-4])\Z")
 _MODIFIERS = {"control", "option", "command", "shift", "fn"}
 _NAMES = {

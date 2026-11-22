@@ -62,9 +62,9 @@ test("bounded physical keys and generic chords survive the Worker API without ac
   const endpoint = "/api/nexus/v1/statistics/events";
   const accepted = [
     ["ordinary", "character_total"], ["ordinary", "key_a"], ["ordinary", "shift_key_1"],
-    ["ordinary", "key_semicolon"], ["keyboard", "f24"], ["keyboard", "num_lock"],
+    ["ordinary", "key_semicolon"], ["ordinary", "key_keypad_9"], ["ordinary", "shift_key_quote"], ["keyboard", "f24"], ["keyboard", "num_lock"],
     ["shortcut", "control_shift_a"], ["shortcut", "command_shift_4"],
-    ["shortcut", "option_command_semicolon"], ["shortcut", "fn_f1"],
+    ["shortcut", "option_command_semicolon"], ["shortcut", "command_keypad_3"], ["shortcut", "command_fn_f13"], ["shortcut", "fn_f1"],
     ["system", "spotlight_search"], ["system", "power"]
   ];
   const events = accepted.map(([category, name], i) => ({
@@ -78,7 +78,7 @@ test("bounded physical keys and generic chords survive the Worker API without ac
   ), env)).json();
   assert.equal(summary.statistics.reduce((n, row) => n + row.count, 0), events.length);
   const rejected = [
-    ["ordinary", "typed_password"], ["ordinary", "key_password"],
+    ["ordinary", "typed_password"], ["ordinary", "key_password"], ["ordinary", "key_keypad_password"],
     ["shortcut", "shift_a"], ["shortcut", "command_command_c"],
     ["shortcut", "command_private_text"], ["system", "unrecognized_system_key_99"],
     ["mouse", "mouse_extra_999"], ["ordinary", "key_a\n"]

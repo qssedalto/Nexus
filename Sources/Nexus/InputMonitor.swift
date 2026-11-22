@@ -200,29 +200,35 @@ final class InputMonitor: InputEventListening, @unchecked Sendable {
         12:"q", 13:"w", 14:"e", 15:"r", 16:"y", 17:"t", 18:"1", 19:"2", 20:"3",
         21:"4", 22:"6", 23:"5", 25:"9", 26:"7", 28:"8", 29:"0", 31:"o", 32:"u",
         34:"i", 35:"p", 37:"l", 38:"j", 40:"k", 41:"semicolon", 43:"comma",
-        44:"slash", 45:"n", 46:"m", 47:"period"
+        44:"slash", 45:"n", 46:"m", 47:"period",
+        24:"equal", 27:"minus", 30:"right_bracket", 33:"left_bracket",
+        39:"quote", 42:"backslash", 50:"grave",
+        65:"keypad_decimal", 67:"keypad_multiply", 69:"keypad_plus",
+        71:"keypad_clear", 75:"keypad_divide", 76:"keypad_enter",
+        78:"keypad_minus", 81:"keypad_equal",
+        82:"keypad_0", 83:"keypad_1", 84:"keypad_2",
+        85:"keypad_3", 86:"keypad_4", 87:"keypad_5",
+        88:"keypad_6", 89:"keypad_7", 91:"keypad_8", 92:"keypad_9"
     ]
-    private static let shortcutKeys: [Int64: String] = physicalKeys.merging(
-        [48:"tab", 49:"space", 53:"escape", 122:"f1", 120:"f2", 99:"f3",
-         118:"f4", 96:"f5", 97:"f6", 98:"f7", 100:"f8", 101:"f9",
-         109:"f10", 103:"f11", 111:"f12"]
-    ) { current, _ in current }
+    // Every observable special key can be part of an observed chord.
+    private static let shortcutKeys: [Int64: String] = physicalKeys.merging(specialKeys) {
+        current, _ in current
+    }
     static func physicalKeyName(code: Int64, shifted: Bool) -> String {
         let name = physicalKeys[code].map { "key_" + $0 } ?? "character_total"
         return shifted ? "shift_" + name : name
     }
     static func shortcutName(code: Int64, flags: CGEventFlags) -> String? {
-        if flags.contains(.maskSecondaryFn), let function = specialKeys[code], function.first == "f",
-           Int(function.dropFirst()) != nil {
-            return "fn_\(function)"
-        }
         guard let key = shortcutKeys[code] else { return nil }
         let modifiers: [(CGEventFlags, String)] = [
             (.maskControl, "control"), (.maskAlternate, "option"),
-            (.maskCommand, "command"), (.maskShift, "shift")
+            (.maskCommand, "command"), (.maskShift, "shift"),
+            (.maskSecondaryFn, "fn")
         ]
         let active = modifiers.compactMap { flags.contains($0.0) ? $0.1 : nil }
-        guard active.contains("command") || active.contains("control") || active.contains("option") else { return nil }
+        // Shift-only typing is not an application shortcut; Fn and other
+        // modifier chords are observable even when their action is unknown.
+        guard active.contains(where: { $0 != "shift" }) else { return nil }
         return (active + [key]).joined(separator: "_")
     }
 
