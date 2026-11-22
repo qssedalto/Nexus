@@ -156,6 +156,10 @@ fi
 # entitlement-less release that merely *claims* a container is available.
 CLOUDKIT_CONTAINER_ID=${EXPLICIT_NEXUS_CLOUDKIT_CONTAINER_ID:-${NEXUS_CLOUDKIT_CONTAINER_ID:-}}
 CLOUDKIT_PROFILE=${EXPLICIT_NEXUS_CLOUDKIT_PROVISIONING_PROFILE:-${NEXUS_CLOUDKIT_PROVISIONING_PROFILE:-}}
+if [[ "${NEXUS_REQUIRE_FOLDER_ONLY:-0}" == "1" && -n "$CLOUDKIT_CONTAINER_ID" ]]; then
+  echo "ERROR: Nexus Drive Dev never requests CloudKit. Remove CloudKit configuration from this build." >&2
+  exit 1
+fi
 if [[ -n "$CLOUDKIT_CONTAINER_ID" ]]; then
   if [[ ! "$CLOUDKIT_CONTAINER_ID" =~ ^iCloud\.[A-Za-z0-9][A-Za-z0-9.-]*$ ]]; then
     echo "ERROR: NEXUS_CLOUDKIT_CONTAINER_ID must be a real iCloud.* container ID." >&2
