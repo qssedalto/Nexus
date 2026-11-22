@@ -547,3 +547,16 @@
 "Delete sync records" = "Delete sync records";
 "Choose Nexus clipboard sync folder" = "Choose Nexus clipboard sync folder";
 "Select your existing NexusClipboardSync folder in iCloud Drive." = "Select your existing NexusClipboardSync folder in iCloud Drive.";
+
+// Encrypted folder pairing
+"End-to-end encryption and device pairing" = "End-to-end encryption and device pairing";
+"Encryption key is stored in this device's Keychain" = "Encryption key is stored in this device's Keychain";
+"Reveal pairing key for another device" = "Reveal pairing key for another device";
+"Copy pairing key" = "Copy pairing key";
+"Hide pairing key" = "Hide pairing key";
+"Generate encryption pairing key" = "Generate encryption pairing key";
+"Use the same 64-character key on each paired device. It is never stored in iCloud Drive." = "Use the same 64-character key on each paired device. It is never stored in iCloud Drive.";
+"Enter a 64-character pairing key" = "Enter a 64-character pairing key";
+"Save entered key in Keychain" = "Save entered key in Keychain";
+"Never send this key through an untrusted channel. Losing it makes existing encrypted sync files unreadable." = "Never send this key through an untrusted channel. Losing it makes existing encrypted sync files unreadable.";
+"Folder sync v2 encrypts records with AES-256-GCM. Keep your pairing key private and verify your other devices use the same key." = "Folder sync v2 encrypts records with AES-256-GCM. Keep your pairing key private and verify your other devices use the same key.";
