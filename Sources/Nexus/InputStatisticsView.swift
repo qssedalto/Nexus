@@ -102,6 +102,13 @@ final class InputStatisticsController: ObservableObject {
     func requestPermission() {
         permissionGranted = CGRequestListenEventAccess()
         startIfPermitted()
+        if !permissionGranted,
+           let settingsURL = URL(string:
+               "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent") {
+            // macOS still owns the permission decision; opening Settings cannot
+            // bypass consent or grant access automatically.
+            NSWorkspace.shared.open(settingsURL)
+        }
     }
 
     func refresh(from startMS: Int64, to endMS: Int64) {
