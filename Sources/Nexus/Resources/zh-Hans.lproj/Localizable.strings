@@ -132,7 +132,7 @@
 "Unpin" = "取消固定";
 "Folder" = "文件夹";
 "Copied text" = "复制的文本";
-"No clipboard history found" = "没有找到剪贴板历史";
+"No clipboard history found" = "还没有剪贴板记录";
 "Enable file or text monitoring in Settings, then copy something." = "请在设置中开启文件或文本监控，然后进行复制。";
 "Cards show metadata only for images and files; clipboard detection does not mean a file was pasted." = "图片和文件只显示元数据；检测到剪贴板变化不代表文件已粘贴。";
 "Source file unavailable" = "无法获取原始文件";
@@ -141,10 +141,9 @@
 "Records detected clipboard changes, not confirmed file transfers or paste completion." = "此功能记录检测到的剪贴板变化，不代表文件传输或粘贴已完成。";
 "Text copy" = "复制文本";
 "Image copy" = "复制图片";
-"Clipboard files detected" = "检测到文件复制";
-"Clipboard image detected" = "检测到图片复制";
-"Clipboard text detected" = "检测到文本复制";
-
+"Clipboard files detected" = "已记录复制的文件";
+"Clipboard image detected" = "已记录复制的截图";
+"Clipboard text detected" = "已记录复制的文字";
 "Follow system default" = "跟随系统默认";
 "Expand all Services where possible" = "尽可能将所有服务展开到一级菜单";
 "Group Services in submenu" = "将所有服务收纳进子菜单";
@@ -309,7 +308,7 @@
 "Change service settings in macOS…" = "在 macOS 中调整服务设置…";
 
 "Observe Command+V paste requests (opt-in)" = "检测 Command+V 粘贴请求（单独授权）";
-"Only a shortcut request and event timestamp are saved. This cannot verify a successful paste, does not inspect the destination, and requires input-monitoring permission." = "只保存快捷键请求和时间戳，无法确认实际粘贴成功，不读取目标应用内容，需要输入监控权限。";
+"Only a shortcut request and event timestamp are saved. This cannot verify a successful paste, does not inspect the destination, and requires input-monitoring permission." = "只记录粘贴快捷键及时间，无法确认目标应用是否真正粘贴成功。需要输入监控权限。";
 "Paste request detected" = "检测到粘贴请求（结果未知）";
 "Paste request" = "粘贴请求";
 "Paste requested, completion unknown" = "已发出粘贴请求，无法确认是否完成";
@@ -322,7 +321,7 @@
 "Request access…" = "请求授权…";
 "Nexus never reads typed text, password fields, or browser pages. Statistical key categories are stored locally unless you explicitly configure network sync." = "天枢不会读取输入的文字、密码框或网页内容。按键类别统计保存在本地，除非你主动配置网络同步。";
 "Clipboard history privacy" = "剪贴板历史隐私";
-"Source app exclusions are best-effort. Pasteboards cannot reliably identify the originating app, so pause monitoring during sensitive sessions." = "来源应用排除仅为尽力实现。剪贴板无法可靠识别真正的复制来源；处理敏感信息时请暂停监控。";
+"Source app exclusions are best-effort. Pasteboards cannot reliably identify the originating app, so pause monitoring during sensitive sessions." = "系统不一定能提供真实复制来源。处理敏感内容时建议暂停记录。";
 "Pinned records and permanent collections survive automated cleanup. Deleting local history does not erase previous cloud uploads." = "固定记录和永久剪贴板集合不会被自动清理。本地删除不会清除之前已上传的云端数据。";
 "Network consent" = "网络同步授权";
 "Operation uploads are off by default. Full paths and clipboard contents require separate consent even after metadata sync is enabled. Server-side deletion is controlled from Network sync." = "操作历史上传默认关闭。启用元数据同步后，完整路径与剪贴板内容仍需分别授权。云端数据删除请前往「网络同步」。";
@@ -580,12 +579,12 @@
 "Select your existing NexusClipboardSync folder in iCloud Drive. No developer subscription is needed." = "请选择你已在 iCloud 云盘创建的 NexusClipboardSync 文件夹。无需付费开发者会员。";
 "Enable folder clipboard synchronization" = "启用文件夹剪贴板同步";
 "Automatically synchronize every 5 minutes" = "每 5 分钟自动同步";
-"Synchronization is off by default. Nexus only reads and writes the folder you select, when authorized. Apple Files synchronizes it between devices independently." = "默认关闭同步。Nexus 仅在你授权后读取和写入所选文件夹；设备之间的传输由苹果「文件」服务完成。";
+"Synchronization is off by default. Nexus only reads and writes the folder you select, when authorized. Apple Files synchronizes it between devices independently." = "同步默认关闭。Nexus 只使用你选的文件夹；iCloud 云盘负责跨设备传输。";
 "Select which clipboard data may be synchronized" = "选择允许同步的数据类别";
 "Include copied text" = "同步复制的文本";
 "Include names and collection titles" = "同步文件名与集合名称";
 "Include original local file paths" = "同步原始本地路径";
-"Original image and file bytes are not yet supported in folder synchronization. Paths on another device are descriptive only." = "文件夹同步目前尚不支持图片与文件原始内容。其他设备上的路径只用于说明，不能直接访问。";
+"Original image and file bytes are not yet supported in folder synchronization. Paths on another device are descriptive only." = "目前只能同步文字和记录信息，暂不传输图片和文件原件。";
 "Folder synchronization controls" = "文件夹同步操作";
 "Prepare selected folder" = "准备所选文件夹";
 "Prepare next 200 records" = "准备下一批 200 条历史";
@@ -616,4 +615,17 @@
 "Enter a 64-character pairing key" = "输入 64 位配对密钥";
 "Save entered key in Keychain" = "将输入的密钥保存到钥匙串";
 "Never send this key through an untrusted channel. Losing it makes existing encrypted sync files unreadable." = "不要通过不可信的渠道发送此密钥。丢失密钥将导致原有加密同步文件无法读取。";
-"Folder sync v2 encrypts records with AES-256-GCM. Keep your pairing key private and verify your other devices use the same key." = "文件夹同步 v2 使用 AES-256-GCM 加密记录。请保护配对密钥，并确保其他设备使用相同密钥。";
+"Folder sync v2 encrypts records with AES-256-GCM. Keep your pairing key private and verify your other devices use the same key." = "同步文件已加密。其他设备需要输入相同的配对密钥。";
+"Choose what Nexus may save, then copy again." = "选择要记录的内容，再复制一次即可。";
+"Enable clipboard history" = "启用剪贴板历史";
+"Record copied text" = "记录复制的文字";
+"Record copied files" = "记录复制的文件";
+"Record screenshots" = "记录截图";
+"Clipboard content is stored on this Mac. Cloud upload requires separate permission." = "内容只保存在这台 Mac；云端同步需要另外授权。";
+"Paste request observed" = "检测到粘贴请求（结果未确认）";
+"Paste request sent" = "已发送粘贴请求（结果未确认）";
+"Your Mac. Your Control." = "你的 Mac，由你掌控。";
+"View development builds" = "查看测试版更新";
+"Automatic updates are unavailable in this test build." = "测试版不支持自动更新，可从 GitHub 下载新版。";
+"Nexus product website" = "天枢产品介绍";
+"Preview upload" = "预览上传内容";
