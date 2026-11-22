@@ -1,6 +1,6 @@
 # Nexus independent sync build tracks
 
-This repository maintains two deliberately separate and experimental synchronization tracks. Neither build overwrites `Nexus.app`. Both must be built and tested before use.
+This repository maintains two deliberately separate and experimental synchronization tracks. Neither build overwrites `Nexus.app`. The free edition is displayed as `Nexus Drive.app` without a developer badge; its internal development-variant identifier keeps storage isolated. Both must be built and tested before use.
 
 ## Free iCloud Drive track
 
@@ -18,7 +18,7 @@ bash Scripts/build_drive_dev.sh --verify
 ```
 
 Both wrappers deliberately use unique app identifiers:
-- Nexus Drive Dev: `com.qssedalto.nexus.drive.dev`
+- Nexus Drive: `com.qssedalto.nexus.drive.dev`
 - Nexus CloudKit Dev: `com.qssedalto.nexus.cloudkit.dev`
 
 Run without `--verify` only after build and signing have been checked on the intended Mac. The actual `CloudKit` test build must be signed for its **new** unique App ID, not an old `com.qssedalto.nexus.dev` provisioning profile.
