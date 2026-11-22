@@ -29,6 +29,15 @@ struct ClipboardCloudSettingsView: View {
                     )
                     .foregroundStyle(.secondary)
                 }
+                if !cloud.containerConfigured {
+                    Text(localized("This build is not signed for CloudKit. A container name alone is insufficient; use a development profile with the CloudKit capability, then reopen the newly signed app."))
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                    Link(localized("CloudKit signing setup guide"), destination: URL(
+                        string: "https://github.com/qssedalto/Nexus/blob/main/docs/CLOUDKIT_TEST_SETUP.md"
+                    )!)
+                    .font(.caption)
+                }
             }
 
             Section(localized("Independent cloud data permissions")) {

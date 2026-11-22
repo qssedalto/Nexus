@@ -50,6 +50,14 @@ struct FinderSettingsView: View {
         Text(localized("The extension comes with Nexus. Open System Settings to turn it on."))
             .font(.caption)
             .foregroundStyle(.secondary)
+        Text(localized("iCloud Drive and other File Provider locations may hide third-party Finder Sync commands. Use Finder > Services > Copy Selected Paths instead. Native Services must be enabled in macOS settings; macOS controls their menu placement."))
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        Button(localized("Open macOS Services Settings")) {
+            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.keyboard?Services") {
+                NSWorkspace.shared.open(url)
+            }
+        }
     }
 
     private var installedExtensionsSection: some View {

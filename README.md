@@ -64,6 +64,10 @@ The bundled Finder extension adds a copy command named for the selection, such a
 
 默认在访达一级右键菜单显示拷贝命令。iCloud 云盘等位置是否显示该命令取决于访达是否在该目录加载扩展。
 
+**iCloud 云盘 / 文件提供者位置：** macOS 可能禁止第三方 Finder Sync 在这些位置插入右键命令。Nexus 0.0.6 另外注册一个原生「服务」→「拷贝所选路径」备用入口，请从「访达」菜单的「服务」中查找，并在「系统设置」→「键盘」→「键盘快捷键」→「服务」中启用。由于 Finder 控制菜单层级，不能保证出现在第一级右键菜单。Finder 自带的 ⌥⌘C 也能复制所选文件的路径。
+
+**iCloud 剪贴板同步：** 普通下载版默认**未配置 CloudKit 容器和授权**，不支持直接开启跨设备同步。需要 Apple 开发者账户拥有实际的 CloudKit 容器，并使用匹配的开发签名及 Provisioning Profile 构建独立测试版；详见 [CloudKit 签名配置说明](docs/CLOUDKIT_TEST_SETUP.md)。仅启用 UI 开关并不能添加签名权限。
+
 The default workflow is intentionally small:
 
 ```text

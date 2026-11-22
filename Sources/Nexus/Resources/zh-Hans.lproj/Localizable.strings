@@ -568,3 +568,7 @@
 "You may cancel at any point. No statistics are deleted until the final confirmation." = "你可以随时取消。在完成最后一次确认之前，不会删除任何统计数据。";
 "You can cancel now without deleting any statistics." = "现在取消将不会删除任何统计数据。";
 "Clearing local history…" = "正在清理本地历史记录…";
+"iCloud Drive and other File Provider locations may hide third-party Finder Sync commands. Use Finder > Services > Copy Selected Paths instead. Native Services must be enabled in macOS settings; macOS controls their menu placement." = "iCloud 云盘等文件提供者位置可能不显示第三方 Finder Sync 命令。可从「访达」>「服务」>「拷贝所选路径」使用备用入口。需要在 macOS 设置中启用服务；菜单的位置由系统决定。";
+"The installed app has not yet registered a native Service. Finder Sync can be hidden in iCloud Drive and other File Provider folders; the macOS Services fallback is listed after registration." = "当前安装包尚未注册原生服务。iCloud 云盘等文件提供者位置可能隐藏 Finder Sync 菜单；安装注册后可使用 macOS「服务」中的备用命令。";
+"This build is not signed for CloudKit. A container name alone is insufficient; use a development profile with the CloudKit capability, then reopen the newly signed app." = "此版本缺少有效的 CloudKit 签名权限。仅填写容器名称无效；请使用已启用 CloudKit 的开发配置文件重新签名安装，再打开应用。";
+"CloudKit signing setup guide" = "CloudKit 签名配置指南";

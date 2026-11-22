@@ -144,6 +144,17 @@ targets:
         NSPrincipalClass: NSApplication
         NexusAppGroupIdentifier: $(APP_GROUP_ID)
         NexusCloudKitContainerIdentifier: $(NEXUS_CLOUDKIT_CONTAINER_ID)
+        # XcodeGen regenerates Info.plist from info.properties. Defining only
+        # Config/Nexus-Info.plist would silently drop this native Services item.
+        NSServices:
+          - NSMenuItem:
+              default: Copy Selected Paths
+            NSMessage: copySelectedPaths
+            NSPortName: $(EXECUTABLE_NAME)
+            NSServiceDescription: Copy the file system paths of selected Finder items
+            NSRequiredContext: {}
+            NSSendFileTypes:
+              - public.item
     entitlements:
       path: Config/Nexus.entitlements
       properties:

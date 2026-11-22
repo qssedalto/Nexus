@@ -57,3 +57,16 @@ jobs:
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_INFO")" = "com.qssedalto.nexus.dev"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$EXT_INFO")" = "com.qssedalto.nexus.dev.findersync"
           test "$(/usr/libexec/PlistBuddy -c 'Print :NexusBuildVariant' "$APP_INFO")" = "dev"
+          # Finder Sync is suppressed in File Provider locations such as iCloud.
+          # The default Nexus app must also advertise its native Services fallback.
+          test "$(/usr/libexec/PlistBuddy -c 'Print :NSServices:0:NSMessage' "$APP_INFO")" = "copySelectedPaths"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :NSServices:0:NSSendFileTypes:0' "$APP_INFO")" = "public.item"
+          if /usr/libexec/PlistBuddy -c 'Print :NSServices:1' "$APP_INFO" >/dev/null 2>&1; then
+            echo 'ERROR: Nexus declares overlapping native copy-path Services' >&2
+            exit 1
+          fi
+          # A normal test build must not falsely claim a provisioned iCloud container.
+          if /usr/libexec/PlistBuddy -c 'Print :NexusCloudKitContainerIdentifier' "$APP_INFO" >/dev/null 2>&1; then
+            echo 'ERROR: default build unexpectedly advertises CloudKit' >&2
+            exit 1
+          fi

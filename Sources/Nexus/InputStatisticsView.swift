@@ -185,7 +185,8 @@ struct InputStatisticsView: View {
     @State private var selectedPreset = "today"
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        ScrollView(.vertical) {
+            VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text(controller.permissionGranted ? localized("Input permission granted") : localized("Input permission required"))
                 Spacer()
@@ -212,15 +213,36 @@ struct InputStatisticsView: View {
             .onChange(of: selectedPreset) { _ in
                 applyPreset()
             }
-            HStack {
-                DatePicker(localized("From"), selection: $start, displayedComponents: [.date, .hourAndMinute])
-                TextField("ss", value: $startSecond, format: .number).frame(width: 34)
-                TextField("ms", value: $startMS, format: .number).frame(width: 44)
-                DatePicker(localized("To"), selection: $end, displayedComponents: [.date, .hourAndMinute])
-                TextField("ss", value: $endSecond, format: .number).frame(width: 34)
-                TextField("ms", value: $endMS, format: .number).frame(width: 44)
-                Button(localized("Query"), action: query)
-            }.font(.caption)
+            // Two self-contained rows remain legible at the minimum Settings
+            // width. A single long HStack previously overlapped the macOS tab strip.
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Text(localized("From")).frame(width: 46, alignment: .leading)
+                    DatePicker("", selection: $start, displayedComponents: [.date, .hourAndMinute])
+                        .labelsHidden().datePickerStyle(.compact)
+                    Text("s").foregroundStyle(.secondary)
+                    TextField("ss", value: $startSecond, format: .number).frame(width: 40)
+                    Text("ms").foregroundStyle(.secondary)
+                    TextField("ms", value: $startMS, format: .number).frame(width: 50)
+                    Spacer(minLength: 0)
+                }
+                HStack(spacing: 8) {
+                    Text(localized("To")).frame(width: 46, alignment: .leading)
+                    DatePicker("", selection: $end, displayedComponents: [.date, .hourAndMinute])
+                        .labelsHidden().datePickerStyle(.compact)
+                    Text("s").foregroundStyle(.secondary)
+                    TextField("ss", value: $endSecond, format: .number).frame(width: 40)
+                    Text("ms").foregroundStyle(.secondary)
+                    TextField("ms", value: $endMS, format: .number).frame(width: 50)
+                    Spacer(minLength: 0)
+                }
+                HStack {
+                    Spacer()
+                    Button(localized("Query"), action: query)
+                }
+            }
+            .font(.caption)
+            .padding(.vertical, 4)
             HStack {
                 Picker(localized("Device or event source"), selection: $controller.selectedSource) {
                     Text(localized("All sources")).tag("")
@@ -406,8 +428,11 @@ struct InputStatisticsView: View {
             }
             Text("\(localized("Database size")): \(controller.databaseSizeBytes.formatted()) B · \(controller.dataStatus)")
                 .font(.caption).foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
         }
-        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear { controller.startIfPermitted(); applyPreset() }
         // Diagnostics are voluntary and scoped to the open test section.
         // Collapsing the section stops live diagnostic callbacks immediately.
