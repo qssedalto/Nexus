@@ -98,6 +98,9 @@ final class ClipboardMonitor: ObservableObject {
     var onDetected: ((String) -> Void)?
 
     private let store = OperationStore.shared()
+    /// A missing SQLite store must never look like successful recording.
+    var storageAvailable: Bool { store != nil }
+
     private var timer: Timer?
     private var retentionTimer: Timer?
     private var lastChangeCount: Int
