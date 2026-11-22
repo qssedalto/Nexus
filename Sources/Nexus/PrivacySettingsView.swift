@@ -97,7 +97,14 @@ struct PrivacySettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                if !statistics.permissionGranted || !accessibilityGranted {
+                if statistics.enabled && !statistics.paused,
+                   statistics.permissionGranted && !statistics.monitoringActive {
+                    Label(localized("Input access is granted, but the event listener is not running."),
+                          systemImage: "exclamationmark.triangle")
+                        .foregroundStyle(.secondary)
+                }
+                if !statistics.permissionGranted || !accessibilityGranted ||
+                   (statistics.enabled && !statistics.paused && !statistics.monitoringActive) {
                     Button(localized("Restart Nexus Drive to apply permissions")) {
                         NexusAppRelauncher.restart()
                     }
