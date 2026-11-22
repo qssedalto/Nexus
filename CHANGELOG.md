@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.0.6
+
+- Fix the Keyboard and Mouse Statistics tab overflow with a scrollable layout and separate date/time rows.
+- Add a native macOS Services copy-path fallback in iCloud Drive and other File Provider locations where Finder Sync menus may not appear; macOS controls activation and placement.
+- Link directly to macOS Services settings.
+- Verify real signed CloudKit entitlements and require an authorized provisioning profile for opt-in CloudKit test builds.
+- Leave ordinary Nexus builds CloudKit-disabled until configured with an authorized Apple developer container.
+
 ## 0.0.5
 
 - Restore Finder **Copy Path** after updating from 0.0.4.
