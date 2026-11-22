@@ -26,6 +26,13 @@ final class NetworkSyncController: ObservableObject {
             serverOperationsSupported = false
             serverStatisticsAggregatesSupported = false
             cancelInFlightUploads()
+            if oldValue != serverAddress {
+                // Changing the host must never carry an old opt-in over
+                // to an unverified new recipient.
+                statisticsUploadEnabled = false
+                operationSyncEnabled = false
+                automatic = false
+            }
         }
     }
     /// Independent permission for uploading input statistics (including
@@ -176,6 +183,13 @@ final class NetworkSyncController: ObservableObject {
             defaults.set(false, forKey: credentialRevokedKey)
         }
         connectionVerified = false
+        if saved {
+            // Never send data to a newly configured credential before
+            // the operator explicitly verifies the server and reconsents.
+            statisticsUploadEnabled = false
+            operationSyncEnabled = false
+            automatic = false
+        }
         status = saved ? "Token saved" : "Keychain error"
         return saved
     }
@@ -233,6 +247,11 @@ final class NetworkSyncController: ObservableObject {
     }
 
     func syncNow(automaticRun: Bool = false) async {
+        if Bundle.main.bundleIdentifier == "com.qssedalto.nexus.drive.dev",
+           !connectionVerified {
+            status = localized("Verify the server connection before uploading.")
+            return
+        }
         guard statisticsUploadEnabled else {
             status = localized("Statistics upload is disabled; local data is preserved")
             return
@@ -336,6 +355,11 @@ final class NetworkSyncController: ObservableObject {
     }
 
     func syncOperationsNow(automaticRun: Bool = false) async {
+        if Bundle.main.bundleIdentifier == "com.qssedalto.nexus.drive.dev",
+           !connectionVerified {
+            operationSyncStatus = localized("Verify the server connection before uploading.")
+            return
+        }
         guard !operationDeletionInProgress else {
             operationSyncStatus = "Remote operation deletion in progress; upload blocked"
             return
