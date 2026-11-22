@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 EXPLICIT_APP_NAME=${APP_NAME:-}
+EXPLICIT_APP_ICON_NAME=${APP_ICON_NAME:-}
 EXPLICIT_BUNDLE_ID=${BUNDLE_ID:-}
 EXPLICIT_SIGNING_MODE=${SIGNING_MODE:-}
 EXPLICIT_APP_IDENTITY=${APP_IDENTITY:-}
@@ -71,6 +72,7 @@ esac
 
 APP_NAME=${EXPLICIT_APP_NAME:-$DEFAULT_APP_NAME}
 BUNDLE_ID=${EXPLICIT_BUNDLE_ID:-$DEFAULT_BUNDLE_ID}
+APP_ICON_NAME=${EXPLICIT_APP_ICON_NAME:-$APP_ICON_NAME}
 
 if [[ -z "$APP_NAME" || "$APP_NAME" == "." || "$APP_NAME" == ".." || "$APP_NAME" == */* ]]; then
   echo "ERROR: APP_NAME must be a non-empty file name without path components." >&2
