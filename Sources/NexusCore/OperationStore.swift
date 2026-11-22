@@ -60,8 +60,9 @@ public final class OperationStore: @unchecked Sendable {
     private let lock = NSLock()
 
     public static func shared(bundle: Bundle = .main) -> OperationStore? {
-        guard let group = bundle.object(forInfoDictionaryKey: SharedSettings.appGroupIdentifierInfoKey) as? String,
-              let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: group) else { return nil }
+        guard let container = SharedSettings.localDatabaseDirectory(bundle: bundle) else {
+            return nil
+        }
         return try? OperationStore(url: container.appendingPathComponent("NexusOperations.sqlite"))
     }
 
