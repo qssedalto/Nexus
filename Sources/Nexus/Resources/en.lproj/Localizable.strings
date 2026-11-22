@@ -84,10 +84,9 @@
 "Records detected clipboard changes, not confirmed file transfers or paste completion." = "Records detected clipboard changes, not confirmed file transfers or paste completion.";
 "Text copy" = "Text copy";
 "Image copy" = "Image copy";
-"Clipboard files detected" = "Clipboard file references detected";
+"Clipboard files detected" = "Clipboard files detected";
 "Clipboard image detected" = "Clipboard image detected";
 "Clipboard text detected" = "Clipboard text detected";
-
 "Follow system default" = "Follow system default";
 "Expand all Services where possible" = "Expand all Services where possible";
 "Group Services in submenu" = "Group Services in submenu";
@@ -300,7 +299,7 @@
 "Connected: statistics and operation history APIs available" = "Connected: statistics and operation history APIs available";
 "Connected: operation history API unavailable or not advertised" = "Connected: operation history API unavailable or not advertised";
 
-"Source application filter" = "Source application";
+"Source application filter" = "Source application filter";
 "Source application unknown" = "Source application unknown";
 "Filter by date" = "Filter by date";
 "Through" = "Through";
@@ -560,3 +559,16 @@
 "Save entered key in Keychain" = "Save entered key in Keychain";
 "Never send this key through an untrusted channel. Losing it makes existing encrypted sync files unreadable." = "Never send this key through an untrusted channel. Losing it makes existing encrypted sync files unreadable.";
 "Folder sync v2 encrypts records with AES-256-GCM. Keep your pairing key private and verify your other devices use the same key." = "Folder sync v2 encrypts records with AES-256-GCM. Keep your pairing key private and verify your other devices use the same key.";
+"Choose what Nexus may save, then copy again." = "Choose what Nexus may save, then copy again.";
+"Enable clipboard history" = "Enable clipboard history";
+"Record copied text" = "Record copied text";
+"Record copied files" = "Record copied files";
+"Record screenshots" = "Record screenshots";
+"Clipboard content is stored on this Mac. Cloud upload requires separate permission." = "Clipboard content is stored on this Mac. Cloud upload requires separate permission.";
+"Paste request observed" = "Paste request observed";
+"Paste request sent" = "Paste request sent";
+"Your Mac. Your Control." = "Your Mac. Your Control.";
+"View development builds" = "View development builds";
+"Automatic updates are unavailable in this test build." = "Automatic updates are unavailable in this test build.";
+"Nexus product website" = "Nexus product website";
+"Preview upload" = "Preview upload";
