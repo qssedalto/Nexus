@@ -7,7 +7,7 @@
 
 Nexus (天枢) is a native macOS menu-bar utility for copying paths, inspecting file-copy activity, and viewing keyboard/mouse usage statistics. Optional network synchronization is available for usage statistics.
 
-> **Development integration preview — PR #70 only:** The unmerged integration branch also contains an opt-in clipboard shelf and searchable SQLite history, pinned cards and collections, image/file previews, optional private CloudKit synchronization, and a separate universal iPhone/iPad client with explicit clipboard import. These features are **not yet included in the default `main` download**. Private CloudKit requires signed, provisioned Apple entitlements and user authorization; unsigned Simulator success is not live iCloud verification. The first-launch welcome guide explains how to find the menu-bar app even when Hidden Bar hides its icon.
+> **Integrated in `main` since PR #70:** Nexus now includes an optional clipboard shelf, searchable SQLite history, pinned cards and collections, previews, and opt-in private CloudKit sync code. The repository also includes a separate universal iPhone/iPad client that imports clipboard content only on user action. CloudKit requires Apple entitlements, provisioning and user consent; a successful unsigned iOS Simulator build is **not proof of live iCloud sync or device distribution**. The first-launch welcome guide helps locate the menu-bar app when utilities such as Hidden Bar conceal its icon.
 
 Drop something on the menu bar icon, then paste the path wherever you need it.
 
@@ -25,7 +25,7 @@ Nexus removes that detour:
 2. Drop it on the Nexus menu bar icon.
 3. Paste the copied path.
 
-No command palette, no temporary shelf, and no extra window to manage.
+The original path-copy workflow needs no extra window. The optional clipboard shelf is available separately for users who enable clipboard monitoring.
 
 ## Features
 
@@ -43,6 +43,9 @@ No command palette, no temporary shelf, and no extra window to manage.
 - **Input statistics**: view local keyboard, mouse, and system-key usage counts when the required system permissions are granted.
 - **File-copy monitoring**: optionally record copied file URLs and related metadata.
 - **Network statistics sync**: optionally connect to a Nexus-compatible server to upload, query, and restore supported input statistics.
+- **Optional clipboard shelf**: card-style searchable local history with pinned clips, collections, rich previews, keyboard navigation and explicit quick-paste support.
+- **Private iCloud clipboard sync (requires setup)**: opt-in CloudKit data model and small original image/file transfers with per-category consent; real signed multi-device syncing must be configured and tested.
+- **Universal iPhone/iPad source**: explicit import/restore interface. The CI package is an unsigned **Simulator-only** build, not an IPA you can install on a physical device.
 - **Drop feedback**: quick visual confirmation when a path was copied.
 - **Launch at login**: keep Nexus ready without starting it manually.
 - **Sparkle updates**: release builds include update checking support.
@@ -137,6 +140,10 @@ Open [Build Nexus.app (macOS Apple Silicon)](https://github.com/qssedalto/Nexus/
 - **push to `main` (automatic)**: uses the Apple Development P12 from repository Secrets, producing `Nexus.app` with bundle ID `com.qssedalto.nexus`. Its updater is disabled when no Sparkle release key is configured. This is an **unnotarized development-signed test artifact**, not a Developer ID release.
 - **adhoc** (manual opt-in): produces `Nexus.app` with Ad Hoc signing, without needing an Apple certificate. Automatic pushes no longer fall back to Ad Hoc signing.
 - Both builds archive the `.app` and its Finder extension as a downloadable GitHub Actions **Artifact** (not a GitHub Release).
+
+**Where to get the current integrated macOS app:** Open [Build Nexus.app (macOS Apple Silicon)](https://github.com/qssedalto/Nexus/actions/workflows/build-nexus.yml), select the latest successful **push** run on `main`, then download its **Artifact** (`Nexus-macOS-arm64-development-…`). The artifact contains a ZIP with `Nexus.app`. Extract it and launch the app; Gatekeeper/provisioning limitations still apply because it is development-signed and not notarized. Back up your existing user data and quit the old app before trying this build; do not overwrite a working installation until migration has been verified.
+
+**Where to get the iPhone/iPad client preview:** Open [Nexus iPhone and iPad simulator build](https://github.com/qssedalto/Nexus/actions/workflows/nexus-mobile.yml) and download the `Nexus-iOS-iPadOS-Simulator-…` artifact from a successful run. It contains an unsigned Simulator `.app`, not a signed `.ipa` for a real device.
 
 For development signing, create three repository Actions Secrets: `BUILD_CERTIFICATE_BASE64` (Base64 of a `.p12` export containing its private key), `P12_PASSWORD` (password protecting the exported P12), and `KEYCHAIN_PASSWORD` (an independent temporary keychain password). The workflow imports the certificate into a temporary keychain, and cleans up the keychain afterward. Never commit certificate files or passwords.
 
