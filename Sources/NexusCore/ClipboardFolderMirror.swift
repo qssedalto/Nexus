@@ -41,6 +41,15 @@ public enum ClipboardFolderMirror {
                 guard url.isFileURL, fileManager.fileExists(atPath: url.path) else {
                     throw MirrorError.invalidSource
                 }
+                // Prevent copying the selected folder (or an ancestor) into
+                // a newly created descendant. Resolve aliases before checking.
+                let sourcePath = url.standardizedFileURL.resolvingSymlinksInPath().path
+                let temporaryPath = temporary.standardizedFileURL.resolvingSymlinksInPath().path
+                let descendantPrefix = sourcePath.hasSuffix("/") ? sourcePath : sourcePath + "/"
+                guard temporaryPath != sourcePath,
+                      !temporaryPath.hasPrefix(descendantPrefix) else {
+                    throw MirrorError.invalidSource
+                }
                 let base = url.lastPathComponent.isEmpty ? "File" : url.lastPathComponent
                 let target = temporary.appendingPathComponent("\(index + 1) \(base)")
                 try fileManager.copyItem(at: url, to: target)

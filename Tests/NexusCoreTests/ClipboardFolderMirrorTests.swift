@@ -38,4 +38,30 @@ final class ClipboardFolderMirrorTests: XCTestCase {
                                                            cancelled: { true }))
         XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: folder.path).count, 2)
     }
+
+    func testCannotCopyAncestorOfSelectedFolderIntoItself() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let selectedFolder = root.appendingPathComponent("NexusClipboardSync")
+        try FileManager.default.createDirectory(at: selectedFolder, withIntermediateDirectories: true)
+        let original = root.appendingPathComponent("note.txt")
+        try "original".write(to: original, atomically: true, encoding: .utf8)
+
+        XCTAssertThrowsError(try ClipboardFolderMirror.save(.files([root]), to: selectedFolder))
+        XCTAssertTrue(try FileManager.default.contentsOfDirectory(atPath: selectedFolder.path).isEmpty)
+        XCTAssertEqual(try String(contentsOf: original, encoding: .utf8), "original")
+    }
+
+    func testRejectsSymlinkToSelectedFolderAsSource() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let selectedFolder = root.appendingPathComponent("NexusClipboardSync")
+        try FileManager.default.createDirectory(at: selectedFolder, withIntermediateDirectories: true)
+        let alias = root.appendingPathComponent("alias")
+        try FileManager.default.createSymbolicLink(at: alias, withDestinationURL: selectedFolder)
+
+        XCTAssertThrowsError(try ClipboardFolderMirror.save(.files([alias]), to: selectedFolder))
+        XCTAssertTrue(try FileManager.default.contentsOfDirectory(atPath: selectedFolder.path).isEmpty)
+    }
+
 }
