@@ -33,7 +33,6 @@ targets:
       - Sources/NexusCore/ClipboardCloudRunSummary.swift
       - Sources/NexusCore/ClipboardCloudImageAsset.swift
       - Sources/NexusCore/ClipboardCloudFileAsset.swift
-      - Sources/NexusCore/ClipboardFolderTransport.swift
       - Sources/NexusCore/ClipboardFilePreviewPolicy.swift
       - Sources/NexusCore/ClipboardCloudUploadDecision.swift
       - Sources/NexusCore/ClipboardCloudForegroundSyncPolicy.swift
