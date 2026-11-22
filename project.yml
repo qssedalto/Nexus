@@ -143,6 +143,7 @@ targets:
         NSHumanReadableCopyright: Copyright © 2026 qssedalto. Portions © 2026 Marco Gomiero.
         NSPrincipalClass: NSApplication
         NexusAppGroupIdentifier: $(APP_GROUP_ID)
+        NexusCloudKitContainerIdentifier: $(NEXUS_CLOUDKIT_CONTAINER_ID)
         # XcodeGen regenerates Info.plist from info.properties. Defining only
         # Config/Nexus-Info.plist would silently drop this native Services item.
         NSServices:
