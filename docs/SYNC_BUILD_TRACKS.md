@@ -14,7 +14,7 @@ This repository maintains two deliberately separate and experimental synchroniza
 From the repository directory:
 
 ```zsh
-NEXUS_CLOUDKIT_CONTAINER_ID='iCloud.YOUR_REAL_CONTAINER' NEXUS_CLOUDKIT_PROVISIONING_PROFILE='/absolute/path/to/profile.provisionprofile' bash Scripts/build_cloudkit_dev.sh --verify
+NEXUS_CLOUDKIT_CONTAINER_ID='iCloud.YOUR_REAL_CONTAINER' NEXUS_CLOUDKIT_PROVISIONING_PROFILE='/absolute/path/to/profile.provisionprofile' SIGNING_MODE=development APP_IDENTITY='Apple Development: YOUR_NAME (TEAM_ID)' bash Scripts/build_cloudkit_dev.sh --verify
 ```
 
 Both wrappers deliberately use unique app identifiers:
