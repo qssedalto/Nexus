@@ -22,6 +22,7 @@ final class NetworkSyncController: ObservableObject {
     @Published var serverAddress: String {
         didSet {
             defaults.set(serverAddress, forKey: "nexusSyncServer")
+            connectionVerified = false
             serverOperationsSupported = false
             serverStatisticsAggregatesSupported = false
             cancelInFlightUploads()
@@ -59,6 +60,7 @@ final class NetworkSyncController: ObservableObject {
         }
     }
     @Published private(set) var status = "Idle"
+    @Published private(set) var connectionVerified = false
     @Published private(set) var serverOperationsSupported = false
     @Published private(set) var serverStatisticsAggregatesSupported = false
     @Published private(set) var lastSync: Date?
@@ -125,7 +127,15 @@ final class NetworkSyncController: ObservableObject {
 
     private init() {
         defaults = .standard
-        serverAddress = defaults.string(forKey: "nexusSyncServer") ?? "https://qsseda.com"
+        let savedServer = defaults.string(forKey: "nexusSyncServer")
+        // The old illustrative qsseda.com homepage was never a verified
+        // Nexus API endpoint. Do not display it as a working default.
+        if Bundle.main.bundleIdentifier == "com.qssedalto.nexus.drive.dev",
+           savedServer == nil || savedServer == "https://qsseda.com" {
+            serverAddress = ""
+        } else {
+            serverAddress = savedServer ?? "https://qsseda.com"
+        }
         statisticsUploadEnabled = defaults.bool(forKey: "nexusStatisticsUploadEnabled")
         automatic = defaults.bool(forKey: "nexusSyncAutomatic")
         operationSyncEnabled = defaults.bool(forKey: "nexusOperationSyncEnabled")
@@ -133,6 +143,14 @@ final class NetworkSyncController: ObservableObject {
         operationSyncText = defaults.bool(forKey: "nexusOperationSyncText")
         preciseEvents = defaults.bool(forKey: "nexusSyncPreciseEvents")
         lastSync = defaults.object(forKey: "nexusSyncLastSuccess") as? Date
+        if Bundle.main.bundleIdentifier == "com.qssedalto.nexus.drive.dev",
+           (!hasToken || serverAddress.isEmpty) {
+            // Previous blue switches without any usable server were
+            // misleading. Fail closed without deleting any local data.
+            statisticsUploadEnabled = false
+            operationSyncEnabled = false
+            automatic = false
+        }
         schedule()
     }
 
@@ -157,12 +175,17 @@ final class NetworkSyncController: ObservableObject {
             // Only an explicit successful save may re-enable credential use.
             defaults.set(false, forKey: credentialRevokedKey)
         }
+        connectionVerified = false
         status = saved ? "Token saved" : "Keychain error"
         return saved
     }
 
     func removeToken() {
         cancelInFlightUploads()
+        connectionVerified = false
+        statisticsUploadEnabled = false
+        operationSyncEnabled = false
+        automatic = false
         // Revocation must not destroy credentials that may still belong to
         // the user's original Slashgrab installation. Suppress future legacy
         // fallback before deleting only the Nexus-owned Keychain item.
@@ -183,6 +206,7 @@ final class NetworkSyncController: ObservableObject {
     }
 
     func testConnection() async {
+        connectionVerified = false
         serverOperationsSupported = false
         serverStatisticsAggregatesSupported = false
         do {
@@ -193,6 +217,7 @@ final class NetworkSyncController: ObservableObject {
                 status = localized("Server schema not recognized; operation sync not verified")
                 return
             }
+            connectionVerified = true
             serverOperationsSupported = (hello.capabilities ?? []).contains("operations.events")
             serverStatisticsAggregatesSupported = (hello.capabilities ?? []).contains("statistics.monotonic_aggregates")
             if !serverStatisticsAggregatesSupported {
