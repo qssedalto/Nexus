@@ -628,3 +628,7 @@
 "Open Input Monitoring settings" = "Open Input Monitoring settings";
 "Refresh permissions" = "Refresh permissions";
 "If you already approved access, confirm Nexus Drive is enabled in macOS Input Monitoring, then return here and refresh. Permissions for a previously installed Nexus app do not automatically transfer." = "If you already approved access, confirm Nexus Drive is enabled in macOS Input Monitoring, then return here and refresh. Permissions for a previously installed Nexus app do not automatically transfer.";
+
+"Local clipboard storage could not be opened. Restart Nexus Drive after rebuilding the app." = "Local clipboard storage could not be opened. Restart Nexus Drive after rebuilding the app.";
+"No clipboard types are selected. Enable Record clipboard text, file copying, or images below to begin collecting new entries." = "No clipboard types are selected. Enable Record clipboard text, file copying, or images below to begin collecting new entries.";
+"Generate a pairing key, prepare your chosen folder, then enable sync." = "Generate a pairing key, prepare your chosen folder, then enable sync.";
