@@ -232,6 +232,9 @@ struct InputStatisticsView: View {
                 set: { UserDefaults.standard.set($0, forKey: "nexusCountKeyRepeats") }
             ))
                 .disabled(!controller.enabled)
+            Text(localized("When you hold a key, macOS may repeat it. On: count each repeated press. Off: count only the initial press."))
+                .font(.caption)
+                .foregroundStyle(.secondary)
             Picker(localized("Time range"), selection: $selectedPreset) {
                 Text(localized("Today")).tag("today")
                 Text(localized("Yesterday")).tag("yesterday")
