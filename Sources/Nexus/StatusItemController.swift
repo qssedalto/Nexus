@@ -166,16 +166,18 @@ final class StatusItemController {
             panel = existing
         } else {
             let created = NSPanel(
-                contentRect: NSRect(x: 0, y: 0, width: 900, height: 480),
+                contentRect: NSRect(x: 0, y: 0, width: 1000, height: 580),
                 styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
                 backing: .buffered,
                 defer: false
             )
             created.title = localized("Clipboard Shelf")
-            created.level = .floating
+            // A normal window can be covered by other apps. Do not permanently float above them.
+            created.level = .normal
             created.isReleasedWhenClosed = false
             created.hidesOnDeactivate = false
-            created.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+            created.collectionBehavior = [.moveToActiveSpace]
+            created.minSize = NSSize(width: 750, height: 480)
             created.contentViewController = NSHostingController(
                 rootView: ClipboardShelfView(
                     appState: appState,
@@ -192,13 +194,16 @@ final class StatusItemController {
             ?? NSScreen.main
         if let visible = preferredScreen?.visibleFrame {
             let frame = ClipboardPanelPlacement.frame(
-                inside: visible, requestedSize: panel.frame.size
+                inside: visible, requestedSize: panel.frame.size,
+                bottomInset: 80
             )
             panel.setFrame(frame, display: true)
         }
         appState.refreshOperations()
         NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
+        // Raise once on explicit user invocation, without always-on-top behavior.
+        panel.orderFrontRegardless()
     }
 
     /// Called only following an explicit double click or Return by the user.
