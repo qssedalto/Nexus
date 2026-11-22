@@ -7,6 +7,7 @@ public enum ClipboardFolderMirror {
     public enum Content: Sendable {
         case files([URL])
         case text(String)
+        case richText(text: String, rtf: Data)
         case image(Data, extensionName: String)
     }
 
@@ -54,6 +55,11 @@ public enum ClipboardFolderMirror {
         case .text(let value):
             guard !value.isEmpty else { throw MirrorError.empty }
             totalBytes = Int64(value.utf8.count)
+        case .richText(let text, let rtf):
+            guard !text.isEmpty, !rtf.isEmpty else { throw MirrorError.empty }
+            let (sum, overflow) = Int64(text.utf8.count).addingReportingOverflow(Int64(rtf.count))
+            if overflow { throw CocoaError(.fileReadTooLarge) }
+            totalBytes = sum
         case .image(let data, _):
             guard !data.isEmpty else { throw MirrorError.empty }
             totalBytes = Int64(data.count)
@@ -78,6 +84,19 @@ public enum ClipboardFolderMirror {
             guard !cancelled() else { throw MirrorError.cancelled }
             try value.write(to: temporary.appendingPathComponent("Text.txt"),
                             atomically: true, encoding: .utf8)
+            completedBytes = totalBytes
+            progress(completedBytes, totalBytes)
+        case .richText(let text, let rtf):
+            guard !cancelled() else { throw MirrorError.cancelled }
+            try text.write(to: temporary.appendingPathComponent("Text.txt"),
+                           atomically: true, encoding: .utf8)
+            completedBytes = Int64(text.utf8.count)
+            progress(completedBytes, totalBytes)
+            guard !cancelled() else { throw MirrorError.cancelled }
+            // Public RTF bytes preserve styling and fonts where supported.
+            // Always include plain text for applications without RTF support.
+            try rtf.write(to: temporary.appendingPathComponent("Rich Text.rtf"),
+                          options: .atomic)
             completedBytes = totalBytes
             progress(completedBytes, totalBytes)
         case .image(let data, let ext):

@@ -133,4 +133,17 @@ private final class MirrorCopyProgressRecorder: @unchecked Sendable {
             expectedBytes = total
         }
     }
+    func testRTFMirrorRetainsOriginalPublicRichTextAndPlainText() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let original = Data(("{\\rtf1\\ansi Sample bold text}").utf8)
+        let out = try ClipboardFolderMirror.save(
+            .richText(text: "Sample bold text", rtf: original), to: folder
+        )
+        XCTAssertEqual(try Data(contentsOf: out.appendingPathComponent("Rich Text.rtf")), original)
+        XCTAssertEqual(try String(contentsOf: out.appendingPathComponent("Text.txt"),
+                                  encoding: .utf8), "Sample bold text")
+    }
+
 }

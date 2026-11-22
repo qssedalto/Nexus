@@ -335,7 +335,15 @@ final class ClipboardMonitor: ObservableObject {
         if imageDeclared { return }
 
         if let copiedText = pasteboard.string(forType: .string), !copiedText.isEmpty {
-            ClipboardCloudController.shared.mirrorCopied(.text(copiedText))
+            // Folder-mirror consent is independent of the history preview
+            // setting. Prefer exact public RTF bytes over a lossy re-render.
+            if let originalRTF = pasteboard.data(forType: .rtf), !originalRTF.isEmpty {
+                ClipboardCloudController.shared.mirrorCopied(
+                    .richText(text: copiedText, rtf: originalRTF)
+                )
+            } else {
+                ClipboardCloudController.shared.mirrorCopied(.text(copiedText))
+            }
         }
         guard textEnabled, let store,
               let text = pasteboard.string(forType: .string),

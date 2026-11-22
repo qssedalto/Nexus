@@ -290,7 +290,7 @@ final class ClipboardCloudController: ObservableObject {
         guard enabled, folderPrepared, let folder = selectedFolderURL else { return }
         switch content {
         case .files: guard mirrorFiles else { return }
-        case .text: guard mirrorText else { return }
+        case .text, .richText: guard mirrorText else { return }
         case .image: guard mirrorImages else { return }
         }
         let id = UUID()
