@@ -411,7 +411,9 @@ public actor ClipboardFolderTransport: ClipboardCloudTransport, ClipboardCloudPr
     }
 
     private func withAccess<T>(_ operation: () throws -> T) throws -> T {
-        let home = FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL
+        // Foundation exposes this on both macOS and iOS (unlike
+        // FileManager.homeDirectoryForCurrentUser, which is macOS-only).
+        let home = URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true).standardizedFileURL
         guard root.isFileURL,
               root.path != "/",
               root != home,
