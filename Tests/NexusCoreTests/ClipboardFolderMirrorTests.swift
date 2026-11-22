@@ -64,4 +64,73 @@ final class ClipboardFolderMirrorTests: XCTestCase {
         XCTAssertTrue(try FileManager.default.contentsOfDirectory(atPath: selectedFolder.path).isEmpty)
     }
 
+
+    func testStreamingCopyReportsProgressAndCanCancelDuringLargeFile() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let source = root.appendingPathComponent("large.bin")
+        let folder = root.appendingPathComponent("mirror")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let content = Data(repeating: 0x2A, count: 13 * 1_048_576)
+        try content.write(to: source)
+        let recorder = MirrorCopyProgressRecorder()
+        XCTAssertThrowsError(try ClipboardFolderMirror.save(
+            .files([source]), to: folder,
+            cancelled: { recorder.shouldCancel },
+            progress: { copied, total in recorder.record(copied: copied, total: total) }
+        )) { error in
+            guard case ClipboardFolderMirror.MirrorError.cancelled = error else {
+                return XCTFail("Expected cancellation, got \(error)")
+            }
+        }
+        XCTAssertGreaterThan(recorder.copied, 0)
+        XCTAssertEqual(recorder.total, Int64(content.count))
+        XCTAssertLessThan(recorder.copied, recorder.total)
+        XCTAssertTrue(try FileManager.default.contentsOfDirectory(atPath: folder.path).isEmpty)
+        XCTAssertEqual(try Data(contentsOf: source), content)
+    }
+
+    func testNestedFolderPreservesHiddenFilesAndReportsAllBytes() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let source = root.appendingPathComponent("folder")
+        let nested = source.appendingPathComponent("nested")
+        let folder = root.appendingPathComponent("destination")
+        try FileManager.default.createDirectory(at: nested, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try Data(repeating: 0x3B, count: 2_097_152).write(
+            to: nested.appendingPathComponent(".hidden.bin"))
+        try "hello".write(to: source.appendingPathComponent("readme.txt"),
+                          atomically: true, encoding: .utf8)
+        let recorder = MirrorCopyProgressRecorder()
+        let output = try ClipboardFolderMirror.save(
+            .files([source]), to: folder,
+            progress: { copied, total in recorder.record(copied: copied, total: total) }
+        )
+        XCTAssertEqual(recorder.total, 2_097_157)
+        XCTAssertEqual(recorder.copied, recorder.total)
+        XCTAssertEqual(try Data(contentsOf: output.appendingPathComponent(
+            "1 folder/nested/.hidden.bin")).count, 2_097_152)
+        XCTAssertEqual(try String(contentsOf: output.appendingPathComponent(
+            "1 folder/readme.txt"), encoding: .utf8), "hello")
+    }
+
+}
+
+
+private final class MirrorCopyProgressRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var writtenBytes: Int64 = 0
+    private var expectedBytes: Int64 = 0
+    var copied: Int64 { lock.withLock { writtenBytes } }
+    var total: Int64 { lock.withLock { expectedBytes } }
+    var shouldCancel: Bool { lock.withLock { writtenBytes >= 4 * 1_048_576 } }
+
+    func record(copied: Int64, total: Int64) {
+        lock.withLock {
+            writtenBytes = copied
+            expectedBytes = total
+        }
+    }
 }
