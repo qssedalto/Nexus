@@ -28,12 +28,14 @@ final class StatusItemController {
             return
         }
 
-        statusItem.length = buildInfo.isDevBuild ? NSStatusItem.variableLength : NSStatusItem.squareLength
+        statusItem.length = buildInfo.showsDevelopmentLabel ? NSStatusItem.variableLength : NSStatusItem.squareLength
         button.image = StatusIconProvider.image(for: .idle)
         button.image?.size = NSSize(width: 22, height: 22)
-        button.title = buildInfo.isDevBuild ? localized(" DEV") : ""
-        button.toolTip = buildInfo.isDevBuild ? localized("Nexus Dev Build") : "Nexus"
-        button.imagePosition = buildInfo.isDevBuild ? .imageLeft : .imageOnly
+        button.title = buildInfo.showsDevelopmentLabel ? localized(" DEV") : ""
+        button.toolTip = buildInfo.isCloudKitEdition
+            ? "Nexus CloudKit"
+            : (buildInfo.showsDevelopmentLabel ? localized("Nexus Dev Build") : "Nexus")
+        button.imagePosition = buildInfo.showsDevelopmentLabel ? .imageLeft : .imageOnly
         button.contentTintColor = nil
 
         let view = DropTargetStatusView(frame: button.bounds)

@@ -28,12 +28,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // Newly installed users only; respect a persisted disabled preference.
             appState.setLaunchAtLoginEnabled(true)
         }
-        let state = appState
-        InputStatisticsController.shared.setPasteRequestHandler { _ in
-            Task { @MainActor in
-                state.clipboardDidChange("Paste request detected")
-            }
-        }
+        // Command-V is only a paste request, not evidence the destination
+        // accepted the clipboard. Do not show misleading success feedback.
+        InputStatisticsController.shared.setPasteRequestHandler { _ in }
         InputStatisticsController.shared.startIfPermitted()
         _ = InputCloudBackupController.shared
         _ = NetworkSyncController.shared

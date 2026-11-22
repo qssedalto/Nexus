@@ -36,7 +36,7 @@ struct AboutView: View {
                         Text(appName)
                             .font(.custom("Avenir Next", size: 26, relativeTo: .title).weight(.bold))
 
-                        if buildInfo.isDevBuild {
+                        if buildInfo.showsDevelopmentLabel {
                             Text(localized("DEV"))
                                 .font(.custom("Avenir Next", size: 9, relativeTo: .caption2).weight(.heavy))
                                 .foregroundStyle(.white)

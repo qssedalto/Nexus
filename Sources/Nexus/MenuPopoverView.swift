@@ -253,10 +253,10 @@ struct MenuPopoverView: View {
 
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 6) {
-                    Text("Nexus")
+                    Text(buildInfo.isCloudKitEdition ? "Nexus CloudKit" : "Nexus")
                         .font(.custom("Avenir Next", size: 16).weight(.bold))
 
-                    if buildInfo.isDevBuild {
+                    if buildInfo.showsDevelopmentLabel {
                         Text(localized("DEV"))
                             .font(.custom("Avenir Next", size: 9).weight(.heavy))
                             .foregroundStyle(.white)
@@ -265,7 +265,7 @@ struct MenuPopoverView: View {
                             .background(.orange, in: RoundedRectangle(cornerRadius: 4))
                     }
                 }
-                Text(buildInfo.isDevBuild ? localized("Development build") : localized("Drop files. Grab paths."))
+                Text(buildInfo.showsDevelopmentLabel ? localized("Development build") : localized("Drop files. Grab paths."))
                     .font(.custom("Avenir Next", size: 11))
                     .foregroundStyle(.secondary)
             }

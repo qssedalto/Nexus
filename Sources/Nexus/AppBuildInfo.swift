@@ -14,6 +14,16 @@ struct AppBuildInfo: Equatable {
             || displayName.localizedCaseInsensitiveContains("dev")
     }
 
+    /// Preview and provisioned CloudKit builds keep a separate bundle ID
+    /// without displaying a developer-only badge to users.
+    var isCloudKitEdition: Bool {
+        bundleIdentifier == "com.qssedalto.nexus.cloudkit.dev"
+    }
+
+    var showsDevelopmentLabel: Bool {
+        isDevBuild && !isCloudKitEdition
+    }
+
     static func current(bundle: Bundle = .main) -> AppBuildInfo {
         let displayName = bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
             ?? bundle.object(forInfoDictionaryKey: "CFBundleName") as? String

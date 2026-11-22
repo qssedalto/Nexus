@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 EXPLICIT_APP_NAME=${APP_NAME:-}
+EXPLICIT_APP_ICON_NAME=${APP_ICON_NAME:-}
 EXPLICIT_BUNDLE_ID=${BUNDLE_ID:-}
 EXPLICIT_SIGNING_MODE=${SIGNING_MODE:-}
 EXPLICIT_APP_IDENTITY=${APP_IDENTITY:-}
@@ -71,6 +72,7 @@ esac
 
 APP_NAME=${EXPLICIT_APP_NAME:-$DEFAULT_APP_NAME}
 BUNDLE_ID=${EXPLICIT_BUNDLE_ID:-$DEFAULT_BUNDLE_ID}
+APP_ICON_NAME=${EXPLICIT_APP_ICON_NAME:-$APP_ICON_NAME}
 
 if [[ -z "$APP_NAME" || "$APP_NAME" == "." || "$APP_NAME" == ".." || "$APP_NAME" == */* ]]; then
   echo "ERROR: APP_NAME must be a non-empty file name without path components." >&2
@@ -156,6 +158,10 @@ fi
 # entitlement-less release that merely *claims* a container is available.
 CLOUDKIT_CONTAINER_ID=${EXPLICIT_NEXUS_CLOUDKIT_CONTAINER_ID:-${NEXUS_CLOUDKIT_CONTAINER_ID:-}}
 CLOUDKIT_PROFILE=${EXPLICIT_NEXUS_CLOUDKIT_PROVISIONING_PROFILE:-${NEXUS_CLOUDKIT_PROVISIONING_PROFILE:-}}
+if [[ "${NEXUS_REQUIRE_CLOUDKIT:-0}" == "1" && -z "$CLOUDKIT_CONTAINER_ID" ]]; then
+  echo "ERROR: Nexus CloudKit Dev requires a real NEXUS_CLOUDKIT_CONTAINER_ID and matching provisioning profile." >&2
+  exit 1
+fi
 if [[ -n "$CLOUDKIT_CONTAINER_ID" ]]; then
   if [[ ! "$CLOUDKIT_CONTAINER_ID" =~ ^iCloud\.[A-Za-z0-9][A-Za-z0-9.-]*$ ]]; then
     echo "ERROR: NEXUS_CLOUDKIT_CONTAINER_ID must be a real iCloud.* container ID." >&2
