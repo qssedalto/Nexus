@@ -37,6 +37,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         InputStatisticsController.shared.startIfPermitted()
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            Task { @MainActor in
+                InputStatisticsController.shared.refreshPermissionStatus()
+            }
+        }
         _ = InputCloudBackupController.shared
         _ = NetworkSyncController.shared
         if UserDefaults.standard.bool(forKey: "nexusFolderClipboardEnabled"),
