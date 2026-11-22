@@ -8,6 +8,7 @@ final class KeyboardEventClassifierTests: XCTestCase {
         XCTAssertEqual(KeyboardEventClassifier.physicalKeyName(code: 82, shifted: false), "key_keypad_0")
         XCTAssertEqual(KeyboardEventClassifier.physicalKeyName(code: 39, shifted: true), "shift_key_quote")
         XCTAssertEqual(KeyboardEventClassifier.physicalKeyName(code: 999, shifted: false), "character_total")
+        XCTAssertEqual(KeyboardEventClassifier.physicalKeyName(code: 999, shifted: true), "character_total")
     }
 
     func testGenericModifierOrderAndSystemFunctionKeys() {

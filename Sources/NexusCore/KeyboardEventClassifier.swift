@@ -32,8 +32,10 @@ public enum KeyboardEventClassifier {
         current, _ in current
     }
     public static func physicalKeyName(code: Int64, shifted: Bool) -> String {
-        let name = physicalKeys[code].map { "key_" + $0 } ?? "character_total"
-        return shifted ? "shift_" + name : name
+        // Preserve the legacy aggregate fallback for unknown scan codes.
+        // "shift_character_total" is not a valid event protocol name.
+        guard let physical = physicalKeys[code] else { return "character_total" }
+        return (shifted ? "shift_key_" : "key_") + physical
     }
 
     public static func shortcutName(
