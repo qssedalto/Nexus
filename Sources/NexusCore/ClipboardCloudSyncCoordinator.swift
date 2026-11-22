@@ -242,16 +242,21 @@ public actor ClipboardFolderTransport: ClipboardCloudTransport, ClipboardCloudPr
     private static let maxBytes = 256 * 1_024
     private let root: URL
     private let encryptionKey: SymmetricKey
+    // Local mode may use any explicitly chosen user folder; never broaden
+    // the strict named-folder requirement of the iCloud mode by default.
+    private let allowSelectedLocalFolder: Bool
 
     private struct Envelope: Codable {
         let schemaVersion: Int
         let record: ClipboardCloudRecord
     }
 
-    public init(folderURL: URL, keyData: Data) throws {
+    public init(folderURL: URL, keyData: Data,
+                allowSelectedLocalFolder: Bool = false) throws {
         guard keyData.count == 32 else { throw FolderError.invalidEncryptionKey }
         root = folderURL.standardizedFileURL
         encryptionKey = SymmetricKey(data: keyData)
+        self.allowSelectedLocalFolder = allowSelectedLocalFolder
     }
 
     /// Explicit initialization only, after the user selects the directory.
@@ -406,7 +411,11 @@ public actor ClipboardFolderTransport: ClipboardCloudTransport, ClipboardCloudPr
     }
 
     private func withAccess<T>(_ operation: () throws -> T) throws -> T {
-        guard root.lastPathComponent == Self.folderName,
+        let home = FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL
+        guard root.isFileURL,
+              root.path != "/",
+              root != home,
+              (root.lastPathComponent == Self.folderName || allowSelectedLocalFolder),
               (try? root.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey]))?.isDirectory == true,
               (try? root.resourceValues(forKeys: [.isSymbolicLinkKey]))?.isSymbolicLink != true
         else { throw FolderError.invalidDirectory }
