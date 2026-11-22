@@ -33,13 +33,25 @@ public enum SharedSettings {
             || FileManager.default.fileExists(atPath: journal.path) {
             return fallback
         }
-        // Ad Hoc signatures do not provide a provisioned App Group.
-        // Even if containerURL returns a URL, writes can fail. Keep
-        // unsigned local builds on their stable, isolated user directory.
-        if group?.hasPrefix("adhoc.") == true {
-            return fallback
+        // A new Drive installation uses isolated Application Support by
+        // default, regardless of whether this build is Ad Hoc or signed with
+        // an Apple Development certificate. This keeps the history at a
+        // stable location across local signing and TCC permission changes.
+        // Preserve previously stored App Group data when it exists.
+        if let groupDirectory {
+            let names = [
+                "NexusOperations.sqlite", "NexusStatistics.sqlite",
+                "NexusClipboardFolderJournal.sqlite"
+            ]
+            if names.contains(where: {
+                FileManager.default.fileExists(
+                    atPath: groupDirectory.appendingPathComponent($0).path
+                )
+            }) {
+                return groupDirectory
+            }
         }
-        return groupDirectory ?? fallback
+        return fallback
     }
 
 
