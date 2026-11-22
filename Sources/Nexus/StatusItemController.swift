@@ -243,6 +243,8 @@ final class StatusItemController {
             up?.flags = .maskCommand
             down?.post(tap: .cghidEventTap)
             up?.post(tap: .cghidEventTap)
+            // Dispatching Cmd-V is not confirmation the destination accepted it.
+            appState.clipboardDidChange("Paste request sent")
         }
     }
 
