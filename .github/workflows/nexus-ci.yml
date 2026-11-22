@@ -88,6 +88,8 @@ jobs:
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$INFO")" = "com.qssedalto.nexus.drive.dev"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$EXT/Contents/Info.plist")" = "com.qssedalto.nexus.drive.dev.findersync"
           test "$(/usr/libexec/PlistBuddy -c 'Print :NexusBuildVariant' "$INFO")" = "dev"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIconName' "$INFO")" = "AppIconDev"
+          test -f "$APP/Contents/Resources/Assets.car"
           if /usr/libexec/PlistBuddy -c 'Print :NexusCloudKitContainerIdentifier' "$INFO" >/dev/null 2>&1; then
             echo "::error::Drive edition must not claim a CloudKit container."
             exit 1
