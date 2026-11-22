@@ -720,3 +720,10 @@
 "Input access is granted, but the event listener is not running." = "Input access is granted, but the event listener is not running.";
 
 "Verify the server connection before uploading." = "Verify the server connection before uploading.";
+
+"Enable sync first" = "Enable sync first";
+"Sync position reset. The next manual sync will recheck the folder." = "Sync position reset. The next manual sync will recheck the folder.";
+"Local sync cache cleared; original clipboard history preserved" = "Local sync cache cleared; original clipboard history preserved";
+"Nexus sync records deleted from this folder. Other devices may add them again." = "Nexus sync records deleted from this folder. Other devices may add them again.";
+"Saved %d, received %d, remaining %d" = "Saved %d, received %d, remaining %d";
+" — more records on the next sync" = " — more records on the next sync";
