@@ -36,17 +36,60 @@ def open_database(path):
     return connection
 
 
+# A bounded, non-text protocol: these are physical-key names and combinations,
+# never captured characters, passwords, or arbitrary input strings.
+_PHYSICAL_KEY = re.compile(r"(?:[a-z0-9]|semicolon|comma|slash|period)\Z")
+_FUNCTION_KEY = re.compile(r"f(?:[1-9]|1\d|2[0-4])\Z")
+_MODIFIERS = {"control", "option", "command", "shift", "fn"}
+_NAMES = {
+    "ordinary": {"character_total"},
+    "keyboard": {"escape", "delete", "forward_delete", "return", "tab", "space",
+                 "left", "right", "up", "down", "home", "end", "page_up", "page_down",
+                 "scroll_lock", "insert", "num_lock"},
+    "modifier": {"left_command", "right_command", "left_option", "right_option",
+                 "left_control", "right_control", "left_shift", "right_shift",
+                 "caps_lock", "fn"},
+    "shortcut": {"command_c", "command_v", "command_x", "command_z", "command_shift_z",
+                 "command_tab", "command_space", "command_q", "control_command_q",
+                 "command_escape", "command_option_escape"},
+    "mouse": {"mouse_left", "mouse_right", "mouse_middle", "mouse_back", "mouse_forward"},
+    "scroll": {"scroll_up", "scroll_down", "scroll_left", "scroll_right"},
+    "system": {"volume_up", "volume_down", "brightness_up", "brightness_down", "mute",
+               "play_pause", "next", "previous", "fast_forward", "rewind",
+               "keyboard_light_up", "keyboard_light_down", "keyboard_light_toggle",
+               "caps_lock_on", "caps_lock_off", "power", "sleep", "media_record",
+               "stop", "eject", "calculator", "screensaver", "spotlight_search", "fn"},
+}
+
+
 def valid_event_name(category, name):
-    names = {
-        "ordinary": {"character_total"},
-        "keyboard": {"escape", "delete", "forward_delete", "return", "tab", "space", "left", "right", "up", "down", "home", "end", "page_up", "page_down"},
-        "modifier": {"left_command", "right_command", "left_option", "right_option", "left_control", "right_control", "left_shift", "right_shift", "caps_lock", "fn"},
-        "shortcut": {"command_c", "command_v", "command_x", "command_z", "command_shift_z", "command_tab", "command_space", "command_q", "control_command_q", "command_escape", "command_option_escape"},
-        "mouse": {"mouse_left", "mouse_right", "mouse_middle", "mouse_back", "mouse_forward"},
-        "scroll": {"scroll_up", "scroll_down", "scroll_left", "scroll_right"},
-        "system": {"volume_up", "volume_down", "brightness_up", "brightness_down", "mute", "play_pause", "next", "previous", "fast_forward", "rewind", "keyboard_light_up", "keyboard_light_down", "keyboard_light_toggle", "caps_lock_on", "caps_lock_off"},
-    }
-    return name in names.get(category, set()) or (category == "keyboard" and re.fullmatch(r"f(?:[1-9]|1\d|2[0-4])", name)) or (category == "mouse" and re.fullmatch(r"mouse_extra_\d{1,2}", name)) or (category == "shortcut" and re.fullmatch(r"fn_f(?:[1-9]|1\d|2[0-4])", name))
+    if not isinstance(category, str) or not isinstance(name, str):
+        return False
+    if not re.fullmatch(r"[a-z0-9_]{1,80}", name):
+        return False
+    if name in _NAMES.get(category, set()):
+        return True
+    if category == "ordinary":
+        if name.startswith("shift_key_"):
+            return bool(_PHYSICAL_KEY.fullmatch(name[10:]))
+        if name.startswith("key_"):
+            return bool(_PHYSICAL_KEY.fullmatch(name[4:]))
+    if category == "keyboard":
+        return bool(_FUNCTION_KEY.fullmatch(name))
+    if category == "mouse":
+        return bool(re.fullmatch(r"mouse_extra_\d{1,2}", name))
+    if category == "shortcut":
+        parts = name.split("_")
+        active = []
+        while parts and parts[0] in _MODIFIERS:
+            active.append(parts.pop(0))
+        base = "_".join(parts)
+        if not active or len(active) > len(_MODIFIERS) or len(set(active)) != len(active):
+            return False
+        if not any(modifier != "shift" for modifier in active):
+            return False
+        return bool(_PHYSICAL_KEY.fullmatch(base) or _FUNCTION_KEY.fullmatch(base) or base in _NAMES["keyboard"])
+    return False
 
 
 def valid_operation(operation):

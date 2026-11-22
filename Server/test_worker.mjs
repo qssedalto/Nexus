@@ -56,6 +56,41 @@ test("API handshake reports authenticated operation support and version", async 
   assert.equal((await worker.fetch(request("/api/nexus/v1/me", "GET", undefined, "wrong"), env)).status, 401);
 });
 
+
+test("bounded physical keys and generic chords survive the Worker API without accepting text", async () => {
+  const env = environment();
+  const endpoint = "/api/nexus/v1/statistics/events";
+  const accepted = [
+    ["ordinary", "character_total"], ["ordinary", "key_a"], ["ordinary", "shift_key_1"],
+    ["ordinary", "key_semicolon"], ["keyboard", "f24"], ["keyboard", "num_lock"],
+    ["shortcut", "control_shift_a"], ["shortcut", "command_shift_4"],
+    ["shortcut", "option_command_semicolon"], ["shortcut", "fn_f1"],
+    ["system", "spotlight_search"], ["system", "power"]
+  ];
+  const events = accepted.map(([category, name], i) => ({
+    id: 100 + i, time_ms: 5000 + i, category, name, count: 1
+  }));
+  assert.equal((await worker.fetch(request(endpoint, "POST", {
+    schema_version: 1, device_id: "general-keys", events
+  }), env)).status, 200);
+  const summary = await (await worker.fetch(request(
+    "/api/nexus/v1/statistics/summary?start_ms=5000&end_ms=6000"
+  ), env)).json();
+  assert.equal(summary.statistics.reduce((n, row) => n + row.count, 0), events.length);
+  const rejected = [
+    ["ordinary", "typed_password"], ["ordinary", "key_password"],
+    ["shortcut", "shift_a"], ["shortcut", "command_command_c"],
+    ["shortcut", "command_private_text"], ["system", "unrecognized_system_key_99"],
+    ["mouse", "mouse_extra_999"], ["ordinary", "key_a\n"]
+  ];
+  for (const [category, name] of rejected) {
+    assert.equal((await worker.fetch(request(endpoint, "POST", {
+      schema_version: 1, device_id: "invalid-keys",
+      events: [{ id: 1, time_ms: 9000, category, name, count: 1 }]
+    }), env)).status, 400, `${category}/${name} should be rejected`);
+  }
+});
+
 test("authenticated uploads are idempotent and ranges use milliseconds", async () => {
   const env = environment();
   const path = "/api/nexus/v1/statistics/events";

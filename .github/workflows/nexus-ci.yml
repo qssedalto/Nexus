@@ -130,3 +130,19 @@ jobs:
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
+
+  server:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate API protocol on both server implementations
+        run: |
+          node --test Server/test_worker.mjs
+          python -m unittest discover -s Server -p 'test_*.py'

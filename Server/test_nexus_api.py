@@ -62,6 +62,44 @@ class NexusAPITests(unittest.TestCase):
         self.assertEqual(sum(item["count"] for item in full["statistics"]), 5)
         self.assertEqual(len(self.request("/api/nexus/v1/statistics/events?start_ms=0&end_ms=2000")["events"]), 2)
 
+
+    def test_physical_key_and_general_shortcut_protocol(self):
+        endpoint = "/api/nexus/v1/statistics/events"
+        accepted = [
+            ("ordinary", "character_total"), ("ordinary", "key_a"),
+            ("ordinary", "shift_key_1"), ("ordinary", "key_semicolon"),
+            ("keyboard", "f24"), ("keyboard", "num_lock"),
+            ("shortcut", "control_shift_a"), ("shortcut", "command_shift_4"),
+            ("shortcut", "option_command_semicolon"), ("shortcut", "fn_f1"),
+            ("system", "spotlight_search"), ("system", "power"),
+        ]
+        events = [
+            {"id": 100 + i, "time_ms": 5000 + i, "category": category,
+             "name": name, "count": 1}
+            for i, (category, name) in enumerate(accepted)
+        ]
+        self.assertEqual(self.request(endpoint, "POST", {
+            "schema_version": 1, "device_id": "general-keys", "events": events
+        })["accepted_ids"], [event["id"] for event in events])
+        summary = self.request("/api/nexus/v1/statistics/summary?start_ms=5000&end_ms=6000")
+        self.assertEqual(sum(row["count"] for row in summary["statistics"]), len(events))
+        rejected = [
+            ("ordinary", "typed_password"), ("ordinary", "key_password"),
+            ("shortcut", "shift_a"), ("shortcut", "command_command_c"),
+            ("shortcut", "command_private_text"),
+            ("system", "unrecognized_system_key_99"),
+            ("mouse", "mouse_extra_999"), ("ordinary", "key_a\\n"),
+        ]
+        for category, name in rejected:
+            with self.subTest(category=category, name=name):
+                with self.assertRaises(HTTPError) as failure:
+                    self.request(endpoint, "POST", {
+                        "schema_version": 1, "device_id": "invalid-keys",
+                        "events": [{"id": 1, "time_ms": 9000,
+                                    "category": category, "name": name, "count": 1}],
+                    })
+                self.assertEqual(failure.exception.code, 400)
+
     def test_lost_ack_retry_updates_aggregate_without_double_count(self):
         endpoint = "/api/nexus/v1/statistics/events"
         old = {
