@@ -304,6 +304,13 @@ fi
 
 rm -rf "$APP_BUNDLE"
 /usr/bin/ditto "$BUILT_APP" "$APP_BUNDLE"
+# Local, self-contained Nexus product site. Include the HTML in preview apps
+# instead of redirecting the About link to the unrelated qsseda.com home page.
+if [[ -f "$ROOT_DIR/Sources/Nexus/Resources/NexusWebsite.html" ]]; then
+  /bin/mkdir -p "$APP_BUNDLE/Contents/Resources"
+  /usr/bin/ditto "$ROOT_DIR/Sources/Nexus/Resources/NexusWebsite.html" \
+    "$APP_BUNDLE/Contents/Resources/NexusWebsite.html"
+fi
 
 if [[ "$CONFIGURATION" == "release" ]]; then
   UNEXPECTED_DEBUG_DYLIB="$(
