@@ -93,6 +93,9 @@ final class ClipboardCloudController: ObservableObject {
             journal = nil
         }
         restoreSelectedFolder()
+        // An old enabled preference cannot authorize syncing an
+        // uninitialized folder. The user must prepare it explicitly first.
+        if !folderPrepared { enabled = false }
         refreshLocalCache()
         configureAutomaticSyncTimer()
     }
@@ -210,7 +213,9 @@ final class ClipboardCloudController: ObservableObject {
                 atPath: url.appendingPathComponent(".nexus-folder-sync-v2").path
             )
             if !folderPrepared { enabled = false }
-            status = localized("Folder selected. Click Prepare folder before syncing.")
+            status = localized(pairingKeyConfigured
+                ? "Folder selected. Click Prepare folder before syncing."
+                : "Folder selected. Generate a pairing key to continue.")
             configureAutomaticSyncTimer()
         } catch {
             status = "Could not remember selected folder: \(error.localizedDescription)"
