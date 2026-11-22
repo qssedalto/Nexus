@@ -25,10 +25,47 @@ struct ClipboardCloudSettingsView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Toggle(localized("Enable folder clipboard synchronization"), isOn: $cloud.enabled)
-                    .disabled(!cloud.containerConfigured)
+                    .disabled(!cloud.containerConfigured || !cloud.pairingKeyConfigured)
                 Toggle(localized("Automatically synchronize every 5 minutes"), isOn: $cloud.automaticSyncEnabled)
                     .disabled(!cloud.enabled || !cloud.containerConfigured)
                 Text(localized("Synchronization is off by default. Nexus only reads and writes the folder you select, when authorized. Apple Files synchronizes it between devices independently."))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
+            Section(localized("End-to-end encryption and device pairing")) {
+                if cloud.pairingKeyConfigured {
+                    Label(localized("Encryption key is stored in this device's Keychain"),
+                          systemImage: "lock.shield")
+                    Button(localized("Reveal pairing key for another device")) {
+                        cloud.revealPairingKey()
+                    }
+                    if !cloud.revealedPairingKey.isEmpty {
+                        Text(cloud.revealedPairingKey)
+                            .font(.system(.caption, design: .monospaced))
+                            .textSelection(.enabled)
+                        HStack {
+                            Button(localized("Copy pairing key")) {
+                                cloud.copyPairingKey()
+                            }
+                            Button(localized("Hide pairing key")) {
+                                cloud.hidePairingKey()
+                            }
+                        }
+                    }
+                } else {
+                    Button(localized("Generate encryption pairing key")) {
+                        cloud.generatePairingKey()
+                    }
+                    Text(localized("Use the same 64-character key on each paired device. It is never stored in iCloud Drive."))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                SecureField(localized("Enter a 64-character pairing key"), text: $cloud.pairingKeyEntry)
+                    .textFieldStyle(.roundedBorder)
+                Button(localized("Save entered key in Keychain")) {
+                    cloud.installPairingKey()
+                }
+                .disabled(cloud.pairingKeyEntry.isEmpty)
+                Text(localized("Never send this key through an untrusted channel. Losing it makes existing encrypted sync files unreadable."))
                     .font(.caption).foregroundStyle(.secondary)
             }
 
@@ -48,7 +85,7 @@ struct ClipboardCloudSettingsView: View {
                     Button(localized("Prepare selected folder")) {
                         Task { await cloud.prepareSelectedFolder() }
                     }
-                    .disabled(!cloud.containerConfigured || cloud.running)
+                    .disabled(!cloud.containerConfigured || !cloud.pairingKeyConfigured || cloud.running)
                     Button(localized("Prepare next 200 records")) {
                         Task { await cloud.prepareLocalPage() }
                     }
@@ -56,7 +93,7 @@ struct ClipboardCloudSettingsView: View {
                     Button(localized("Sync now")) {
                         Task { await cloud.syncNow() }
                     }
-                    .disabled(!cloud.enabled || !cloud.containerConfigured || cloud.running)
+                    .disabled(!cloud.enabled || !cloud.containerConfigured || !cloud.pairingKeyConfigured || cloud.running)
                 }
                 HStack {
                     Button(localized("Import synced records into local history")) {
