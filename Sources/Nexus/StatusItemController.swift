@@ -251,13 +251,17 @@ final class StatusItemController {
         let mouseLocation = NSEvent.mouseLocation
         let preferredScreen = NSScreen.screens.first(where: { $0.frame.contains(mouseLocation) })
             ?? NSScreen.main
-        if let visible = preferredScreen?.visibleFrame,
-           !NSScreen.screens.contains(where: { $0.visibleFrame.contains(panel.frame) }) {
-            let frame = ClipboardPanelPlacement.frame(
-                inside: visible, requestedSize: panel.frame.size,
-                bottomInset: 24
-            )
-            panel.setFrame(frame, display: true)
+        if let visible = preferredScreen?.visibleFrame {
+            // Respect the autosaved user size, but prevent a fixed minimum
+            // size from forcing the window off a smaller connected display.
+            panel.minSize = ClipboardPanelPlacement.minimumSize(inside: visible)
+            if !NSScreen.screens.contains(where: { $0.visibleFrame.contains(panel.frame) }) {
+                let frame = ClipboardPanelPlacement.frame(
+                    inside: visible, requestedSize: panel.frame.size,
+                    bottomInset: 24
+                )
+                panel.setFrame(frame, display: true)
+            }
         }
         appState.refreshOperations()
         NSApp.activate(ignoringOtherApps: true)

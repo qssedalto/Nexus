@@ -225,14 +225,22 @@ struct ClipboardShelfView: View {
             .background(.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 10))
 
             VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 16) {
-                    TextField(localized("Source application filter"), text: $sourceFilter)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(minWidth: 190, idealWidth: 240, maxWidth: 300)
-                    Toggle(localized("Filter by date"), isOn: $filterByDate)
-                        .toggleStyle(.checkbox)
-                        .fixedSize()
-                    Spacer(minLength: 0)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 16) {
+                        TextField(localized("Source application filter"), text: $sourceFilter)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(minWidth: 190, idealWidth: 240, maxWidth: 300)
+                        Toggle(localized("Filter by date"), isOn: $filterByDate)
+                            .toggleStyle(.checkbox)
+                            .fixedSize()
+                        Spacer(minLength: 0)
+                    }
+                    VStack(alignment: .leading, spacing: 8) {
+                        TextField(localized("Source application filter"), text: $sourceFilter)
+                            .textFieldStyle(.roundedBorder)
+                        Toggle(localized("Filter by date"), isOn: $filterByDate)
+                            .toggleStyle(.checkbox)
+                    }
                 }
                 if filterByDate {
                     HStack(spacing: 16) {

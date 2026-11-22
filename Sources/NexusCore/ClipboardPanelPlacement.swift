@@ -5,6 +5,23 @@ import Foundation
 /// external monitors with negative origins and displays with nonstandard
 /// scaling. Caller chooses the mouse-containing NSScreen before invoking.
 public enum ClipboardPanelPlacement {
+    /// The preferred minimum must never exceed the available display.
+    /// Window chrome and a modest inset are reserved so NSPanel does not
+    /// force a restored window outside a compact laptop display.
+    public static func minimumSize(
+        inside visibleFrame: CGRect,
+        preferred: CGSize = CGSize(width: 820, height: 580),
+        sideInset: CGFloat = 12,
+        verticalReserve: CGFloat = 36
+    ) -> CGSize {
+        CGSize(
+            width: min(max(1, preferred.width),
+                       max(1, visibleFrame.width - 2 * max(0, sideInset))),
+            height: min(max(1, preferred.height),
+                        max(1, visibleFrame.height - max(0, verticalReserve)))
+        )
+    }
+
     public static func frame(
         inside visibleFrame: CGRect,
         requestedSize: CGSize,
