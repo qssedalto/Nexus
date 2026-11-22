@@ -325,8 +325,7 @@ public actor ClipboardFolderTransport: ClipboardCloudTransport, ClipboardCloudPr
             let files = try FileManager.default.contentsOfDirectory(
                 at: changesURL(), includingPropertiesForKeys: nil
             ).filter {
-                $0.pathExtension == "json" &&
-                UUID(uuidString: $0.deletingPathExtension().lastPathComponent) != nil
+                Self.mutationFileID($0) != nil
             }.sorted { $0.lastPathComponent < $1.lastPathComponent }
             let provided = token.flatMap { String(data: $0, encoding: .utf8) }
                 .flatMap(Int.init) ?? 0
@@ -360,8 +359,7 @@ public actor ClipboardFolderTransport: ClipboardCloudTransport, ClipboardCloudPr
                       ),
                       let envelope = try? JSONDecoder().decode(Envelope.self, from: cleartext),
                       envelope.schemaVersion == 2,
-                      UUID(uuidString: envelope.record.mutationID) ==
-                        UUID(uuidString: url.deletingPathExtension().lastPathComponent),
+                      UUID(uuidString: envelope.record.mutationID) == Self.mutationFileID(url),
                       (try? envelope.record.validated()) != nil,
                       !Self.hasBinaryReference(envelope.record) else {
                     throw FolderError.invalidDocument
@@ -386,8 +384,7 @@ public actor ClipboardFolderTransport: ClipboardCloudTransport, ClipboardCloudPr
             let files = try FileManager.default.contentsOfDirectory(
                 at: changesURL(), includingPropertiesForKeys: nil
             )
-            for url in files where url.pathExtension == "nxe" &&
-                UUID(uuidString: url.deletingPathExtension().lastPathComponent) != nil {
+            for url in files where Self.mutationFileID(url) != nil {
                 try FileManager.default.removeItem(at: url)
             }
         }
@@ -395,6 +392,11 @@ public actor ClipboardFolderTransport: ClipboardCloudTransport, ClipboardCloudPr
 
     private func changesURL() -> URL {
         root.appendingPathComponent("encrypted-changes", isDirectory: true)
+    }
+    
+    private static func mutationFileID(_ url: URL) -> UUID? {
+        guard url.pathExtension == "nxe" else { return nil }
+        return UUID(uuidString: url.deletingPathExtension().lastPathComponent)
     }
 
     private func requirePrepared() throws {
