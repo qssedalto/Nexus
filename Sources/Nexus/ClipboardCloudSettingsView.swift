@@ -24,6 +24,9 @@ struct ClipboardCloudSettingsView: View {
                     Text(localized("Select your existing NexusClipboardSync folder in iCloud Drive. No developer subscription is needed."))
                         .font(.caption).foregroundStyle(.secondary)
                 }
+                Text(localized("To start, create a pairing key below, prepare the selected folder, then enable sync."))
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
                 Toggle(localized("Enable folder clipboard synchronization"), isOn: $cloud.enabled)
                     .disabled(!cloud.containerConfigured || !cloud.pairingKeyConfigured)
                 Toggle(localized("Automatically synchronize every 5 minutes"), isOn: $cloud.automaticSyncEnabled)
