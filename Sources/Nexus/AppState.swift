@@ -127,7 +127,16 @@ final class AppState: ObservableObject {
     // Reuse the single existing status-bar feedback popover for passive
     // clipboard changes. Detection does not imply successful paste.
     func clipboardDidChange(_ key: String) {
-        showFeedback(.observed(localized(key)))
+        // ClipboardMonitor dispatches these three messages only AFTER a
+        // successful local SQLite commit. A successful history save is
+        // verifiable; a third-party paste is not.
+        switch key {
+        case "Clipboard files detected", "Clipboard image detected",
+             "Clipboard text detected":
+            showFeedback(.success(localized(key)))
+        default:
+            showFeedback(.observed(localized(key)))
+        }
     }
 
     func finderCopyDidSucceed() {
