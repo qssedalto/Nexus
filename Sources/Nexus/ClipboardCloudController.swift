@@ -210,7 +210,7 @@ final class ClipboardCloudController: ObservableObject {
             status = "Folder selected. Click Prepare folder before syncing."
             configureAutomaticSyncTimer()
         } catch {
-            status = "Could not remember selected folder: \\(error.localizedDescription)"
+            status = "Could not remember selected folder: \(error.localizedDescription)"
         }
     }
 
@@ -226,7 +226,7 @@ final class ClipboardCloudController: ObservableObject {
             revealedPairingKey = try ClipboardFolderPairingKey.generate()
             pairingKeyConfigured = true
             status = "Pairing key saved in Keychain. Transfer it only to devices you trust."
-        } catch { status = "Pairing key generation failed: \\(error.localizedDescription)" }
+        } catch { status = "Pairing key generation failed: \(error.localizedDescription)" }
     }
 
     func installPairingKey() {
@@ -238,7 +238,7 @@ final class ClipboardCloudController: ObservableObject {
             revealedPairingKey = ""
             pairingKeyConfigured = true
             status = "Encryption key saved in Keychain"
-        } catch { status = "Invalid pairing key: \\(error.localizedDescription)" }
+        } catch { status = "Invalid pairing key: \(error.localizedDescription)" }
     }
 
     func revealPairingKey() {
@@ -246,7 +246,7 @@ final class ClipboardCloudController: ObservableObject {
             revealedPairingKey = try ClipboardFolderPairingKey.load()
                 .map { String(format: "%02x", $0) }.joined()
             status = "Hide the pairing key once you have paired your other devices"
-        } catch { status = "Cannot read pairing key: \\(error.localizedDescription)" }
+        } catch { status = "Cannot read pairing key: \(error.localizedDescription)" }
     }
 
     func hidePairingKey() { revealedPairingKey = "" }
@@ -311,7 +311,7 @@ final class ClipboardCloudController: ObservableObject {
             try await transport.prepareFolderIfRequested()
             status = "NexusClipboardSync folder is ready"
         } catch {
-            status = "Folder setup failed: \\(error.localizedDescription)"
+            status = "Folder setup failed: \(error.localizedDescription)"
         }
     }
 
