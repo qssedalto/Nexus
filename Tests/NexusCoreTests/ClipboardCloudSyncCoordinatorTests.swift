@@ -288,6 +288,45 @@ final class ClipboardFolderTransportTests: XCTestCase {
             at: root, includingPropertiesForKeys: nil).count, 1)
     }
 
+    func testCopiedTextAppearsInSyncedHistoryOnBothDevices() async throws {
+        let folder = try temporaryFolder()
+        let root = folder.deletingLastPathComponent()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let transport = try ClipboardFolderTransport(folderURL: folder,
+            keyData: Data(repeating: 0x38, count: 32))
+        try await transport.prepareFolderIfRequested()
+        let leftStore = try OperationStore(url: root.appendingPathComponent("left-history.sqlite"))
+        let rightStore = try OperationStore(url: root.appendingPathComponent("right-history.sqlite"))
+        let left = try ClipboardCloudJournal(url: root.appendingPathComponent("left-journal.sqlite"))
+        let right = try ClipboardCloudJournal(url: root.appendingPathComponent("right-journal.sqlite"))
+        let consent = ClipboardCloudConsent(enabled: true, includeText: true)
+        try leftStore.record(type: "paste_request", urls: [], sourceApplication: nil,
+                             detectionMethod: "test")
+        let pasteOnly = try ClipboardCloudLocalSnapshot.stagePage(
+            from: leftStore, in: left, deviceID: "left", consent: consent
+        )
+        XCTAssertEqual(pasteOnly.inspected, 0)
+        try leftStore.record(type: "text_copy", urls: [], sourceApplication: nil,
+                             detectionMethod: "test", clipboardText: "Sample copy")
+        let copy = try ClipboardCloudLocalSnapshot.stagePage(
+            from: leftStore, in: left, deviceID: "left", consent: consent
+        )
+        XCTAssertEqual(copy.staged, 1)
+        XCTAssertTrue(try left.cachedRecords(synchronizedOnly: true).isEmpty)
+
+        let sender = try ClipboardCloudSyncCoordinator(journal: left, transport: transport, zoneID: "test")
+        let receiver = try ClipboardCloudSyncCoordinator(journal: right, transport: transport, zoneID: "test")
+        let sent = try await sender.syncOnce(consent: consent)
+        let received = try await receiver.syncOnce(consent: consent)
+        XCTAssertEqual(sent.uploaded, 1)
+        XCTAssertEqual(received.downloaded, 1)
+        let synced = try right.cachedRecords(synchronizedOnly: true)
+        XCTAssertEqual(synced, try left.cachedRecords(synchronizedOnly: true))
+        XCTAssertEqual(try rightStore.importCloudHistory(synced, consent: consent), 1)
+        XCTAssertEqual(try rightStore.importCloudHistory(synced, consent: consent), 0)
+        XCTAssertEqual(try rightStore.query(from: 0, to: Int64.max).first?.clipboardText, "Sample copy")
+    }
+
     func testIncorrectPairingKeyCannotReadRecords() async throws {
         let folder = try temporaryFolder()
         defer { try? FileManager.default.removeItem(at: folder.deletingLastPathComponent()) }

@@ -313,11 +313,12 @@ public final class ClipboardCloudJournal: @unchecked Sendable {
 
     /// Recent cached cloud entries for an explicit, read-only UI preview.
     /// This method never queries CloudKit or reads raw image payload tables.
-    public func cachedRecords(limit: Int = 100) throws -> [ClipboardCloudRecord] {
+    public func cachedRecords(limit: Int = 100, synchronizedOnly: Bool = false) throws -> [ClipboardCloudRecord] {
         lock.lock()
         defer { lock.unlock() }
         let stmt = try prepare("""
             SELECT document FROM cloud_records
+            \(synchronizedOnly ? "WHERE dirty=0" : "")
             ORDER BY counter DESC, record_id DESC LIMIT ?
             """)
         defer { sqlite3_finalize(stmt) }

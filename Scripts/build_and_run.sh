@@ -45,6 +45,9 @@ done
 EXPLICIT_APP_NAME=${APP_NAME:-}
 EXPLICIT_BUNDLE_ID=${BUNDLE_ID:-}
 EXPLICIT_DEV_APP_GROUP_ID=${DEV_APP_GROUP_ID:-}
+EXPLICIT_SIGNING_MODE=${SIGNING_MODE:-}
+EXPLICIT_APP_IDENTITY=${APP_IDENTITY:-}
+EXPLICIT_DEV_APP_IDENTITY=${DEV_APP_IDENTITY:-}
 
 if [[ -f "$ROOT_DIR/.env" ]]; then
   set -a
@@ -78,7 +81,7 @@ fi
 
 APP_BUNDLE="$ROOT_DIR/${APP_NAME}.app"
 ALLOW_MISSING_SPARKLE_FOR_LOCAL_RUN=${ALLOW_MISSING_SPARKLE_FOR_LOCAL_RUN:-0}
-DEV_APP_IDENTITY=${DEV_APP_IDENTITY:-}
+DEV_APP_IDENTITY=${EXPLICIT_DEV_APP_IDENTITY:-${DEV_APP_IDENTITY:-}}
 DEV_INSTALL_DIR=${DEV_INSTALL_DIR:-"$HOME/Applications"}
 PACKAGE_DEV_APP_GROUP_ID=${EXPLICIT_DEV_APP_GROUP_ID:-${DEV_APP_GROUP_ID:-}}
 
@@ -90,10 +93,25 @@ if [[ "$RUN_TESTS" == "1" ]]; then
   "$ROOT_DIR/Scripts/test.sh"
 fi
 
-PACKAGE_SIGNING_MODE=${SIGNING_MODE:-adhoc}
-PACKAGE_APP_IDENTITY=${APP_IDENTITY:-}
+PACKAGE_SIGNING_MODE=${EXPLICIT_SIGNING_MODE:-${SIGNING_MODE:-adhoc}}
+PACKAGE_APP_IDENTITY=${EXPLICIT_APP_IDENTITY:-${APP_IDENTITY:-}}
 
-if [[ "$APP_VARIANT" == "dev" && "$VERIFY_ONLY" != "1" ]]; then
+if [[ "$BUNDLE_ID" == "com.qssedalto.nexus.drive.dev" ]]; then
+  # Verification builds use the same identity as runnable builds by default.
+  # A generic SIGNING_MODE=adhoc in .env must not replace the Drive identity.
+  PACKAGE_SIGNING_MODE=${EXPLICIT_SIGNING_MODE:-development}
+  if [[ "$PACKAGE_SIGNING_MODE" != "development" &&
+        ( "$PACKAGE_SIGNING_MODE" != "adhoc" || "$VERIFY_ONLY" != "1" ) ]]; then
+    echo "ERROR: Nexus Drive requires Apple Development signing; Ad Hoc is only available for explicit --verify builds." >&2
+    exit 1
+  fi
+  if [[ "$PACKAGE_SIGNING_MODE" == "development" && -n "$EXPLICIT_APP_IDENTITY" ]]; then
+    DEV_APP_IDENTITY=$EXPLICIT_APP_IDENTITY
+  fi
+fi
+
+if [[ "$APP_VARIANT" == "dev" && "$VERIFY_ONLY" != "1" ]] ||
+   [[ "$BUNDLE_ID" == "com.qssedalto.nexus.drive.dev" && "$PACKAGE_SIGNING_MODE" == "development" ]]; then
   if [[ -z "$DEV_APP_IDENTITY" ]]; then
     DEVELOPMENT_IDENTITIES="$(
       /usr/bin/security find-identity -p codesigning -v 2>/dev/null \
@@ -119,7 +137,7 @@ if [[ "$APP_VARIANT" == "dev" && "$VERIFY_ONLY" != "1" ]]; then
   fi
 
   if [[ -z "$DEV_APP_IDENTITY" ]]; then
-    echo "ERROR: Running the Finder extension requires an Apple Development-signed app." >&2
+    echo "ERROR: This build requires an Apple Development-signed app." >&2
     echo "Set DEV_APP_IDENTITY in .env when no identity matches APPLE_ID or several identities are installed." >&2
     if [[ -n "${DEVELOPMENT_IDENTITIES:-}" ]]; then
       echo "Available Apple Development identities:" >&2

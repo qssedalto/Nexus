@@ -10,10 +10,10 @@ extension Notification.Name {
 @MainActor
 final class WelcomeGuideWindowController: NSObject, NSWindowDelegate {
     private var window: NSWindow?
-    private let onOpenSettings: () -> Void
+    private let onOpenMenu: () -> Void
 
-    init(onOpenSettings: @escaping () -> Void) {
-        self.onOpenSettings = onOpenSettings
+    init(onOpenMenu: @escaping () -> Void) {
+        self.onOpenMenu = onOpenMenu
     }
 
     func show() {
@@ -34,10 +34,10 @@ final class WelcomeGuideWindowController: NSObject, NSWindowDelegate {
         window.center()
         window.delegate = self
         window.contentViewController = NSHostingController(
-            rootView: WelcomeGuideView(
-                onContinue: { [weak self] in self?.dismiss() },
-                onOpenSettings: { [weak self] in self?.onOpenSettings() }
-            )
+            rootView: WelcomeGuideView(onOpenMenu: { [weak self] in
+                self?.dismiss()
+                self?.onOpenMenu()
+            })
         )
         self.window = window
 
@@ -59,8 +59,7 @@ final class WelcomeGuideWindowController: NSObject, NSWindowDelegate {
 }
 
 private struct WelcomeGuideView: View {
-    let onContinue: () -> Void
-    let onOpenSettings: () -> Void
+    let onOpenMenu: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -94,7 +93,7 @@ private struct WelcomeGuideView: View {
                     WelcomeGuideStep(
                         symbol: "eye",
                         title: localized("Using Hidden Bar or another menu bar organizer?"),
-                        details: localized("Expand the hidden icons, find Nexus, and move or pin it into the visible menu bar area.")
+                        details: localized("If the icon is hidden, the Nexus menu opens in the center of the screen.")
                     )
                     WelcomeGuideStep(
                         symbol: "arrow.clockwise.circle",
@@ -109,9 +108,9 @@ private struct WelcomeGuideView: View {
             Divider()
 
             HStack {
-                Button(localized("Open Settings…"), action: onOpenSettings)
+                Button(localized("Open menu for Settings…"), action: onOpenMenu)
                 Spacer()
-                Button(localized("Got it — start using Nexus"), action: onContinue)
+                Button(localized("Got it — start using Nexus"), action: onOpenMenu)
                     .keyboardShortcut(.defaultAction)
                     .buttonStyle(.borderedProminent)
             }

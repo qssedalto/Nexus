@@ -253,6 +253,7 @@ final class ClipboardMonitor: ObservableObject {
 
         let urls = URLDropReader.fileURLs(from: pasteboard)
         if !urls.isEmpty {
+            ClipboardCloudController.shared.mirrorCopied(.files(urls))
             guard enabled, let store else { return }
             persist(feedbackKey: "Clipboard files detected") {
                 try store.record(type: "copy", urls: urls,
@@ -276,6 +277,18 @@ final class ClipboardMonitor: ObservableObject {
         })
         let imageDeclared = encodedImageType != nil
             || pasteboard.types?.contains(where: { $0.rawValue == "public.image" }) == true
+        if imageDeclared, let encodedImageType,
+           let originalImage = pasteboard.data(forType: encodedImageType) {
+            let ext: String
+            switch encodedImageType.rawValue {
+            case "public.tiff": ext = "tiff"
+            case "public.jpeg": ext = "jpeg"
+            case "public.heic": ext = "heic"
+            case "com.compuserve.gif": ext = "gif"
+            default: ext = "png"
+            }
+            ClipboardCloudController.shared.mirrorCopied(.image(originalImage, extensionName: ext))
+        }
         if (enabled || imageEnabled), imageDeclared, let store {
             if imageEnabled, let encodedImageType,
                let data = pasteboard.data(forType: encodedImageType),
@@ -309,7 +322,11 @@ final class ClipboardMonitor: ObservableObject {
             }
             return
         }
+        if imageDeclared { return }
 
+        if let copiedText = pasteboard.string(forType: .string), !copiedText.isEmpty {
+            ClipboardCloudController.shared.mirrorCopied(.text(copiedText))
+        }
         guard textEnabled, let store,
               let text = pasteboard.string(forType: .string),
               !text.isEmpty,

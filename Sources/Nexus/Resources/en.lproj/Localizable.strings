@@ -884,3 +884,14 @@
 "All keyboards and mice (device unavailable)" = "All keyboards and mice · device unavailable";
 "System media keys (device unavailable)" = "System media keys · device unavailable";
 "The foreground app at detection time may differ from the actual copy source." = "The foreground app at detection time may differ from the actual copy source.";
+"Copied file contents" = "Copied file contents";
+"Copied images" = "Copied images";
+"Selected content is also saved as openable files beside the encrypted sync index. Private pasteboard formats may not be recoverable." = "Selected content is also saved as openable files beside the encrypted sync index. Private pasteboard formats may not be recoverable.";
+"Saving copied content to the selected folder…" = "Saving copied content to the selected folder…";
+"Copied content saved as usable files" = "Copied content saved as usable files";
+"Folder copy cancelled" = "Folder copy cancelled";
+"Folder copy failed" = "Folder copy failed";
+"folder copies pending" = "folder copies pending";
+"Cancel folder copies" = "Cancel folder copies";
+"Plain text files in selected folder" = "Plain text files in selected folder";
+"Visible folder copies are ordinary unencrypted files and may sync through iCloud Drive. Private pasteboard formats may not be recoverable." = "Visible folder copies are ordinary unencrypted files and may sync through iCloud Drive. Private pasteboard formats may not be recoverable.";

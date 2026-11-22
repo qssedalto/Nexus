@@ -1,6 +1,6 @@
 import AppKit
 import Charts
-import CoreGraphics
+import OSLog
 import SwiftUI
 import NexusCore
 
@@ -15,27 +15,31 @@ final class InputStatisticsController: ObservableObject {
         keyboard: 0, mouse: 0, specialKeys: 0, shortcuts: 0,
         scrolls: 0, firstEventMS: nil)
     @Published private(set) var trend: [InputTrendBucket] = []
-    @Published var trendResolution: InputTrendResolution = .day
+    @Published private(set) var trendRange: ClosedRange<Date>?
+    @Published private(set) var trendRangeIsLimited = false
+    @Published var trendResolution: InputTrendResolution = .hour
     @Published var selectedCategory = ""
     @Published var selectedKeyName = ""
-    @Published private(set) var permissionGranted = false
-    @Published private(set) var monitoringActive = false
+    @Published private(set) var permissionState = InputPermissionState()
+    var permissionGranted: Bool { permissionState.listeningGranted }
+    var monitoringActive: Bool { permissionState.tap == .listening }
+    private let permissions = SystemInputPermissions()
+    private let logPermissionDiagnostics = CommandLine.arguments.contains("--nexus-permission-diagnostics")
+    private var loggedPermissionState = false
     /// Defaults to on for existing users but remains under their control.
     /// Turning this off stops the event tap and related diagnostics.
     @Published var enabled: Bool {
         didSet {
             UserDefaults.standard.set(enabled, forKey: "nexusInputStatisticsEnabled")
-            if enabled { startIfPermitted() }
-            else {
-                diagnosticsEnabled = false
-                monitor?.stop()
-            }
+            if !enabled { diagnosticsEnabled = false }
+            refreshPermissionStatus()
         }
     }
     @Published var paused: Bool {
         didSet {
             UserDefaults.standard.set(paused, forKey: "nexusInputPaused")
-            if paused { monitor?.stop() } else { startIfPermitted() }
+            configureDiagnostics()
+            refreshPermissionStatus()
         }
     }
     @Published private(set) var dataStatus = ""
@@ -61,7 +65,7 @@ final class InputStatisticsController: ObservableObject {
             }
         }
         wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.startIfPermitted() }
+            MainActor.assumeIsolated { self?.refreshPermissionStatus() }
         }
     }
 
@@ -74,7 +78,7 @@ final class InputStatisticsController: ObservableObject {
         diagnosticEvents.removeAll()
         monitor?.onDiagnostic = { [weak self] record in
             Task { @MainActor [weak self] in
-                guard let self, self.diagnosticsEnabled else { return }
+                guard let self, self.diagnosticsEnabled, self.enabled, !self.paused else { return }
                 self.diagnosticEvents.insert(record, at: 0)
                 if self.diagnosticEvents.count > 25 {
                     self.diagnosticEvents.removeLast()
@@ -83,44 +87,23 @@ final class InputStatisticsController: ObservableObject {
         }
     }
 
-    func setPasteRequestHandler(_ handler: @escaping @Sendable (Int64) -> Void) {
-        monitor?.onPasteRequest = handler
+    func setClipboardShortcutHandler(_ handler: @escaping @Sendable (ClipboardShortcutObservation) -> Void) {
+        monitor?.onClipboardShortcut = handler
     }
 
-    func startIfPermitted() {
-        permissionGranted = monitor?.hasPermission ?? false
-        guard let monitor else {
-            dataStatus = localized("Local statistics database unavailable")
-            return
-        }
-        if PrivacyFeatureSwitchPolicy.shouldMonitorInput(
-            enabled: enabled, paused: paused, permissionGranted: permissionGranted
-        ) {
-            if !monitor.isRunning, !monitor.start() {
-                dataStatus = localized("Input permission is enabled, but event monitoring could not start. Please reopen Nexus Drive after checking macOS Privacy settings.")
-            }
-        } else {
-            monitor.stop()
-        }
-        monitoringActive = monitor.isRunning
-    }
-
-    /// Called when System Settings returns to the foreground and by the
-    /// permission timer. A newly granted permission must start the tap;
-    /// simply updating a Boolean leaves the app unable to count events.
     func refreshPermissionStatus() {
-        let granted = monitor?.hasPermission ?? false
-        if !granted {
-            monitor?.stop()
-            permissionGranted = false
-            monitoringActive = false
-            return
+        var state = permissionState
+        state.refresh(
+            permissions: permissions, listener: monitor, enabled: enabled,
+            paused: paused, storage: store?.writeState
+        )
+        let changed = state != permissionState
+        if changed { permissionState = state }
+        if logPermissionDiagnostics, changed || !loggedPermissionState {
+            loggedPermissionState = true
+            let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Nexus", category: "Permissions")
+            logger.notice("CGPreflightListenEventAccess=\(state.listeningGranted, privacy: .public) AXIsProcessTrusted=\(state.accessibilityGranted, privacy: .public) tap=\(state.tap.rawValue, privacy: .public) receivedEvents=\(state.receivedEvents, privacy: .public) sqlite=\(state.storage?.rawValue ?? "unavailable", privacy: .public) enabled=\(self.enabled, privacy: .public) paused=\(self.paused, privacy: .public)")
         }
-        permissionGranted = true
-        if enabled && !paused && monitor?.isRunning != true {
-            startIfPermitted()
-        }
-        monitoringActive = monitor?.isRunning ?? false
     }
 
     func openInputMonitoringSettings() {
@@ -131,8 +114,8 @@ final class InputStatisticsController: ObservableObject {
     }
 
     func requestPermission() {
-        permissionGranted = CGRequestListenEventAccess()
-        startIfPermitted()
+        _ = permissions.requestListening()
+        refreshPermissionStatus()
         if !permissionGranted {
             // The OS may not show a second prompt after an earlier denial.
             // Bring up the real Input Monitoring page for manual approval.
@@ -140,9 +123,31 @@ final class InputStatisticsController: ObservableObject {
         }
     }
 
+    func openAccessibilitySettings() {
+        if let url = URL(string:
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    func requestAccessibilityPermission() {
+        _ = permissions.requestAccessibility()
+        refreshPermissionStatus()
+        if !permissionState.accessibilityGranted { openAccessibilitySettings() }
+    }
+
+    func stopAndFlush() {
+        monitor?.stop()
+        try? store?.flushPending()
+    }
+
     func refresh(from startMS: Int64, to endMS: Int64) {
-        guard startMS >= 0, endMS > startMS, let store else {
+        guard startMS >= 0, endMS > startMS else {
             dataStatus = localized("Invalid time range")
+            return
+        }
+        guard let store else {
+            dataStatus = localized("Local statistics database unavailable")
             return
         }
         do {
@@ -151,17 +156,30 @@ final class InputStatisticsController: ObservableObject {
             sourceCounts = try store.sourceCounts(from: startMS, to: endMS)
             categoryCounts = try store.categoryCounts(from: startMS, to: endMS, source: source)
             overview = try store.overview(from: startMS, to: endMS, source: source)
-            trend = try store.trend(from: startMS, to: endMS,
+            let trendStart: Int64
+            switch trendResolution {
+            case .second: trendStart = max(startMS, endMS - 15 * 60_000)
+            case .minute: trendStart = max(startMS, endMS - 48 * 3_600_000)
+            default: trendStart = startMS
+            }
+            trend = try store.trend(from: trendStart, to: endMS,
                                     resolution: trendResolution,
                                     category: selectedCategory.isEmpty ? nil : selectedCategory,
                                     name: selectedKeyName.isEmpty ? nil : selectedKeyName,
                                     source: source)
+            let displayStart = trendStart == 0 ? (trend.first?.startMS ?? trendStart) : trendStart
+            let startDate = Date(timeIntervalSince1970: TimeInterval(displayStart) / 1_000)
+            let endDate = Date(timeIntervalSince1970: TimeInterval(endMS) / 1_000)
+            trendRange = startDate...endDate
+            trendRangeIsLimited = trendStart > startMS
             dataStatus = localized("Statistics query complete")
         } catch {
+            trend = []
+            trendRange = nil
+            trendRangeIsLimited = false
             dataStatus = error.localizedDescription
         }
-        permissionGranted = monitor?.hasPermission ?? false
-        if !permissionGranted { monitor?.stop() }
+        refreshPermissionStatus()
     }
 
     func checkIntegrity() {
@@ -219,6 +237,23 @@ struct InputStatisticsView: View {
     @State private var diagnosticsExpanded = false
     @State private var deleteAllRequested = false
     @State private var selectedPreset = "today"
+    @AppStorage("nexusInputSourceAliases") private var sourceAliasData = Data()
+    @State private var editingSource: String?
+    @State private var sourceAliasDraft = ""
+    @State private var showingSourceAliasEditor = false
+
+    private var sourceAliases: [String: String] {
+        (try? JSONDecoder().decode([String: String].self, from: sourceAliasData)) ?? [:]
+    }
+
+    private var availableSources: [String] {
+        Array(Set(controller.sourceCounts.map(\.source))).sorted()
+    }
+
+    private var sourceToRename: String? {
+        if !controller.selectedSource.isEmpty { return controller.selectedSource }
+        return availableSources.count == 1 ? availableSources.first : nil
+    }
 
     var body: some View {
         ScrollView(.vertical) {
@@ -249,6 +284,8 @@ struct InputStatisticsView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Picker(localized("Time range"), selection: $selectedPreset) {
+                Text(localized("Last 15 minutes")).tag("recent_minutes")
+                Text(localized("Last hour")).tag("recent_hour")
                 Text(localized("Today")).tag("today")
                 Text(localized("Yesterday")).tag("yesterday")
                 Text(localized("Last 7 days")).tag("week")
@@ -294,7 +331,7 @@ struct InputStatisticsView: View {
             HStack {
                 Picker(localized("Device or event source"), selection: $controller.selectedSource) {
                     Text(localized("All sources")).tag("")
-                    ForEach(Array(Set(controller.sourceCounts.map(\.source))).sorted(), id: \.self) { source in
+                    ForEach(availableSources, id: \.self) { source in
                         Text(readableSource(source)).tag(source)
                     }
                 }
@@ -304,6 +341,10 @@ struct InputStatisticsView: View {
                     query()
                 }
                 .disabled(controller.selectedSource.isEmpty)
+                Button(localized("Rename source…")) {
+                    if let sourceToRename { editSource(sourceToRename) }
+                }
+                .disabled(sourceToRename == nil)
             }
             HStack(spacing: 8) {
                 statCard(localized("Keyboard presses"), controller.overview.keyboard, "keyboard")
@@ -327,6 +368,8 @@ struct InputStatisticsView: View {
                 Text(localized("Time trend")).font(.headline)
                 Spacer()
                 Picker(localized("Resolution"), selection: $controller.trendResolution) {
+                    Text(localized("Per second")).tag(InputTrendResolution.second)
+                    Text(localized("Per minute")).tag(InputTrendResolution.minute)
                     Text(localized("Hourly")).tag(InputTrendResolution.hour)
                     Text(localized("Daily")).tag(InputTrendResolution.day)
                     Text(localized("Weekly")).tag(InputTrendResolution.week)
@@ -335,29 +378,30 @@ struct InputStatisticsView: View {
                 .frame(width: 120)
                 .onChange(of: controller.trendResolution) { _ in query() }
             }
-            Chart(controller.trend) { bucket in
-                BarMark(
-                    x: .value(localized("Time"), Date(timeIntervalSince1970: TimeInterval(bucket.startMS) / 1000)),
-                    y: .value(localized("Count"), bucket.count)
+            if let range = controller.trendRange {
+                InputTrendChart(
+                    buckets: controller.trend, range: range,
+                    resolution: controller.trendResolution, limited: controller.trendRangeIsLimited
                 )
-                .foregroundStyle(by: .value(localized("Category"), bucket.category))
+                .id(range)
             }
-            .chartLegend(position: .bottom, alignment: .leading)
-            .frame(height: 165)
             HStack {
                 Text(localized("Key and shortcut ranking")).font(.headline)
                 Spacer()
-                Picker(localized("Event category"), selection: $controller.selectedCategory) {
+                Picker(localized("Event category"), selection: Binding(
+                    get: { controller.selectedCategory },
+                    set: {
+                        controller.selectedCategory = $0
+                        controller.selectedKeyName = ""
+                        query()
+                    }
+                )) {
                     Text(localized("All")).tag("")
                     ForEach(["keyboard","modifier","system","shortcut","mouse","scroll","ordinary"], id: \.self) { category in
                         Text(localized(category)).tag(category)
                     }
                 }
                 .frame(width: 150)
-                .onChange(of: controller.selectedCategory) { _ in
-                    controller.selectedKeyName = ""
-                    query()
-                }
             }
             List(controller.categoryCounts.filter {
                 controller.selectedCategory.isEmpty || $0.category == controller.selectedCategory
@@ -368,8 +412,8 @@ struct InputStatisticsView: View {
                     query()
                 } label: {
                     HStack {
-                        Label(count.name, systemImage: icon(for: count.name))
-                        Text(count.category).foregroundStyle(.secondary).font(.caption)
+                        Label(readableEvent(count.name), systemImage: icon(for: count.name))
+                        Text(localized(count.category)).foregroundStyle(.secondary).font(.caption)
                         Spacer()
                         Text(Date(timeIntervalSince1970: TimeInterval(count.lastTimeMS)/1000)
                             .formatted(date: .numeric, time: .shortened))
@@ -382,7 +426,7 @@ struct InputStatisticsView: View {
             .frame(minHeight: 95, idealHeight: 150)
             if !controller.selectedKeyName.isEmpty {
                 HStack {
-                    Text("\(localized("Selected key")): \(controller.selectedKeyName)")
+                    Text("\(localized("Selected key")): \(readableEvent(controller.selectedKeyName))")
                     Button(localized("Show all keys")) {
                         controller.selectedKeyName = ""
                         query()
@@ -401,12 +445,15 @@ struct InputStatisticsView: View {
                         HStack {
                             Text(readableSource(item.source))
                                 .font(.caption).lineLimit(2)
-                            Text(item.category).font(.caption2).foregroundStyle(.secondary)
+                            Text(localized(item.category)).font(.caption2).foregroundStyle(.secondary)
                             Spacer()
                             Text(item.count.formatted()).monospacedDigit()
                         }
                     }
                     .buttonStyle(.plain)
+                    .contextMenu {
+                        Button(localized("Rename source…")) { editSource(item.source) }
+                    }
                 }
                 .frame(height: 145)
             }
@@ -420,8 +467,8 @@ struct InputStatisticsView: View {
                 if controller.diagnosticsEnabled {
                     List(controller.diagnosticEvents) { event in
                         HStack {
-                            Label(event.name, systemImage: icon(for: event.name))
-                            Text(event.source).font(.caption2).foregroundStyle(.secondary)
+                            Label(readableEvent(event.name), systemImage: icon(for: event.name))
+                            Text(readableSource(event.source)).font(.caption2).foregroundStyle(.secondary)
                             Spacer()
                             Text(event.supported ? localized("Recognized") : localized("Unknown / unsupported"))
                                 .font(.caption2)
@@ -481,7 +528,20 @@ struct InputStatisticsView: View {
             .padding()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onAppear { controller.startIfPermitted(); applyPreset() }
+        .alert(localized("Rename source…"), isPresented: $showingSourceAliasEditor) {
+            TextField(localized("Source alias"), text: $sourceAliasDraft)
+            if let editingSource, sourceAliases[editingSource] != nil {
+                Button(localized("Reset source name")) { saveSourceAlias("") }
+            }
+            Button(localized("Cancel"), role: .cancel) {}
+            Button(localized("Save")) { saveSourceAlias(sourceAliasDraft) }
+        } message: {
+            Text(localized("The name applies to this event source. Sources without device identifiers may combine multiple devices."))
+        }
+        .onAppear {
+            controller.refreshPermissionStatus()
+            applyPreset()
+        }
         // Diagnostics are voluntary and scoped to the open test section.
         // Collapsing the section stops live diagnostic callbacks immediately.
         .onChange(of: diagnosticsExpanded) { expanded in
@@ -505,14 +565,74 @@ struct InputStatisticsView: View {
         }
     }
 
+    private func editSource(_ source: String) {
+        editingSource = source
+        sourceAliasDraft = sourceAliases[source] ?? ""
+        showingSourceAliasEditor = true
+    }
+
+    private func saveSourceAlias(_ value: String) {
+        guard let editingSource else { return }
+        let name = String(value.trimmingCharacters(in: .whitespacesAndNewlines).prefix(50))
+        var names = sourceAliases
+        names[editingSource] = name.isEmpty ? nil : name
+        if let data = try? JSONEncoder().encode(names) { sourceAliasData = data }
+    }
+
     private func readableSource(_ source: String) -> String {
-        if source.hasPrefix("iohid_") {
-            return source
-                .replacingOccurrences(of: "iohid_consumer:", with: "HID media · ")
-                .replacingOccurrences(of: "iohid_function:", with: "HID function · ")
-                .replacingOccurrences(of: "_", with: " ")
+        let description = sourceDescription(source)
+        guard let alias = sourceAliases[source] else { return description }
+        return "\(alias) · \(description)"
+    }
+
+    private func sourceDescription(_ source: String) -> String {
+        let parts = source.split(separator: ":", maxSplits: 1)
+        switch parts.first {
+        case "quartz_uptime": return localized("All keyboards and mice (device unavailable)")
+        case "appkit_system_defined": return localized("System media keys (device unavailable)")
+        case "iohid_consumer", "iohid_function":
+            let label = localized(parts.first == "iohid_consumer" ? "HID media keys" : "HID function keys")
+            let detail = String(parts.last ?? "")
+            let segments = detail.components(separatedBy: ":name:")
+            let productName = segments.count > 1 ? segments[1] : nil
+            let fields = segments[0].split(separator: "_")
+            guard fields.count == 6, fields[0] == "vendor", fields[2] == "product",
+                  fields[4] == "location" else {
+                return "\(label) · \(productName ?? localized("Device unknown"))"
+            }
+            let location = fields[5] == "unknown" ? localized("Unknown") : String(fields[5])
+            let identity = String(format: localized("Vendor %@, product %@, location %@"),
+                                         String(fields[1]), String(fields[3]), location)
+            return "\(label) · \(productName ?? identity) · \(identity)"
+        default: return "\(localized("Device unknown")) · \(source)"
         }
-        return "\(source) · \(localized("Device unknown"))"
+    }
+
+    private func readableEvent(_ name: String) -> String {
+        if name.count == 1 { return name.uppercased() }
+        if name.first == "f", let number = Int(name.dropFirst()), (1...24).contains(number) {
+            return "F\(number)"
+        }
+        if name.hasPrefix("key_") {
+            let key = String(name.dropFirst(4))
+            return key.count == 1 ? key.uppercased() : localized(key)
+        }
+        let tokens = name.split(separator: "_").map(String.init)
+        let modifierSymbols = ["control":"⌃", "option":"⌥", "command":"⌘", "shift":"⇧", "fn":"Fn"]
+        if tokens.count > 1, modifierSymbols[tokens[0]] != nil {
+            let modifiers = tokens.prefix(while: { modifierSymbols[$0] != nil })
+            let remainder = tokens.dropFirst(modifiers.count).joined(separator: "_")
+            if !remainder.isEmpty {
+                let label = readableEvent(remainder)
+                return modifiers.compactMap { modifierSymbols[$0] }.joined() + " " + label
+            }
+        }
+        if name.hasPrefix("mouse_extra_"), let number = Int64(name.dropFirst("mouse_extra_".count)),
+           (0..<Int64.max).contains(number) {
+            return String(format: localized("Mouse button %lld"), number + 1)
+        }
+        if name.hasPrefix("unrecognized_system_key_") { return localized("Unknown / unsupported") }
+        return localized(name)
     }
 
     private func icon(for key: String) -> String {
@@ -547,6 +667,8 @@ struct InputStatisticsView: View {
         let now = Date()
         let today = calendar.startOfDay(for: now)
         switch selectedPreset {
+        case "recent_minutes": start = now.addingTimeInterval(-15 * 60); end = now
+        case "recent_hour": start = now.addingTimeInterval(-60 * 60); end = now
         case "today": start = today; end = now
         case "yesterday":
             start = calendar.date(byAdding: .day, value: -1, to: today) ?? today
@@ -574,5 +696,123 @@ struct InputStatisticsView: View {
         let lower = Int64(start.timeIntervalSince1970 / 60) * 60_000 + Int64(max(0, min(59, startSecond))) * 1000 + Int64(max(0, min(999, startMS)))
         let upper = Int64(end.timeIntervalSince1970 / 60) * 60_000 + Int64(max(0, min(59, endSecond))) * 1000 + Int64(max(0, min(999, endMS)))
         return (lower, upper)
+    }
+}
+
+private struct InputTrendChart: View {
+    let buckets: [InputTrendBucket]
+    let range: ClosedRange<Date>
+    let resolution: InputTrendResolution
+    let limited: Bool
+    @State private var hoveredBucket: Date?
+
+    private var calendar: Calendar { InputTrendResolution.bucketCalendar }
+    private var domain: ClosedRange<Date> {
+        let start = calendar.dateInterval(of: resolution.calendarComponent, for: range.lowerBound)?.start
+            ?? range.lowerBound
+        let end = calendar.dateInterval(of: resolution.calendarComponent, for: range.upperBound)?.end
+            ?? range.upperBound
+        if resolution == .second || resolution == .minute || resolution == .hour,
+           let first = buckets.map(\.startMS).min(),
+           let last = buckets.map(\.startMS).max() {
+            let padding: TimeInterval = resolution == .second ? 20 : (resolution == .minute ? 120 : 1800)
+            let focusedStart = max(start, Date(timeIntervalSince1970: TimeInterval(first) / 1000 - padding))
+            let focusedEnd = min(end, Date(timeIntervalSince1970: TimeInterval(last) / 1000 + padding))
+            if focusedStart < focusedEnd { return focusedStart...focusedEnd }
+        }
+        return start...end
+    }
+
+    private var axisFormat: Date.FormatStyle {
+        switch resolution {
+        case .second: .dateTime.hour().minute().second()
+        case .minute, .hour:
+            range.upperBound.timeIntervalSince(range.lowerBound) >= 86_400
+                ? .dateTime.month(.abbreviated).day().hour().minute() : .dateTime.hour().minute()
+        case .day, .week: .dateTime.month(.abbreviated).day()
+        case .month: .dateTime.year().month(.abbreviated)
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if limited {
+                Text(localized(resolution == .second
+                    ? "This chart shows the last 15 minutes of the selected range."
+                    : "This chart shows the last 48 hours of the selected range."))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            if resolution == .second, buckets.contains(where: { $0.category == "ordinary" }) {
+                Text(localized("Ordinary typing is counted by minute."))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            if buckets.isEmpty {
+                Label(localized("No input events in this chart range"), systemImage: "chart.bar")
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, minHeight: 150)
+            } else {
+                chart
+                if let hoveredBucket {
+                    let milliseconds = Int64(hoveredBucket.timeIntervalSince1970 * 1_000)
+                    let count = buckets.filter { $0.startMS == milliseconds }.reduce(0) { $0 + $1.count }
+                    Text("\(hoveredBucket.formatted(axisFormat)) · \(count.formatted()) \(localized("Input events"))")
+                        .font(.caption.monospacedDigit())
+                } else {
+                    Text(localized("Point at the chart to see the time and event count."))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
+        }
+        .onChange(of: resolution) { _ in hoveredBucket = nil }
+    }
+
+    private var chart: some View {
+        Chart {
+            ForEach(buckets) { bucket in
+                BarMark(
+                    x: .value(localized("Time"), Date(timeIntervalSince1970: TimeInterval(bucket.startMS) / 1_000),
+                              unit: resolution.calendarComponent, calendar: calendar),
+                    y: .value(localized("Count"), bucket.count),
+                    width: .fixed(resolution == .second ? 2 : (resolution == .minute ? 5 : 16))
+                )
+                .foregroundStyle(by: .value(localized("Category"), localized(bucket.category)))
+            }
+            if let hoveredBucket {
+                RuleMark(x: .value(localized("Time"), hoveredBucket))
+                    .foregroundStyle(.secondary.opacity(0.6))
+            }
+        }
+        .chartXScale(domain: domain)
+        .chartXAxis {
+            if resolution == .day || resolution == .week || resolution == .month {
+                AxisMarks(values: .stride(by: resolution == .month ? .month : .day,
+                                          count: resolution == .month ? 1 : 1)) {
+                    AxisGridLine()
+                    AxisValueLabel(format: axisFormat)
+                }
+            } else {
+                AxisMarks(values: .automatic(desiredCount: 4)) {
+                    AxisGridLine()
+                    AxisValueLabel(format: axisFormat)
+                }
+            }
+        }
+        .chartLegend(position: .bottom, alignment: .leading)
+        .frame(height: 210)
+        .chartOverlay { proxy in
+            GeometryReader { geometry in
+                Rectangle().fill(.clear).contentShape(Rectangle())
+                    .onContinuousHover { phase in
+                        guard case .active(let location) = phase,
+                              geometry[proxy.plotAreaFrame].contains(location),
+                              let date: Date = proxy.value(atX: location.x - geometry[proxy.plotAreaFrame].minX)
+                        else {
+                            hoveredBucket = nil
+                            return
+                        }
+                        hoveredBucket = calendar.dateInterval(of: resolution.calendarComponent, for: date)?.start
+                    }
+            }
+        }
     }
 }

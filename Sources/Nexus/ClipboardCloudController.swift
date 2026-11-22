@@ -21,6 +21,7 @@ final class ClipboardCloudController: ObservableObject {
     @Published var enabled: Bool {
         didSet {
             defaults.set(enabled, forKey: "nexusFolderClipboardEnabled")
+            if !enabled { cancelMirrorTasks() }
             configureAutomaticSyncTimer()
         }
     }
@@ -48,11 +49,22 @@ final class ClipboardCloudController: ObservableObject {
     @Published var includeFiles: Bool {
         didSet { defaults.set(includeFiles, forKey: "nexusFolderClipboardFiles") }
     }
+    @Published var mirrorFiles: Bool {
+        didSet { defaults.set(mirrorFiles, forKey: "nexusFolderMirrorFiles") }
+    }
+    @Published var mirrorText: Bool {
+        didSet { defaults.set(mirrorText, forKey: "nexusFolderMirrorText") }
+    }
+    @Published var mirrorImages: Bool {
+        didSet { defaults.set(mirrorImages, forKey: "nexusFolderMirrorImages") }
+    }
     @Published private(set) var status = localized("Folder synchronization is off")
     @Published private(set) var nextHistoryOffset: Int
     @Published private(set) var pendingCount = 0
     @Published private(set) var cachedRecords: [ClipboardCloudRecord] = []
     @Published private(set) var running = false
+    @Published private(set) var mirrorStatus = ""
+    @Published private(set) var mirrorPending = 0
     @Published private(set) var lastSuccessfulSync: ClipboardCloudRunSummary?
 
     private let defaults: UserDefaults
@@ -70,6 +82,7 @@ final class ClipboardCloudController: ObservableObject {
     private var automaticSyncTimer: Timer?
     private var automaticSyncTask: Task<Void, Never>?
     private var automaticCycleRunning = false
+    private var mirrorTasks: [UUID: Task<URL, Error>] = [:]
 
     private init() {
         let defaults = UserDefaults.standard
@@ -86,6 +99,9 @@ final class ClipboardCloudController: ObservableObject {
         includePaths = defaults.bool(forKey: "nexusFolderClipboardPaths")
         includeImages = defaults.bool(forKey: "nexusFolderClipboardImages")
         includeFiles = defaults.bool(forKey: "nexusFolderClipboardFiles")
+        mirrorFiles = defaults.bool(forKey: "nexusFolderMirrorFiles")
+        mirrorText = defaults.bool(forKey: "nexusFolderMirrorText")
+        mirrorImages = defaults.bool(forKey: "nexusFolderMirrorImages")
         nextHistoryOffset = max(0, defaults.integer(forKey: "nexusFolderClipboardHistoryOffset"))
         if let saved = defaults.string(forKey: "nexusFolderClipboardDeviceID"),
            UUID(uuidString: saved) != nil {
@@ -108,6 +124,11 @@ final class ClipboardCloudController: ObservableObject {
         // uninitialized folder. The user must prepare it explicitly first.
         if !folderPrepared { enabled = false }
         refreshLocalCache()
+        if enabled, let summary = lastSuccessfulSync {
+            status = syncStatus(uploaded: summary.uploaded, downloaded: summary.downloaded,
+                                pending: summary.pending, moreComing: summary.moreComing,
+                                localHistoryInspected: summary.localHistoryInspected)
+        }
         configureAutomaticSyncTimer()
     }
 
@@ -157,10 +178,7 @@ final class ClipboardCloudController: ObservableObject {
             automaticCycleRunning = false
             automaticSyncTask = nil
         }
-        await prepareLocalPage()
-        guard !Task.isCancelled, enabled, automaticSyncEnabled,
-              containerConfigured else { return }
-        await syncNow(automaticRun: true)
+        await syncIncludingLocalHistory(automaticRun: true)
     }
 
     var currentConsent: ClipboardCloudConsent {
@@ -172,6 +190,13 @@ final class ClipboardCloudController: ObservableObject {
     }
 
     var containerConfigured: Bool { selectedFolderURL != nil }
+
+    var visibleSyncedRecords: [ClipboardCloudRecord] {
+        let consent = currentConsent
+        return cachedRecords.filter { record in
+            !record.isDeleted && record.kind != .membership && consent.permits(record)
+        }
+    }
 
     /// Changing the destination must not silently upload the old destination's
     /// pending journal into a different folder. Only local sync state is
@@ -187,6 +212,7 @@ final class ClipboardCloudController: ObservableObject {
             status = localized("Could not reset the local sync queue: ") + error.localizedDescription
             return false
         }
+        cancelMirrorTasks()
         enabled = false
         automaticSyncEnabled = false
         nextHistoryOffset = 0
@@ -195,6 +221,45 @@ final class ClipboardCloudController: ObservableObject {
         defaults.removeObject(forKey: "nexusFolderClipboardLastSuccess")
         refreshLocalCache()
         return true
+    }
+
+    /// The visible files are independent of the encrypted sync protocol.
+    /// Only explicit folder and per-format consent can reach this path.
+    func mirrorCopied(_ content: ClipboardFolderMirror.Content) {
+        guard enabled, folderPrepared, let folder = selectedFolderURL else { return }
+        switch content {
+        case .files: guard mirrorFiles else { return }
+        case .text: guard mirrorText else { return }
+        case .image: guard mirrorImages else { return }
+        }
+        let id = UUID()
+        let task = Task.detached(priority: .utility) { () throws -> URL in
+            let scoped = folder.startAccessingSecurityScopedResource()
+            defer { if scoped { folder.stopAccessingSecurityScopedResource() } }
+            return try ClipboardFolderMirror.save(content, to: folder, id: id,
+                                                  cancelled: { Task.isCancelled })
+        }
+        mirrorTasks[id] = task
+        mirrorPending = mirrorTasks.count
+        mirrorStatus = localized("Saving copied content to the selected folder…")
+        Task { [weak self] in
+            do {
+                _ = try await task.value
+                self?.mirrorStatus = localized("Copied content saved as usable files")
+            } catch is CancellationError {
+                self?.mirrorStatus = localized("Folder copy cancelled")
+            } catch ClipboardFolderMirror.MirrorError.cancelled {
+                self?.mirrorStatus = localized("Folder copy cancelled")
+            } catch {
+                self?.mirrorStatus = localized("Folder copy failed") + ": " + error.localizedDescription
+            }
+            self?.mirrorTasks[id] = nil
+            self?.mirrorPending = self?.mirrorTasks.count ?? 0
+        }
+    }
+
+    func cancelMirrorTasks() {
+        for task in mirrorTasks.values { task.cancel() }
     }
 
     func changeStorage(to newStorage: NexusSyncStorage) {
@@ -349,27 +414,35 @@ final class ClipboardCloudController: ObservableObject {
         running = true
         defer { running = false }
         do {
-            let offset = nextHistoryOffset
-            let deviceID = deviceID
-            let consent = currentConsent
-            let result = try await Task.detached(priority: .utility) {
-                let page = try ClipboardCloudLocalSnapshot.stagePage(
-                    from: store, in: journal, deviceID: deviceID,
-                    consent: consent, offset: offset, limit: 200
-                )
-                let collectionCount = try ClipboardCloudLocalSnapshot.stageCollections(
-                    from: store, in: journal, deviceID: deviceID,
-                    consent: consent
-                )
-                return (page, collectionCount)
-            }.value
-            nextHistoryOffset = result.0.nextOffset ?? 0
-            defaults.set(nextHistoryOffset, forKey: "nexusFolderClipboardHistoryOffset")
+            let (page, collections) = try await stageLocalPage(store: store, journal: journal)
             refreshLocalCache()
-            status = "Prepared \(result.0.staged) history records and \(result.1) collection changes locally"
+            status = String(format: localized("Prepared %d history records and %d collection changes locally"),
+                            page.staged, collections)
         } catch {
-            status = "Local preparation failed: \(error.localizedDescription)"
+            status = localized("Local sync preparation failed") + " · " + error.localizedDescription
         }
+    }
+
+    private func stageLocalPage(
+        store: OperationStore, journal: ClipboardCloudJournal
+    ) async throws -> (ClipboardCloudLocalSnapshot.Result, Int) {
+        let offset = nextHistoryOffset
+        let deviceID = deviceID
+        let consent = currentConsent
+        let limit = maximumHistoryPage
+        let result = try await Task.detached(priority: .utility) {
+            let page = try ClipboardCloudLocalSnapshot.stagePage(
+                from: store, in: journal, deviceID: deviceID,
+                consent: consent, offset: offset, limit: limit
+            )
+            let collections = try ClipboardCloudLocalSnapshot.stageCollections(
+                from: store, in: journal, deviceID: deviceID, consent: consent
+            )
+            return (page, collections)
+        }.value
+        nextHistoryOffset = result.0.nextOffset ?? 0
+        defaults.set(nextHistoryOffset, forKey: "nexusFolderClipboardHistoryOffset")
+        return result
     }
 
     func startSync() async {
@@ -387,19 +460,6 @@ final class ClipboardCloudController: ObservableObject {
         guard folderPrepared else { return }
         enabled = true
         await syncIncludingLocalHistory()
-    }
-
-    /// The one user-facing sync action handles staging and transfer together.
-    /// Do not require two obscure, consecutive buttons for each sync cycle.
-    func syncIncludingLocalHistory() async {
-        guard !running, enabled else { return }
-        guard includeText || includeNames || includePaths else {
-            status = localized("Select at least one type of content to sync.")
-            return
-        }
-        await prepareLocalPage()
-        guard !running else { return }
-        await syncNow()
     }
 
     /// User-initiated folder initialization, not an Apple container request.
@@ -420,7 +480,7 @@ final class ClipboardCloudController: ObservableObject {
         }
     }
 
-    func syncNow(automaticRun: Bool = false) async {
+    func syncIncludingLocalHistory(automaticRun: Bool = false) async {
         guard !running else { return }
         guard enabled else { status = localized("Enable sync first"); return }
         guard containerConfigured, folderPrepared, pairingKeyConfigured else {
@@ -428,9 +488,24 @@ final class ClipboardCloudController: ObservableObject {
             return
         }
         if automaticRun && (!automaticSyncEnabled || Task.isCancelled) { return }
-        guard let journal else { status = localized("Folder journal unavailable"); return }
+        guard includeText || includeNames || includePaths else {
+            status = localized("Select at least one type of content to sync.")
+            return
+        }
+        guard let journal, let store else {
+            status = localized("Local clipboard or journal database unavailable")
+            return
+        }
         running = true
         defer { running = false }
+        let staged: ClipboardCloudLocalSnapshot.Result
+        do {
+            staged = try await stageLocalPage(store: store, journal: journal).0
+        } catch {
+            status = localized("Local sync preparation failed") + " · " + error.localizedDescription
+            return
+        }
+        guard enabled, !Task.isCancelled, !automaticRun || automaticSyncEnabled else { return }
         do {
             let transport = try await makeTransport()
             let coordinator = try ClipboardCloudSyncCoordinator(
@@ -448,7 +523,8 @@ final class ClipboardCloudController: ObservableObject {
             })
             if let summary = ClipboardCloudRunSummary(
                 report: report,
-                finishedTimeMS: Int64(Date().timeIntervalSince1970 * 1_000)
+                finishedTimeMS: Int64(Date().timeIntervalSince1970 * 1_000),
+                localHistoryInspected: staged.inspected
             ) {
                 lastSuccessfulSync = summary
                 if let encoded = try? JSONEncoder().encode(summary) {
@@ -456,12 +532,33 @@ final class ClipboardCloudController: ObservableObject {
                 }
             }
             refreshLocalCache()
-            status = String(format: localized("Saved %d, received %d, remaining %d"),
-                            report.uploaded, report.downloaded, report.pending) +
-                (report.moreComing ? localized(" — more records on the next sync") : "")
+            status = syncStatus(uploaded: report.uploaded, downloaded: report.downloaded,
+                                pending: report.pending, moreComing: report.moreComing,
+                                localHistoryInspected: staged.inspected)
+            if staged.nextOffset != nil {
+                status += " · " + localized("More local history will be checked on the next sync")
+            }
         } catch {
-            status = "Folder sync failed: \(error.localizedDescription)"
+            refreshLocalCache()
+            status = localized("Folder sync failed") + " · " + error.localizedDescription
         }
+    }
+
+    private func syncStatus(uploaded: Int, downloaded: Int, pending: Int, moreComing: Bool,
+                            localHistoryInspected: Int?) -> String {
+        if uploaded == 0, downloaded == 0, pending == 0, !moreComing {
+            if localHistoryInspected == 0 {
+                return localized("This pass found no local copies to check and no new records to receive.")
+            }
+            if let localHistoryInspected {
+                return String(format: localized("Checked %d local copies. Nothing needed to be written or received."),
+                              localHistoryInspected)
+            }
+            return localized("The sync folder was checked. No records needed to be written or received.")
+        }
+        return String(format: localized("Saved %d, received %d, remaining %d"),
+                      uploaded, downloaded, pending)
+            + (moreComing ? localized(" — more records on the next sync") : "")
     }
 
     /// User-invoked recovery from CKError.changeTokenExpired. This restarts
@@ -491,7 +588,7 @@ final class ClipboardCloudController: ObservableObject {
         let consent = currentConsent
         do {
             let result = try await Task.detached(priority: .utility) {
-                let cached = try journal.cachedRecords(limit: 100)
+                let cached = try journal.cachedRecords(limit: 100, synchronizedOnly: true)
                 let operations = try store.importCloudHistory(
                     cached, consent: consent, cloudImageProvider: { id in
                         try journal.cachedImage(recordID: id)
@@ -505,6 +602,7 @@ final class ClipboardCloudController: ObservableObject {
             status = String(format: localized(
                 "Restored %d cloud entries and %d collection changes to local history"
             ), result.0, result.1)
+            if result.0 > 0 || result.1 > 0 { ClipboardMonitor.shared.historyDidChange() }
         } catch {
             status = "Cloud history restoration failed: \(error.localizedDescription)"
         }
@@ -513,7 +611,7 @@ final class ClipboardCloudController: ObservableObject {
     func refreshLocalCache() {
         guard let journal else { return }
         do {
-            cachedRecords = try journal.cachedRecords(limit: 100)
+            cachedRecords = try journal.cachedRecords(limit: 100, synchronizedOnly: true)
             pendingCount = try journal.pendingCount()
         } catch {
             status = "Cloud journal unavailable: \(error.localizedDescription)"

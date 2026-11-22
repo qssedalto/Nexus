@@ -941,3 +941,14 @@
 "Nexus sync records deleted from this folder. Other devices may add them again." = "此文件夹内的 Nexus 同步记录已删除，其他设备可能再次同步回来。";
 "Saved %d, received %d, remaining %d" = "已写入 %d 条、读取 %d 条、待处理 %d 条";
 " — more records on the next sync" = "；下次同步还有更多记录";
+"Copied file contents" = "复制的文件与文件夹内容";
+"Copied images" = "复制的图片";
+"Selected content is also saved as openable files beside the encrypted sync index. Private pasteboard formats may not be recoverable." = "所选内容会另存为可直接打开的文件；系统私有剪贴板格式可能无法完整恢复。";
+"Saving copied content to the selected folder…" = "正在将复制内容保存到所选文件夹…";
+"Copied content saved as usable files" = "复制内容已保存为可直接使用的文件";
+"Folder copy cancelled" = "文件夹复制已取消";
+"Folder copy failed" = "文件夹复制失败";
+"folder copies pending" = "项文件夹复制待完成";
+"Cancel folder copies" = "取消文件夹复制";
+"Plain text files in selected folder" = "在所选文件夹保存纯文本文件";
+"Visible folder copies are ordinary unencrypted files and may sync through iCloud Drive. Private pasteboard formats may not be recoverable." = "可见的文件夹副本是未加密的普通文件，可能经 iCloud Drive 同步；系统私有剪贴板格式可能无法恢复。";

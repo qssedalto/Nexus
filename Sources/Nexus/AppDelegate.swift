@@ -12,13 +12,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let finderExtensionMigrationController = FinderExtensionMigrationController.production()
     private let welcomeGuideStore = WelcomeGuideStore()
     private lazy var welcomeGuideController = WelcomeGuideWindowController(
-        onOpenSettings: { [weak self] in self?.openSettingsFromWelcome() }
+        onOpenMenu: { [weak self] in
+            DispatchQueue.main.async { self?.statusItemController?.showMenu() }
+        }
     )
     private var welcomeGuideObserver: NSObjectProtocol?
 
 
     func applicationWillTerminate(_ notification: Notification) {
         ClipboardHotkeyController.shared.shutdown()
+        InputStatisticsController.shared.stopAndFlush()
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -28,15 +31,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // Newly installed users only; respect a persisted disabled preference.
             appState.setLaunchAtLoginEnabled(true)
         }
-        // Command-V only proves a request was seen, never destination success.
-        // Reuse the existing short feedback popover when the user has explicitly
-        // enabled paste-request observation.
-        InputStatisticsController.shared.setPasteRequestHandler { [weak self] _ in
+        InputStatisticsController.shared.setClipboardShortcutHandler { [weak self] observation in
             Task { @MainActor [weak self] in
-                self?.appState.clipboardDidChange("Paste request observed")
+                guard let self else { return }
+                switch observation {
+                case .copy:
+                    // While history is paused there is no pasteboard read or write.
+                    if !ClipboardMonitor.shared.isCollectingHistory {
+                        appState.clipboardDidChange("Copy shortcut detected")
+                    }
+                case .paste: appState.clipboardDidChange("Paste detected")
+                case .pasteRecorded: appState.refreshOperations()
+                }
             }
         }
-        InputStatisticsController.shared.startIfPermitted()
+        InputStatisticsController.shared.refreshPermissionStatus()
         NotificationCenter.default.addObserver(
             forName: NSApplication.didBecomeActiveNotification,
             object: nil,
@@ -100,14 +109,4 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 
-    private func openSettingsFromWelcome() {
-        welcomeGuideController.dismiss()
-        DispatchQueue.main.async {
-            NSApp.activate(ignoringOtherApps: true)
-            let opened = NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-            if !opened {
-                NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
-            }
-        }
-    }
 }

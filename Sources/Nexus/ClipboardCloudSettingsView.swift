@@ -6,6 +6,7 @@ import NexusCore
 @MainActor
 struct ClipboardCloudSettingsView: View {
     @ObservedObject private var cloud = ClipboardCloudController.shared
+    @ObservedObject private var clipboard = ClipboardMonitor.shared
     @State private var confirmLocalCacheRemoval = false
     @State private var showFolderEraseSheet = false
     @State private var eraseConfirmation = ""
@@ -13,7 +14,8 @@ struct ClipboardCloudSettingsView: View {
     @State private var advancedExpanded = false
 
     private var hasSyncSelection: Bool {
-        cloud.includeText || cloud.includeNames || cloud.includePaths
+        cloud.includeText || cloud.mirrorText || cloud.mirrorFiles || cloud.mirrorImages
+            || cloud.includeNames || cloud.includePaths
     }
 
     private var readyToBegin: Bool {
@@ -35,7 +37,7 @@ struct ClipboardCloudSettingsView: View {
 
                 Text(localized(cloud.storage == .iCloudDrive
                     ? "iCloud Drive keeps the folder available on your Apple devices. Select the existing NexusClipboardSync folder."
-                    : "Local storage saves encrypted copies to this Mac or a folder you choose. It does not automatically sync to other devices."))
+                    : "Local storage saves copies to the folder you choose. It does not automatically sync to other devices."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -107,6 +109,9 @@ struct ClipboardCloudSettingsView: View {
 
             Section(localized("What to synchronize")) {
                 Toggle(localized("Clipboard text"), isOn: $cloud.includeText)
+                Toggle(localized("Plain text files in selected folder"), isOn: $cloud.mirrorText)
+                Toggle(localized("Copied file contents"), isOn: $cloud.mirrorFiles)
+                Toggle(localized("Copied images"), isOn: $cloud.mirrorImages)
                 Toggle(localized("Favorites and collection names"), isOn: $cloud.includeNames)
                 Toggle(localized("Original file paths"), isOn: $cloud.includePaths)
                 if !hasSyncSelection {
@@ -114,7 +119,10 @@ struct ClipboardCloudSettingsView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                Text(localized("Pictures and file contents are not included yet."))
+                Text(localized("Visible folder copies are ordinary unencrypted files and may sync through iCloud Drive. Private pasteboard formats may not be recoverable."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(localized("Keyboard and mouse statistics are backed up separately in Keyboard and Mouse. Paste requests are kept in the local timeline."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -157,26 +165,65 @@ struct ClipboardCloudSettingsView: View {
                     ProgressView()
                         .controlSize(.small)
                 }
+                if cloud.mirrorPending > 0 {
+                    HStack {
+                        ProgressView().controlSize(.small)
+                        Text("\(cloud.mirrorPending) " + localized("folder copies pending"))
+                        Button(localized("Cancel folder copies")) { cloud.cancelMirrorTasks() }
+                    }
+                }
+                if !cloud.mirrorStatus.isEmpty {
+                    Text(cloud.mirrorStatus).font(.caption)
+                }
                 Text(cloud.status)
                     .font(.caption)
                     .textSelection(.enabled)
                 if let previous = cloud.lastSuccessfulSync {
+                    HStack {
+                        LabeledContent(localized("Written"), value: previous.uploaded.formatted())
+                        LabeledContent(localized("Received records"), value: previous.downloaded.formatted())
+                        LabeledContent(localized("Pending updates"), value: cloud.pendingCount.formatted())
+                    }
                     LabeledContent(localized("Last sync"),
                                    value: Date(timeIntervalSince1970:
                                     TimeInterval(previous.finishedTimeMS) / 1000).formatted())
                 }
-                if cloud.pendingCount > 0 {
-                    LabeledContent(localized("Pending updates"),
-                                   value: String(cloud.pendingCount))
+                if cloud.enabled, !clipboard.historyEnabled || clipboard.paused {
+                    Text(localized(clipboard.historyEnabled
+                        ? "Clipboard history is paused. New copies are not added to sync."
+                        : "Clipboard history is off. New copies are not added to sync."))
+                        .font(.caption)
+                    Button(localized(clipboard.historyEnabled ? "Resume clipboard history" : "Enable clipboard history monitoring")) {
+                        if clipboard.historyEnabled { clipboard.paused = false }
+                        else { clipboard.historyEnabled = true }
+                    }
+                }
+            }
+
+            if cloud.enabled {
+                Section(localized("Synced clipboard history")) {
+                    if cloud.visibleSyncedRecords.isEmpty {
+                        Text(localized("No copied records matching your sync settings are available to preview."))
+                            .font(.caption).foregroundStyle(.secondary)
+                    } else {
+                        DisclosureGroup(localized("Preview synced records")) {
+                            ForEach(cloud.visibleSyncedRecords.prefix(20)) { record in
+                                Label(syncedTitle(record), systemImage: record.kind == .collection ? "folder" : "doc.on.clipboard")
+                                    .lineLimit(1)
+                            }
+                        }
+                    }
+                    if !cloud.cachedRecords.isEmpty {
+                        Button(localized("Import synced records into local history")) {
+                            Task { await cloud.restoreCachedHistory() }
+                        }
+                        .disabled(cloud.running)
+                    }
                 }
             }
 
             Section {
                 DisclosureGroup(localized("Advanced sync tools"), isExpanded: $advancedExpanded) {
-                    Button(localized("Import synced records into local history")) {
-                        Task { await cloud.restoreCachedHistory() }
-                    }
-                    .disabled(!cloud.enabled || cloud.running)
                     Button(localized("Prepare next 200 records")) {
                         Task { await cloud.prepareLocalPage() }
                     }
@@ -230,6 +277,19 @@ struct ClipboardCloudSettingsView: View {
             }
             .padding(24)
             .frame(minWidth: 460, idealWidth: 540)
+        }
+    }
+
+    private func syncedTitle(_ record: ClipboardCloudRecord) -> String {
+        switch record.payload {
+        case .collection(let collection): return collection.name
+        case .operation(let operation):
+            let preview = operation.text ?? operation.items.first?.name ?? operation.items.first?.path
+            if let preview, !preview.isEmpty { return String(preview.prefix(120)) }
+            if operation.type == "image_copy" { return localized("Image copy") }
+            if operation.type == "text_copy" { return localized("Text copy") }
+            return localized("File copy")
+        default: return localized("Unknown")
         }
     }
 }

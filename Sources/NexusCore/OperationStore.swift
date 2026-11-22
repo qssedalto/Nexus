@@ -478,7 +478,10 @@ public final class OperationStore: @unchecked Sendable {
         bind(endMS, to: 2, in: statement)
         if let limit { bind(Int64(max(1, min(5000, limit))), to: 3, in: statement) }
         var results: [RecordedOperation] = []
-        while sqlite3_step(statement) == SQLITE_ROW {
+        while true {
+            let step = sqlite3_step(statement)
+            if step == SQLITE_DONE { break }
+            guard step == SQLITE_ROW else { throw StoreError.read }
             results.append(try readOperation(from: statement))
         }
         return results

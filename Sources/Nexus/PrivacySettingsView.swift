@@ -1,5 +1,5 @@
 import AppKit
-import ApplicationServices
+import Security
 import SwiftUI
 import NexusCore
 
@@ -12,10 +12,66 @@ struct PrivacySettingsView: View {
     @AppStorage("nexusMonitorPasteRequests") private var pasteObservation = false
     @AppStorage("nexusClipboardFileThumbnailPreviews") private var allowFilePreviews = false
     @AppStorage("nexusClipboardRemoteTitlesEnabled") private var allowRemoteTitles = false
-    @State private var accessibilityGranted = AXIsProcessTrusted()
+    @State private var diagnosticsExpanded = false
     @State private var fullTextEnabled = false
     @State private var fullTextBusy = false
     @State private var fullTextStatus = ""
+
+    private var accessibilityGranted: Bool { statistics.permissionState.accessibilityGranted }
+
+    private var listenerStatus: String {
+        if !statistics.enabled { return "Statistics are turned off" }
+        if statistics.paused { return "Statistics are paused" }
+        if !statistics.permissionGranted { return "Waiting for Input Monitoring permission" }
+        if statistics.permissionState.storage == nil { return "Listener stopped because SQLite could not open" }
+        switch statistics.permissionState.tap {
+        case .listening: return "Event listener is running"
+        case .disabled: return "macOS disabled the event listener"
+        case .creationFailed, .stopped: return "Event listener could not start"
+        }
+    }
+
+    private var storageStatus: String {
+        switch statistics.permissionState.storage {
+        case nil: return "Could not open the statistics database"
+        case .ready: return "Open, waiting for a write this session"
+        case .written: return "Statistics written this session"
+        case .writeFailed: return "Statistics write failed, retrying"
+        }
+    }
+
+    private var signingTeam: String {
+        var code: SecCode?
+        var staticCode: SecStaticCode?
+        var information: CFDictionary?
+        guard SecCodeCopySelf([], &code) == errSecSuccess, let code,
+              SecCodeCopyStaticCode(code, [], &staticCode) == errSecSuccess, let staticCode,
+              SecCodeCopySigningInformation(staticCode, SecCSFlags(rawValue: kSecCSSigningInformation),
+                                            &information) == errSecSuccess,
+              let details = information as? [String: Any] else {
+            return localized("Signing information unavailable")
+        }
+        return details[kSecCodeInfoTeamIdentifier as String] as? String
+            ?? localized("No signing team (Ad Hoc or unsigned)")
+    }
+
+    private var permissionDiagnostics: some View {
+        DisclosureGroup(localized("Local permission diagnostics"), isExpanded: $diagnosticsExpanded) {
+            LabeledContent(localized("Running app"), value: Bundle.main.bundlePath)
+            LabeledContent(localized("Executable"), value: Bundle.main.executablePath ?? "—")
+            LabeledContent(localized("Bundle ID"), value: Bundle.main.bundleIdentifier ?? "—")
+            LabeledContent(localized("Process ID"), value: String(ProcessInfo.processInfo.processIdentifier))
+            LabeledContent(localized("Signing team"), value: signingTeam)
+            LabeledContent("CGPreflightListenEventAccess", value: String(statistics.permissionGranted))
+            LabeledContent("AXIsProcessTrusted", value: String(accessibilityGranted))
+            LabeledContent(localized("Event tap"), value: localized(listenerStatus))
+            LabeledContent(localized("Events received by this tap"),
+                           value: localized(statistics.permissionState.receivedEvents
+                                ? "Received" : "None observed yet"))
+            LabeledContent("SQLite", value: localized(storageStatus))
+        }
+        .textSelection(.enabled)
+    }
 
     private func configureFullTextIndex(_ enabled: Bool) {
         guard !fullTextBusy else { return }
@@ -82,45 +138,45 @@ struct PrivacySettingsView: View {
                         .foregroundColor(accessibilityGranted ? .green : .secondary)
                     if !accessibilityGranted {
                         Button(localized("Grant permission…")) {
-                            accessibilityGranted = AXIsProcessTrustedWithOptions([
-                                "AXTrustedCheckOptionPrompt": true
-                            ] as CFDictionary)
-                            if !accessibilityGranted,
-                               let url = URL(string:
-                                   "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
-                                NSWorkspace.shared.open(url)
-                            }
+                            statistics.requestAccessibilityPermission()
                         }
                     }
                 }
                 Text(localized("Accessibility permission is only needed for quick paste. It is separate from Input Monitoring."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
-
-                if statistics.enabled && !statistics.paused,
-                   statistics.permissionGranted && !statistics.monitoringActive {
-                    Label(localized("Input access is granted, but the event listener is not running."),
-                          systemImage: "exclamationmark.triangle")
-                        .foregroundStyle(.secondary)
+                if !accessibilityGranted {
+                    Button(localized("Open Accessibility settings")) {
+                        statistics.openAccessibilitySettings()
+                    }
                 }
-                if !statistics.permissionGranted || !accessibilityGranted ||
-                   (statistics.enabled && !statistics.paused && !statistics.monitoringActive) {
+
+                Label(localized(listenerStatus),
+                      systemImage: statistics.monitoringActive ? "checkmark.circle" : "info.circle")
+                    .foregroundStyle(.secondary)
+                if statistics.permissionState.storage == nil || statistics.permissionState.storage == .writeFailed {
+                    Text(localized(storageStatus)).font(.caption).foregroundStyle(.orange)
+                }
+                if !statistics.permissionGranted || !accessibilityGranted {
+                    Text(localized("In System Settings → Privacy & Security, open Input Monitoring or Accessibility. If the entry is already on, remove that Nexus Drive entry with the minus button, add the app shown below with the plus button, and turn it on. Then restart Nexus Drive here."))
+                        .font(.caption).foregroundStyle(.secondary)
+                    Text(Bundle.main.bundlePath)
+                        .font(.caption).textSelection(.enabled)
+                    Button(localized("Show running app in Finder")) {
+                        NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])
+                    }
+                }
+                HStack {
+                    Button(localized("Refresh permission status")) {
+                        statistics.refreshPermissionStatus()
+                    }
                     Button(localized("Restart Nexus Drive to apply permissions")) {
                         NexusAppRelauncher.restart()
                     }
                     .help(localized("Restarts this exact application automatically. Your saved history is preserved."))
-                } else {
-                    Label(localized("Permissions are active"),
-                          systemImage: "checkmark.circle")
-                        .foregroundStyle(.secondary)
                 }
 
-                if !statistics.dataStatus.isEmpty,
-                   statistics.dataStatus != localized("Statistics query complete") {
-                    Text(statistics.dataStatus)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                permissionDiagnostics
                 Text(localized("Keyboard and mouse counts stay on this Mac unless you separately enable server uploads."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -251,13 +307,6 @@ struct PrivacySettingsView: View {
         }
         .onAppear {
             statistics.refreshPermissionStatus()
-            accessibilityGranted = AXIsProcessTrusted()
-        }
-        .onReceive(NotificationCenter.default.publisher(
-            for: NSApplication.didBecomeActiveNotification
-        )) { _ in
-            statistics.refreshPermissionStatus()
-            accessibilityGranted = AXIsProcessTrusted()
         }
         .formStyle(.grouped)
         .padding(.horizontal, 8)

@@ -32,8 +32,25 @@ public struct InputTrendBucket: Sendable, Identifiable, Equatable {
 }
 
 public enum InputTrendResolution: String, CaseIterable, Identifiable, Sendable {
-    case hour, day, week, month
+    case second, minute, hour, day, week, month
     public var id: String { rawValue }
+
+    public var calendarComponent: Calendar.Component {
+        switch self {
+        case .second: .second
+        case .minute: .minute
+        case .hour: .hour
+        case .day: .day
+        case .week: .weekOfYear
+        case .month: .month
+        }
+    }
+
+    public static var bucketCalendar: Calendar {
+        var calendar = Calendar(identifier: .iso8601)
+        calendar.timeZone = .gmt
+        return calendar
+    }
 }
 
 public struct InputStatisticsOverview: Sendable, Equatable {
@@ -99,11 +116,19 @@ public struct RemoteInputEvent: Decodable, Sendable {
 }
 
 public final class InputStatisticsStore: @unchecked Sendable {
+    public enum WriteState: String, Sendable {
+        case ready, written, writeFailed
+    }
+
     private let database: OpaquePointer
     private let databaseURL: URL
     private let queue = DispatchQueue(label: "com.nexus.input-statistics", qos: .utility)
     private var pending: [ClassifiedInputEvent] = []
     private var timer: DispatchSourceTimer?
+    private let writeStateLock = NSLock()
+    private var lastWriteState: WriteState = .ready
+
+    public var writeState: WriteState { writeStateLock.withLock { lastWriteState } }
 
     public static func shared(bundle: Bundle = .main) -> InputStatisticsStore? {
         guard let container = SharedSettings.localDatabaseDirectory(bundle: bundle) else {
@@ -192,6 +217,10 @@ public final class InputStatisticsStore: @unchecked Sendable {
             pending.append(event)
             if pending.count >= 256 { try? flushOnQueue() }
         }
+    }
+
+    public func flushPending() throws {
+        try queue.sync { try flushOnQueue() }
     }
 
     public func counts(from startMS: Int64, to endMS: Int64) throws -> [InputCount] {
@@ -368,9 +397,14 @@ public final class InputStatisticsStore: @unchecked Sendable {
                               category: String?, name: String?,
                               source: String?) throws -> [InputTrendBucket] {
             // Push the potentially massive event-range scan/grouping into
-            // SQLite. Swift sees only hourly/daily UTC buckets, even when
-            // many years of input events are stored.
-            let periodMS: Int64 = resolution == .hour ? 3_600_000 : 86_400_000
+            // SQLite. Week and month requests start from daily UTC groups.
+            let periodMS: Int64
+            switch resolution {
+            case .second: periodMS = 1_000
+            case .minute: periodMS = 60_000
+            case .hour: periodMS = 3_600_000
+            case .day, .week, .month: periodMS = 86_400_000
+            }
             var statement: OpaquePointer?
             let sql = """
                 SELECT (time_ms / \(periodMS)) * \(periodMS) AS bucket_ms,
@@ -409,8 +443,7 @@ public final class InputStatisticsStore: @unchecked Sendable {
                 sqlite3_bind_null(statement, 7)
                 sqlite3_bind_null(statement, 8)
             }
-            var calendar = Calendar(identifier: .iso8601)
-            calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+            let calendar = InputTrendResolution.bucketCalendar
             var counts: [String: (Int64, String, Int64)] = [:]
             while sqlite3_step(statement) == SQLITE_ROW {
                 let eventMS = sqlite3_column_int64(statement, 0)
@@ -418,14 +451,7 @@ public final class InputStatisticsStore: @unchecked Sendable {
                 guard let raw else { continue }
                 let group = String(cString: raw)
                 let date = Date(timeIntervalSince1970: TimeInterval(eventMS) / 1000)
-                let component: Calendar.Component
-                switch resolution {
-                case .hour: component = .hour
-                case .day: component = .day
-                case .week: component = .weekOfYear
-                case .month: component = .month
-                }
-                guard let interval = calendar.dateInterval(of: component, for: date) else { continue }
+                guard let interval = calendar.dateInterval(of: resolution.calendarComponent, for: date) else { continue }
                 let bucket = Int64(interval.start.timeIntervalSince1970 * 1000)
                 let key = "\(bucket):\(group)"
                 let previous = counts[key]?.2 ?? 0
@@ -749,11 +775,15 @@ public final class InputStatisticsStore: @unchecked Sendable {
 
     private func flushOnQueue() throws {
         guard !pending.isEmpty else { return }
+        var committed = false
+        defer { writeStateLock.withLock { lastWriteState = committed ? .written : .writeFailed } }
         guard sqlite3_exec(database, "BEGIN IMMEDIATE", nil, nil, nil) == SQLITE_OK else { throw InputStoreError.write }
+        defer {
+            if !committed { sqlite3_exec(database, "ROLLBACK", nil, nil, nil) }
+        }
         var statement: OpaquePointer?
         guard sqlite3_prepare_v2(database, "INSERT INTO input_events(time_ms, category, name, source, is_repeat, count) VALUES(?, ?, ?, ?, ?, ?)", -1, &statement, nil) == SQLITE_OK,
               let statement else {
-            sqlite3_exec(database, "ROLLBACK", nil, nil, nil)
             throw InputStoreError.write
         }
         defer { sqlite3_finalize(statement) }
@@ -767,11 +797,11 @@ public final class InputStatisticsStore: @unchecked Sendable {
             sqlite3_bind_int(statement, 5, event.isRepeat ? 1 : 0)
             sqlite3_bind_int64(statement, 6, Int64(sameEvents.count))
             guard sqlite3_step(statement) == SQLITE_DONE else {
-                sqlite3_exec(database, "ROLLBACK", nil, nil, nil)
                 throw InputStoreError.write
             }
         }
         guard sqlite3_exec(database, "COMMIT", nil, nil, nil) == SQLITE_OK else { throw InputStoreError.write }
+        committed = true
         pending.removeAll(keepingCapacity: true)
     }
 

@@ -127,7 +127,12 @@ derive_signing_team_identifier() {
     /bin/cp /usr/bin/true "$probe_dir/probe"
     /usr/bin/codesign --force --sign "$APP_IDENTITY" "$probe_dir/probe" >/dev/null 2>&1
     /usr/bin/codesign -d --verbose=4 "$probe_dir/probe" 2>&1 \
-      | /usr/bin/awk -F= '/^TeamIdentifier=/{print $2; exit}'
+      | /usr/bin/awk -v mode="$SIGNING_MODE" -F= '
+          /^Authority=/ && !authority { authority=$2 }
+          /^TeamIdentifier=/ { team=$2 }
+          END {
+            if (mode != "development" || authority ~ /^Apple Development:/) print team
+          }'
   )
 }
 
@@ -136,7 +141,7 @@ if [[ "$SIGNING_MODE" == "adhoc" || -z "$APP_IDENTITY" ]]; then
 else
   SIGNING_TEAM_ID=$(derive_signing_team_identifier)
   if [[ -z "$SIGNING_TEAM_ID" || "$SIGNING_TEAM_ID" == "not set" ]]; then
-    echo "ERROR: Could not derive the team identifier from APP_IDENTITY." >&2
+    echo "ERROR: APP_IDENTITY did not provide a valid team for SIGNING_MODE=$SIGNING_MODE." >&2
     exit 1
   fi
 fi

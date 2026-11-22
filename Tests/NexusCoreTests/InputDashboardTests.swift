@@ -4,6 +4,23 @@ import XCTest
 @testable import NexusCore
 
 final class InputDashboardTests: XCTestCase {
+    func testSecondAndMinuteTrendsKeepFineTimestampBoundaries() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try InputStatisticsStore(url: root.appendingPathComponent("input.sqlite"))
+        let base: Int64 = 1_800_000_000_000
+        for offset in [Int64(999), 1_000, 59_999, 60_000, 60_001] {
+            store.enqueue(ClassifiedInputEvent(timeMS: base + offset, category: "mouse",
+                                                name: "mouse_left", source: "test"))
+        }
+        let seconds = try store.trend(from: base, to: base + 60_001, resolution: .second)
+        XCTAssertEqual(seconds.map(\.startMS), [base, base + 1_000, base + 59_000, base + 60_000])
+        XCTAssertEqual(seconds.map(\.count), [1, 1, 1, 1])
+        let minutes = try store.trend(from: base, to: base + 60_001, resolution: .minute)
+        XCTAssertEqual(minutes.map(\.startMS), [base, base + 60_000])
+        XCTAssertEqual(minutes.map(\.count), [3, 1])
+    }
+
     func testOverviewRankingAndExactMillisecondBuckets() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
