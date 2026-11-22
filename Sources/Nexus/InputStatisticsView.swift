@@ -704,17 +704,52 @@ private struct InputTrendChart: View {
     let range: ClosedRange<Date>
     let resolution: InputTrendResolution
     let limited: Bool
-    @State private var hoveredBucket: Date?
 
+    @State private var hoveredBucket: Date?
+    @State private var group = "all"
+    @State private var excluded = Set<String>()
+    @State private var separateScrolling = true
+
+    private let categories = ["ordinary", "keyboard", "modifier", "system",
+                              "shortcut", "mouse", "scroll"]
     private var calendar: Calendar { InputTrendResolution.bucketCalendar }
+
+    private var categoriesForGroup: [String] {
+        switch group {
+        case "keyboard": return ["ordinary", "keyboard", "modifier", "system", "shortcut"]
+        case "mouse": return ["mouse", "scroll"]
+        default: return categories
+        }
+    }
+
+    private var visibleBuckets: [InputTrendBucket] {
+        let visible = Set(categoriesForGroup).subtracting(excluded)
+        return buckets.filter { visible.contains($0.category) }
+    }
+
+    private var primaryBuckets: [InputTrendBucket] {
+        visibleBuckets.filter { !separateScrolling || $0.category != "scroll" }
+    }
+
+    private var scrollingBuckets: [InputTrendBucket] {
+        separateScrolling ? visibleBuckets.filter { $0.category == "scroll" } : []
+    }
+
+    private var hoveredDetails: [InputTrendBucket] {
+        guard let hoveredBucket else { return [] }
+        let timeMS = Int64(hoveredBucket.timeIntervalSince1970 * 1000)
+        return visibleBuckets.filter { $0.startMS == timeMS }
+            .sorted { $0.category < $1.category }
+    }
+
     private var domain: ClosedRange<Date> {
         let start = calendar.dateInterval(of: resolution.calendarComponent, for: range.lowerBound)?.start
             ?? range.lowerBound
         let end = calendar.dateInterval(of: resolution.calendarComponent, for: range.upperBound)?.end
             ?? range.upperBound
         if resolution == .second || resolution == .minute || resolution == .hour,
-           let first = buckets.map(\.startMS).min(),
-           let last = buckets.map(\.startMS).max() {
+           let first = visibleBuckets.map(\.startMS).min(),
+           let last = visibleBuckets.map(\.startMS).max() {
             let padding: TimeInterval = resolution == .second ? 20 : (resolution == .minute ? 120 : 1800)
             let focusedStart = max(start, Date(timeIntervalSince1970: TimeInterval(first) / 1000 - padding))
             let focusedEnd = min(end, Date(timeIntervalSince1970: TimeInterval(last) / 1000 + padding))
@@ -735,28 +770,88 @@ private struct InputTrendChart: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
+            Picker(localized("Chart focus"), selection: $group) {
+                Text(localized("Overview")).tag("all")
+                Text(localized("Keyboard")).tag("keyboard")
+                Text(localized("Mouse")).tag("mouse")
+            }
+            .pickerStyle(.segmented)
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 115), spacing: 6)],
+                      alignment: .leading, spacing: 6) {
+                ForEach(categoriesForGroup, id: \.self) { category in
+                    Button {
+                        if excluded.contains(category) {
+                            excluded.remove(category)
+                        } else {
+                            excluded.insert(category)
+                        }
+                    } label: {
+                        Label(localized(category),
+                              systemImage: excluded.contains(category) ? "circle" : "checkmark.circle.fill")
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .lineLimit(1)
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+
+            if categoriesForGroup.contains("scroll") {
+                Toggle(localized("Separate scroll-event scale"), isOn: $separateScrolling)
+                    .toggleStyle(.checkbox)
+                    .font(.caption)
+            }
             if limited {
                 Text(localized(resolution == .second
                     ? "This chart shows the last 15 minutes of the selected range."
                     : "This chart shows the last 48 hours of the selected range."))
                     .font(.caption).foregroundStyle(.secondary)
             }
-            if resolution == .second, buckets.contains(where: { $0.category == "ordinary" }) {
+            if resolution == .second, visibleBuckets.contains(where: { $0.category == "ordinary" }) {
                 Text(localized("Ordinary typing is counted by minute."))
                     .font(.caption).foregroundStyle(.secondary)
             }
-            if buckets.isEmpty {
+
+            if visibleBuckets.isEmpty {
                 Label(localized("No input events in this chart range"), systemImage: "chart.bar")
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, minHeight: 150)
             } else {
-                chart
+                if !primaryBuckets.isEmpty {
+                    Text(localized("Input events")).font(.caption.weight(.semibold))
+                    chart(primaryBuckets, height: 215)
+                }
+                if !scrollingBuckets.isEmpty {
+                    Text(localized("Scroll events")).font(.caption.weight(.semibold))
+                    chart(scrollingBuckets, height: 120)
+                    Text(localized("Scrolling uses a separate count axis so large scroll totals do not hide other events."))
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
+
                 if let hoveredBucket {
-                    let milliseconds = Int64(hoveredBucket.timeIntervalSince1970 * 1_000)
-                    let count = buckets.filter { $0.startMS == milliseconds }.reduce(0) { $0 + $1.count }
-                    Text("\(hoveredBucket.formatted(axisFormat)) · \(count.formatted()) \(localized("Input events"))")
-                        .font(.caption.monospacedDigit())
+                    let total = hoveredDetails.reduce(Int64(0)) { $0 + $1.count }
+                    VStack(alignment: .leading, spacing: 7) {
+                        HStack {
+                            Text(hoveredBucket.formatted(axisFormat)).fontWeight(.semibold)
+                            Spacer()
+                            Text(total.formatted()).monospacedDigit()
+                        }
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 130), spacing: 6)],
+                                  alignment: .leading, spacing: 6) {
+                            ForEach(hoveredDetails) { detail in
+                                HStack {
+                                    Text(localized(detail.category)).lineLimit(1)
+                                    Spacer()
+                                    Text(detail.count.formatted()).monospacedDigit()
+                                }
+                                .font(.caption)
+                            }
+                        }
+                    }
+                    .padding(10)
+                    .background(.quaternary.opacity(0.35),
+                                in: RoundedRectangle(cornerRadius: 10))
                 } else {
                     Text(localized("Point at the chart to see the time and event count."))
                         .font(.caption).foregroundStyle(.secondary)
@@ -764,16 +859,19 @@ private struct InputTrendChart: View {
             }
         }
         .onChange(of: resolution) { _ in hoveredBucket = nil }
+        .onChange(of: group) { _ in hoveredBucket = nil }
+        .onChange(of: excluded) { _ in hoveredBucket = nil }
+        .onChange(of: separateScrolling) { _ in hoveredBucket = nil }
     }
 
-    private var chart: some View {
+    private func chart(_ plotted: [InputTrendBucket], height: CGFloat) -> some View {
         Chart {
-            ForEach(buckets) { bucket in
+            ForEach(plotted) { bucket in
                 BarMark(
-                    x: .value(localized("Time"), Date(timeIntervalSince1970: TimeInterval(bucket.startMS) / 1_000),
+                    x: .value(localized("Time"),
+                              Date(timeIntervalSince1970: TimeInterval(bucket.startMS) / 1000),
                               unit: resolution.calendarComponent, calendar: calendar),
-                    y: .value(localized("Count"), bucket.count),
-                    width: .fixed(resolution == .second ? 2 : (resolution == .minute ? 5 : 16))
+                    y: .value(localized("Count"), bucket.count)
                 )
                 .foregroundStyle(by: .value(localized("Category"), localized(bucket.category)))
             }
@@ -785,8 +883,7 @@ private struct InputTrendChart: View {
         .chartXScale(domain: domain)
         .chartXAxis {
             if resolution == .day || resolution == .week || resolution == .month {
-                AxisMarks(values: .stride(by: resolution == .month ? .month : .day,
-                                          count: resolution == .month ? 1 : 1)) {
+                AxisMarks(values: .stride(by: resolution == .month ? .month : .day, count: 1)) {
                     AxisGridLine()
                     AxisValueLabel(format: axisFormat)
                 }
@@ -797,20 +894,24 @@ private struct InputTrendChart: View {
                 }
             }
         }
-        .chartLegend(position: .bottom, alignment: .leading)
-        .frame(height: 210)
+        .chartLegend(.hidden)
+        .frame(height: height)
         .chartOverlay { proxy in
             GeometryReader { geometry in
                 Rectangle().fill(.clear).contentShape(Rectangle())
                     .onContinuousHover { phase in
                         guard case .active(let location) = phase,
                               geometry[proxy.plotAreaFrame].contains(location),
-                              let date: Date = proxy.value(atX: location.x - geometry[proxy.plotAreaFrame].minX)
+                              let date: Date = proxy.value(
+                                atX: location.x - geometry[proxy.plotAreaFrame].minX
+                              )
                         else {
                             hoveredBucket = nil
                             return
                         }
-                        hoveredBucket = calendar.dateInterval(of: resolution.calendarComponent, for: date)?.start
+                        hoveredBucket = calendar.dateInterval(
+                            of: resolution.calendarComponent, for: date
+                        )?.start
                     }
             }
         }
