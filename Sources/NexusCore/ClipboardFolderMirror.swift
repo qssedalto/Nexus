@@ -13,7 +13,7 @@ public enum ClipboardFolderMirror {
     }
 
     public enum MirrorError: Error {
-        case empty, invalidSource, cancelled
+        case empty, invalidSource, cancelled, sourceChanged
     }
 
     private static let chunkBytes = 1_048_576
@@ -145,6 +145,9 @@ public enum ClipboardFolderMirror {
             progress(completedBytes, totalBytes)
         }
         guard !cancelled() else { throw MirrorError.cancelled }
+        // A source may have changed after the initial size scan; never
+        // publish a completed folder whose byte count no longer matches it.
+        guard completedBytes == totalBytes else { throw MirrorError.sourceChanged }
         try fileManager.moveItem(at: temporary, to: destination)
         committed = true
         return destination
@@ -204,6 +207,10 @@ public enum ClipboardFolderMirror {
             }
             try preserveBasicAttributes(attributes, at: target, fileManager: fileManager)
         case .typeRegular:
+            let initialSize = (attributes[.size] as? NSNumber)?.int64Value ?? -1
+            let initialModification = attributes[.modificationDate] as? Date
+            let beforeCopy = copied
+            guard initialSize >= 0 else { throw MirrorError.invalidSource }
             guard fileManager.createFile(atPath: target.path, contents: nil) else {
                 throw CocoaError(.fileWriteUnknown)
             }
@@ -225,6 +232,14 @@ public enum ClipboardFolderMirror {
             }
             // Close the output before applying metadata to its final bytes.
             try writer.close()
+            let updated = try fileManager.attributesOfItem(atPath: source.path)
+            let finalSize = (updated[.size] as? NSNumber)?.int64Value ?? -1
+            let finalModification = updated[.modificationDate] as? Date
+            guard copied - beforeCopy == initialSize,
+                  finalSize == initialSize,
+                  finalModification == initialModification else {
+                throw MirrorError.sourceChanged
+            }
             try preserveBasicAttributes(attributes, at: target, fileManager: fileManager)
         default:
             throw MirrorError.invalidSource

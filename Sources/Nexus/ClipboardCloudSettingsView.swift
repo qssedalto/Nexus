@@ -209,6 +209,11 @@ struct ClipboardCloudSettingsView: View {
                         ))
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        Text(localized(
+                            "If Finder hides them, press Command-Shift-. to show hidden files."
+                        ))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                         HStack {
                             Button(localized("Show sync folder in Finder")) {
                                 cloud.revealInterruptedCopies()

@@ -371,7 +371,14 @@ final class ClipboardCloudController: ObservableObject {
 
     func revealInterruptedCopies() {
         guard let folder = selectedFolderURL else { return }
-        NSWorkspace.shared.activateFileViewerSelecting([folder])
+        let scoped = folder.startAccessingSecurityScopedResource()
+        defer { if scoped { folder.stopAccessingSecurityScopedResource() } }
+        let incomplete = (try? ClipboardFolderMirror.interruptedCopies(in: folder)) ?? []
+        // Finder hides dot-prefixed folders by default; select the actual
+        // incomplete paths instead of merely opening their parent directory.
+        NSWorkspace.shared.activateFileViewerSelecting(
+            incomplete.isEmpty ? [folder] : incomplete
+        )
     }
 
     func changeStorage(to newStorage: NexusSyncStorage) {

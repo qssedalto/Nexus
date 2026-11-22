@@ -183,6 +183,32 @@ final class ClipboardFolderMirrorTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: normal.path))
     }
 
+
+    func testSourceFileMutationRejectsInconsistentMirrorAndCleansTemporaryData() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let input = root.appendingPathComponent("changing.bin")
+        let outputFolder = root.appendingPathComponent("mirror")
+        try FileManager.default.createDirectory(at: outputFolder, withIntermediateDirectories: true)
+        try Data(repeating: 0x1A, count: 10 * 1_048_576).write(to: input)
+        let mutation = CopySourceMutationState()
+        XCTAssertThrowsError(try ClipboardFolderMirror.save(
+            .files([input]), to: outputFolder,
+            progress: { completed, _ in
+                if completed >= 4 * 1_048_576 { mutation.appendOnce(to: input) }
+            }
+        )) { error in
+            guard case ClipboardFolderMirror.MirrorError.sourceChanged = error else {
+                return XCTFail("Expected sourceChanged, received \(error)")
+            }
+        }
+        XCTAssertTrue(mutation.didAppend)
+        XCTAssertTrue(try FileManager.default.contentsOfDirectory(
+            atPath: outputFolder.path
+        ).isEmpty)
+    }
+
 }
 
 
@@ -208,4 +234,21 @@ private final class RichTextCancellationState: @unchecked Sendable {
     private var value = false
     var isCancelled: Bool { lock.withLock { value } }
     func cancel() { lock.withLock { value = true } }
+}
+
+private final class CopySourceMutationState: @unchecked Sendable {
+    private let lock = NSLock()
+    private var appended = false
+    var didAppend: Bool { lock.withLock { appended } }
+
+    func appendOnce(to url: URL) {
+        lock.lock()
+        defer { lock.unlock() }
+        guard !appended else { return }
+        appended = true
+        guard let writer = try? FileHandle(forWritingTo: url) else { return }
+        defer { try? writer.close() }
+        _ = try? writer.seekToEnd()
+        try? writer.write(contentsOf: Data([0x2B, 0x3C, 0x4D]))
+    }
 }
