@@ -614,3 +614,17 @@
 
 "View updates on GitHub" = "View updates on GitHub";
 "This edition is updated manually from GitHub." = "This edition is updated manually from GitHub.";
+
+"Step 1: Create pairing key" = "Step 1: Create pairing key";
+"Create a pairing key before enabling folder sync." = "Create a pairing key before enabling folder sync.";
+"The pairing key is saved in Keychain. Other devices must use the same key." = "The pairing key is saved in Keychain. Other devices must use the same key.";
+"Folder is ready. You can enable sync." = "Folder is ready. You can enable sync.";
+"Step 2: Click Prepare selected folder before enabling sync." = "Step 2: Click Prepare selected folder before enabling sync.";
+"Step 1: Generate a pairing key using the button above. Sync controls remain unavailable until then." = "Step 1: Generate a pairing key using the button above. Sync controls remain unavailable until then.";
+"These controls require a pairing key. Use Generate encryption pairing key at the top of this page." = "These controls require a pairing key. Use Generate encryption pairing key at the top of this page.";
+"Click Prepare selected folder first. The remaining buttons unlock after the folder is ready and sync is enabled." = "Click Prepare selected folder first. The remaining buttons unlock after the folder is ready and sync is enabled.";
+"Local statistics database unavailable" = "Local statistics database unavailable";
+"Input permission is enabled, but event monitoring could not start. Please reopen Nexus Drive after checking macOS Privacy settings." = "Input permission is enabled, but event monitoring could not start. Please reopen Nexus Drive after checking macOS Privacy settings.";
+"Open Input Monitoring settings" = "Open Input Monitoring settings";
+"Refresh permissions" = "Refresh permissions";
+"If you already approved access, confirm Nexus Drive is enabled in macOS Input Monitoring, then return here and refresh. Permissions for a previously installed Nexus app do not automatically transfer." = "If you already approved access, confirm Nexus Drive is enabled in macOS Input Monitoring, then return here and refresh. Permissions for a previously installed Nexus app do not automatically transfer.";
