@@ -46,6 +46,7 @@
 		26159011E8AEF3294F7C8F44 /* PathHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD8D4D120D44610CA102E8DC /* PathHistory.swift */; };
 		27CE07163F1A59A1F811C391 /* FinderSync.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2EB8D67E67000A8C5E68237E /* FinderSync.framework */; };
 		2A4B5B17839D11209FDC03CA /* ClipboardCloudSyncCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CF0F056668246477D13522 /* ClipboardCloudSyncCoordinatorTests.swift */; };
+		2A66EDDFCB3301E0CD50E303 /* KeyboardLayoutLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 142FA75685668D90325F1524 /* KeyboardLayoutLabel.swift */; };
 		2BF639CEFA8DDDE505DFC40A /* FinderSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9829E11C07988CD69BB3F9E /* FinderSync.swift */; };
 		2D18ABB5F8B0777D865FB2F7 /* ClipboardRichTextPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1BDED6E6F296AA5596E4B3B /* ClipboardRichTextPreview.swift */; };
 		2F9204D2A9A7C68162460335 /* SharedSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AE40E30D60A7D9B1A2AB532 /* SharedSettings.swift */; };
@@ -110,6 +111,7 @@
 		7553C880DF240C1C1450E663 /* ResourceBundleLocator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20B3B6B94772E5C8E7760F88 /* ResourceBundleLocator.swift */; };
 		75983941BEDA2D881C06F8E1 /* CloudKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 87B6A58301DA760DE711FACC /* CloudKit.framework */; };
 		7649C58B73070703CE57478A /* PathFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FD2EA974083EB776E8FCB6E /* PathFormatter.swift */; };
+		7C5521EC0C18DF8B677CC244 /* KeyboardEventClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15DD473AEF19D9E5346CAE11 /* KeyboardEventClassifier.swift */; };
 		7C82BAB69C90CE358BCF2512 /* ClipboardCloudForegroundSyncPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE404EF3C45ED5AD43283B5C /* ClipboardCloudForegroundSyncPolicyTests.swift */; };
 		80395F32BC4E431F64499853 /* InputUploadPrivacyPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAC6697D057ADBCBDED13D75 /* InputUploadPrivacyPolicy.swift */; };
 		816ECC6653D6EB294FF8BAFC /* NexusStatusActiveTemplate@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 5D7ECEBDF61D63C9322EE2CE /* NexusStatusActiveTemplate@3x.png */; };
@@ -203,6 +205,7 @@
 		F4E4B3AA684151DAB64145AF /* PrivacySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85C7BC87BE45EEF10B470AB3 /* PrivacySettingsView.swift */; };
 		F68F1FBE1871DC1EB9B6A46C /* ClipboardTextPreviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 772883009FC434DFD6DA151A /* ClipboardTextPreviewTests.swift */; };
 		F8224741C7A4AAC916AD7918 /* NexusFinderSync.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D26D03B7CE06B28231019DF9 /* NexusFinderSync.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		FA5E675092E3B9E4125E5F5F /* KeyboardEventClassifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F097F2DB096484FD56FDAE32 /* KeyboardEventClassifierTests.swift */; };
 		FB33549053D36CA574E2EC14 /* AppSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD11F25DBCBD248F858AC149 /* AppSettingsStore.swift */; };
 		FC858AB9C3E0474CCF2D1546 /* InputCloudBackupRestoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF8BA2A3028D4B7B66623D8E /* InputCloudBackupRestoreTests.swift */; };
 		FDEE67A95B9C4FCA58E80139 /* ClipboardShelfView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38671A7F7C8802A89C8ED698 /* ClipboardShelfView.swift */; };
@@ -290,6 +293,8 @@
 		1355AF2D111A4FBB7F3983AB /* ClipboardFilePreviewPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardFilePreviewPolicy.swift; sourceTree = "<group>"; };
 		13B2E20F38AFBF8C8BD9F819 /* ClipboardCollectionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCollectionsTests.swift; sourceTree = "<group>"; };
 		1423E81827FDDB1A57F64FFD /* RecentPathRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentPathRow.swift; sourceTree = "<group>"; };
+		142FA75685668D90325F1524 /* KeyboardLayoutLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardLayoutLabel.swift; sourceTree = "<group>"; };
+		15DD473AEF19D9E5346CAE11 /* KeyboardEventClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardEventClassifier.swift; sourceTree = "<group>"; };
 		17CF0F056668246477D13522 /* ClipboardCloudSyncCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCloudSyncCoordinatorTests.swift; sourceTree = "<group>"; };
 		18CAA2A6D2E3DB7A3AE5A824 /* NexusStatusSuccessTemplate@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "NexusStatusSuccessTemplate@2x.png"; sourceTree = "<group>"; };
 		193DB9530C37B3048EAC3BC3 /* ClipboardPanelPlacementTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPanelPlacementTests.swift; sourceTree = "<group>"; };
@@ -461,6 +466,7 @@
 		E9800E373563A808BB8E668F /* ClipboardRemoteWebTitleFetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardRemoteWebTitleFetcher.swift; sourceTree = "<group>"; };
 		EA3C2EC02E28F20B9A4800F7 /* StatisticsDeletionConfirmationPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsDeletionConfirmationPolicyTests.swift; sourceTree = "<group>"; };
 		ED0EFA95551CA09D89C28E68 /* NexusAppRelauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NexusAppRelauncher.swift; sourceTree = "<group>"; };
+		F097F2DB096484FD56FDAE32 /* KeyboardEventClassifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardEventClassifierTests.swift; sourceTree = "<group>"; };
 		F0E6744DFEAB66A3205FCCCB /* ClipboardSafeHTMLPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardSafeHTMLPreview.swift; sourceTree = "<group>"; };
 		F1BDED6E6F296AA5596E4B3B /* ClipboardRichTextPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardRichTextPreview.swift; sourceTree = "<group>"; };
 		F4A8679D1AA213E90318DD86 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
@@ -610,6 +616,7 @@
 				1CA8CFF45716EC4723E7077D /* InputDashboardTests.swift */,
 				BA77D3AEE04461217B34994E /* InputStatisticsStoreTests.swift */,
 				7A2D736DED2F061B7C016FC2 /* InputUploadPrivacyPolicyTests.swift */,
+				F097F2DB096484FD56FDAE32 /* KeyboardEventClassifierTests.swift */,
 				7208CF5F616A0058ED8AA2AE /* LegacyStorageMigrationTests.swift */,
 				854B778A3F1FD042707B4E6D /* MobileClipboardLocalStoreTests.swift */,
 				A9D9AD9834FD412DEA8C9D56 /* NativeServicesCatalogTests.swift */,
@@ -669,6 +676,7 @@
 				4619D295FB1786DE565FB8C2 /* HIDConsumerUsage.swift */,
 				C17E2730BA6129F3EFDA668B /* InputStatisticsStore.swift */,
 				DAC6697D057ADBCBDED13D75 /* InputUploadPrivacyPolicy.swift */,
+				15DD473AEF19D9E5346CAE11 /* KeyboardEventClassifier.swift */,
 				F5AEE362BDF3BAF2770D68BF /* MobileClipboardLocalStore.swift */,
 				BBBDE057878C718F67297BFE /* NativeServicesCatalog.swift */,
 				5D4F770545650C9F72CBD300 /* OperationStore.swift */,
@@ -735,6 +743,7 @@
 				7B1E932FF1D477951D5D95D8 /* InputMonitor.swift */,
 				9409BDFB7D0402EDA974DD6E /* InputPermissionState.swift */,
 				9F56A1D3F0D25029797D0222 /* InputStatisticsView.swift */,
+				142FA75685668D90325F1524 /* KeyboardLayoutLabel.swift */,
 				3A98811D0A6FC0E99C57DCB4 /* LaunchAtLoginController.swift */,
 				2C296D44701D9CCA41F4200E /* Localization.swift */,
 				74449DBDFE1B1587CFFCB0CA /* MenuPopoverView.swift */,
@@ -1076,6 +1085,7 @@
 				6BFC3A5E1914126499D05977 /* InputDashboardTests.swift in Sources */,
 				20A6FD5CBFA3ECB684F79B8A /* InputStatisticsStoreTests.swift in Sources */,
 				672F7AAB3752949FBBF17F26 /* InputUploadPrivacyPolicyTests.swift in Sources */,
+				FA5E675092E3B9E4125E5F5F /* KeyboardEventClassifierTests.swift in Sources */,
 				6199ECCFF47E9C6D25D91661 /* LegacyStorageMigrationTests.swift in Sources */,
 				BFAFD6AA4064890D16B59614 /* MobileClipboardLocalStoreTests.swift in Sources */,
 				0E51D0BCBD7F287C9643969F /* NativeServicesCatalogTests.swift in Sources */,
@@ -1134,6 +1144,7 @@
 				485EECAF8451BE30B68EADAF /* HIDConsumerUsage.swift in Sources */,
 				E484F2A657710630D1AA9E5C /* InputStatisticsStore.swift in Sources */,
 				80395F32BC4E431F64499853 /* InputUploadPrivacyPolicy.swift in Sources */,
+				7C5521EC0C18DF8B677CC244 /* KeyboardEventClassifier.swift in Sources */,
 				B8984CF5A5DADAA3E5306C53 /* MobileClipboardLocalStore.swift in Sources */,
 				C97B7B2C7141DBE6DF92F818 /* NativeServicesCatalog.swift in Sources */,
 				D684BDA1FF24277C2E7AB100 /* OperationStore.swift in Sources */,
@@ -1185,6 +1196,7 @@
 				6E124B25DDB7DB81F0D05579 /* InputMonitor.swift in Sources */,
 				BBACB6D44549592A78A4A5BF /* InputPermissionState.swift in Sources */,
 				5B3FEBB95FC239563F053731 /* InputStatisticsView.swift in Sources */,
+				2A66EDDFCB3301E0CD50E303 /* KeyboardLayoutLabel.swift in Sources */,
 				64FD78739A0EB6DC81DD2E03 /* LaunchAtLoginController.swift in Sources */,
 				86045BE54AACF46F3B471156 /* Localization.swift in Sources */,
 				409843555A923BC09E089680 /* MenuPopoverView.swift in Sources */,
