@@ -221,21 +221,34 @@ struct ClipboardShelfView: View {
             .padding(10)
             .background(.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 10))
 
-            HStack(spacing: 10) {
-                TextField(localized("Source application filter"), text: $sourceFilter)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(maxWidth: 220)
-                Toggle(localized("Filter by date"), isOn: $filterByDate)
-                    .toggleStyle(.checkbox)
-                if filterByDate {
-                    DatePicker(localized("From"), selection: $startDate,
-                               displayedComponents: [.date, .hourAndMinute])
-                        .labelsHidden()
-                    DatePicker(localized("Through"), selection: $endDate,
-                               displayedComponents: [.date, .hourAndMinute])
-                        .labelsHidden()
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 16) {
+                    TextField(localized("Source application filter"), text: $sourceFilter)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(minWidth: 190, idealWidth: 240, maxWidth: 300)
+                    Toggle(localized("Filter by date"), isOn: $filterByDate)
+                        .toggleStyle(.checkbox)
+                        .fixedSize()
+                    Spacer(minLength: 0)
                 }
-                Spacer(minLength: 0)
+                if filterByDate {
+                    HStack(spacing: 16) {
+                        Text(localized("From")).foregroundStyle(.secondary)
+                        DatePicker(localized("From"), selection: $startDate,
+                                   displayedComponents: [.date, .hourAndMinute])
+                            .labelsHidden()
+                            .fixedSize()
+                        Spacer(minLength: 12)
+                    }
+                    HStack(spacing: 16) {
+                        Text(localized("Through")).foregroundStyle(.secondary)
+                        DatePicker(localized("Through"), selection: $endDate,
+                                   in: startDate..., displayedComponents: [.date, .hourAndMinute])
+                            .labelsHidden()
+                            .fixedSize()
+                        Spacer(minLength: 12)
+                    }
+                }
             }
             .font(.caption)
 
@@ -323,8 +336,24 @@ struct ClipboardShelfView: View {
                         .foregroundStyle(.secondary)
                     Text(localized("No clipboard history found"))
                         .fontWeight(.medium)
-                    Text(localized("Enable file or text monitoring in Settings, then copy something."))
+                    Text(localized("Choose what Nexus may save, then copy again."))
                         .font(.caption).foregroundStyle(.secondary)
+                    if !clipboard.historyEnabled {
+                        Toggle(localized("Enable clipboard history"), isOn: $clipboard.historyEnabled)
+                            .toggleStyle(.checkbox)
+                    }
+                    HStack(spacing: 20) {
+                        Toggle(localized("Record copied text"), isOn: $clipboard.textEnabled)
+                            .toggleStyle(.checkbox)
+                        Toggle(localized("Record copied files"), isOn: $clipboard.enabled)
+                            .toggleStyle(.checkbox)
+                        Toggle(localized("Record screenshots"), isOn: $clipboard.imageEnabled)
+                            .toggleStyle(.checkbox)
+                    }
+                    .disabled(!clipboard.historyEnabled)
+                    .font(.caption)
+                    Text(localized("Clipboard content is stored on this Mac. Cloud upload requires separate permission."))
+                        .font(.caption2).foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, minHeight: 225)
             } else {
@@ -367,10 +396,11 @@ struct ClipboardShelfView: View {
             }
         }
         .padding(18)
-        .frame(minWidth: 520, idealWidth: 890, minHeight: 320, idealHeight: 455)
+        .frame(minWidth: 750, idealWidth: 960, minHeight: 430, idealHeight: 540)
         .background(.regularMaterial)
         .focusable()
         .focused($shelfFocused)
+        .focusEffectDisabled()
         .onAppear {
             refreshShelf()
             loadCollections()
