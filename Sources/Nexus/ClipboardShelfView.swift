@@ -163,9 +163,11 @@ struct ClipboardShelfView: View {
 
     var body: some View {
         if #available(macOS 14.0, *) {
-            shelfContent.onKeyPress { press in
-                handleShelfShortcut(press)
-            }
+            shelfContent
+                .focusEffectDisabled()
+                .onKeyPress { press in
+                    handleShelfShortcut(press)
+                }
         } else {
             shelfContent
         }
@@ -400,7 +402,6 @@ struct ClipboardShelfView: View {
         .background(.regularMaterial)
         .focusable()
         .focused($shelfFocused)
-        .focusEffectDisabled()
         .onAppear {
             refreshShelf()
             loadCollections()
