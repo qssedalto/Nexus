@@ -26,7 +26,5 @@
         <string>UIInterfaceOrientationPortraitUpsideDown</string>
         <string>UIInterfaceOrientationLandscapeLeft</string>
         <string>UIInterfaceOrientationLandscapeRight</string></array>
-    <key>NexusCloudKitContainerIdentifier</key>
-    <string>$(NEXUS_CLOUDKIT_CONTAINER_ID)</string>
 </dict>
 </plist>
