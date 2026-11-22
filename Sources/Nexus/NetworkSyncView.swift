@@ -688,8 +688,7 @@ struct NetworkSyncView: View {
                 Text(localized("Network sync needs a separately deployed Nexus API and an access token. The address below is not guaranteed to be a working Nexus server. Clipboard history stays on this Mac until you authorize a transfer."))
                     .font(.callout).foregroundStyle(.secondary)
                 TextField(localized("API server"), text: $controller.serverAddress)
-                    .textContentType(.URL)
-                SecureField(localized("API token"), text: $token)
+                                    SecureField(localized("API token"), text: $token)
                 HStack {
                     Button(localized("Save token")) { if controller.saveToken(token) { token = "" } }
                         .disabled(token.isEmpty)
@@ -731,12 +730,12 @@ struct NetworkSyncView: View {
                     }
                     Button(localized("Upload operation history now")) {
                         Task { await controller.syncOperationsNow() }
-                    }.disabled(!controller.operationSyncEnabled)
+                    }.disabled(!controller.operationSyncEnabled || !controller.hasToken)
                 }
                 HStack {
                     Button(localized("Restore operation history")) {
                         Task { await controller.restoreOperations(from: lower, to: upper) }
-                    }.disabled(!controller.operationSyncEnabled)
+                    }.disabled(!controller.operationSyncEnabled || !controller.hasToken)
                     Button(localized("Delete this device's remote operation history"), role: .destructive) {
                         confirmOperationDelete = true
                     }.disabled(!controller.hasToken)
