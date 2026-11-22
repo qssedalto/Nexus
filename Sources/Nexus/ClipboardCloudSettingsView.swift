@@ -12,6 +12,17 @@ struct ClipboardCloudSettingsView: View {
 
     var body: some View {
         Form {
+            if !cloud.pairingKeyConfigured {
+                Section(localized("Step 1: Create pairing key")) {
+                    Label(localized("Create a pairing key before enabling folder sync."),
+                          systemImage: "key")
+                    Button(localized("Generate encryption pairing key")) {
+                        cloud.generatePairingKey()
+                    }
+                    Text(localized("The pairing key is saved in Keychain. Other devices must use the same key."))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
             Section(localized("iCloud Drive clipboard folder")) {
                 Button(localized("Choose NexusClipboardSync folder…")) {
                     cloud.chooseSyncFolder()
@@ -24,13 +35,17 @@ struct ClipboardCloudSettingsView: View {
                     Text(localized("Select your existing NexusClipboardSync folder in iCloud Drive. No developer subscription is needed."))
                         .font(.caption).foregroundStyle(.secondary)
                 }
-                Text(localized("To start, create a pairing key below, prepare the selected folder, then enable sync."))
+                Text(localized(cloud.pairingKeyConfigured
+                    ? (cloud.folderPrepared
+                        ? "Folder is ready. You can enable sync."
+                        : "Step 2: Click Prepare selected folder before enabling sync.")
+                    : "Step 1: Generate a pairing key using the button above. Sync controls remain unavailable until then."))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                 Toggle(localized("Enable folder clipboard synchronization"), isOn: $cloud.enabled)
-                    .disabled(!cloud.containerConfigured || !cloud.pairingKeyConfigured)
+                    .disabled(!cloud.containerConfigured || !cloud.pairingKeyConfigured || !cloud.folderPrepared)
                 Toggle(localized("Automatically synchronize every 5 minutes"), isOn: $cloud.automaticSyncEnabled)
-                    .disabled(!cloud.enabled || !cloud.containerConfigured)
+                    .disabled(!cloud.enabled || !cloud.containerConfigured || !cloud.folderPrepared)
                 Text(localized("Synchronization is off by default. Nexus only reads and writes the folder you select, when authorized. Apple Files synchronizes it between devices independently."))
                     .font(.caption).foregroundStyle(.secondary)
                 Text(localized("Folder sync v2 encrypts records with AES-256-GCM. Keep your pairing key private and verify your other devices use the same key."))
@@ -98,7 +113,7 @@ struct ClipboardCloudSettingsView: View {
                     Button(localized("Sync now")) {
                         Task { await cloud.syncNow() }
                     }
-                    .disabled(!cloud.enabled || !cloud.containerConfigured || !cloud.pairingKeyConfigured || cloud.running)
+                    .disabled(!cloud.enabled || !cloud.containerConfigured || !cloud.pairingKeyConfigured || !cloud.folderPrepared || cloud.running)
                 }
                 HStack {
                     Button(localized("Import synced records into local history")) {
@@ -109,6 +124,13 @@ struct ClipboardCloudSettingsView: View {
                         cloud.resetServerCursor()
                     }
                     .disabled(!cloud.enabled || cloud.running)
+                }
+                if !cloud.pairingKeyConfigured {
+                    Text(localized("These controls require a pairing key. Use Generate encryption pairing key at the top of this page."))
+                        .font(.caption).foregroundStyle(.secondary)
+                } else if !cloud.folderPrepared {
+                    Text(localized("Click Prepare selected folder first. The remaining buttons unlock after the folder is ready and sync is enabled."))
+                        .font(.caption).foregroundStyle(.secondary)
                 }
                 HStack {
                     Text(localized("Pending updates"))
