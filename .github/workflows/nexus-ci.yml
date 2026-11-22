@@ -89,7 +89,11 @@ jobs:
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$EXT/Contents/Info.plist")" = "com.qssedalto.nexus.drive.dev.findersync"
           test "$(/usr/libexec/PlistBuddy -c 'Print :NexusBuildVariant' "$INFO")" = "dev"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIconName' "$INFO")" = "AppIconDev"
-          test -f "$APP/Contents/Resources/Assets.car"
+          if [[ ! -f "$APP/Contents/Resources/Assets.car" &&
+                ! -f "$APP/Contents/Resources/AppIconDev.icns" ]]; then
+            echo "::error::Compiled Nexus icon is missing from the application bundle."
+            exit 1
+          fi
           if /usr/libexec/PlistBuddy -c 'Print :NexusCloudKitContainerIdentifier' "$INFO" >/dev/null 2>&1; then
             echo "::error::Drive edition must not claim a CloudKit container."
             exit 1
