@@ -112,6 +112,8 @@ final class ClipboardCloudController: ObservableObject {
     @Published private(set) var running = false
     @Published private(set) var mirrorStatus = ""
     @Published private(set) var mirrorPending = 0
+    @Published private(set) var mirrorCompletedBytes: Int64 = 0
+    @Published private(set) var mirrorTotalBytes: Int64 = 0
     @Published private(set) var lastSuccessfulSync: ClipboardCloudRunSummary?
 
     private let defaults: UserDefaults
@@ -130,6 +132,7 @@ final class ClipboardCloudController: ObservableObject {
     private var automaticSyncTask: Task<Void, Never>?
     private var automaticCycleRunning = false
     private var mirrorTasks: [UUID: Task<URL, Error>] = [:]
+    private var mirrorProgressByID: [UUID: (copied: Int64, total: Int64)] = [:]
 
     private init() {
         let defaults = UserDefaults.standard
@@ -294,11 +297,23 @@ final class ClipboardCloudController: ObservableObject {
         let task = Task.detached(priority: .utility) { () throws -> URL in
             let scoped = folder.startAccessingSecurityScopedResource()
             defer { if scoped { folder.stopAccessingSecurityScopedResource() } }
-            return try ClipboardFolderMirror.save(content, to: folder, id: id,
-                                                  cancelled: { Task.isCancelled })
+            return try ClipboardFolderMirror.save(
+                content, to: folder, id: id,
+                cancelled: { Task.isCancelled },
+                progress: { completed, total in
+                    Task { @MainActor in
+                        let instance = ClipboardCloudController.shared
+                        guard instance.mirrorTasks[id] != nil else { return }
+                        instance.mirrorProgressByID[id] = (completed, total)
+                        instance.updateMirrorProgress()
+                    }
+                }
+            )
         }
         mirrorTasks[id] = task
+        mirrorProgressByID[id] = (0, 0)
         mirrorPending = mirrorTasks.count
+        updateMirrorProgress()
         mirrorStatus = localized("Saving copied content to the selected folder…")
         Task { [weak self] in
             do {
@@ -312,8 +327,15 @@ final class ClipboardCloudController: ObservableObject {
                 self?.mirrorStatus = localized("Folder copy failed") + ": " + error.localizedDescription
             }
             self?.mirrorTasks[id] = nil
+            self?.mirrorProgressByID[id] = nil
             self?.mirrorPending = self?.mirrorTasks.count ?? 0
+            self?.updateMirrorProgress()
         }
+    }
+
+    private func updateMirrorProgress() {
+        mirrorCompletedBytes = mirrorProgressByID.values.reduce(0) { $0 + $1.copied }
+        mirrorTotalBytes = mirrorProgressByID.values.reduce(0) { $0 + $1.total }
     }
 
     func cancelMirrorTasks() {

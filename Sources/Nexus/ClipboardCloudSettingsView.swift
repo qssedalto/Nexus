@@ -166,10 +166,31 @@ struct ClipboardCloudSettingsView: View {
                         .controlSize(.small)
                 }
                 if cloud.mirrorPending > 0 {
-                    HStack {
-                        ProgressView().controlSize(.small)
-                        Text("\(cloud.mirrorPending) " + localized("folder copies pending"))
-                        Button(localized("Cancel folder copies")) { cloud.cancelMirrorTasks() }
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text("\(cloud.mirrorPending) " + localized("folder copies pending"))
+                            Spacer()
+                            Button(localized("Cancel folder copies")) {
+                                cloud.cancelMirrorTasks()
+                            }
+                        }
+                        if cloud.mirrorTotalBytes > 0 {
+                            ProgressView(
+                                value: Double(cloud.mirrorCompletedBytes),
+                                total: Double(cloud.mirrorTotalBytes)
+                            )
+                            Text(
+                                ByteCountFormatter.string(fromByteCount: cloud.mirrorCompletedBytes,
+                                                          countStyle: .file)
+                                + " / " +
+                                ByteCountFormatter.string(fromByteCount: cloud.mirrorTotalBytes,
+                                                          countStyle: .file)
+                            )
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                        } else {
+                            ProgressView().controlSize(.small)
+                        }
                     }
                 }
                 if !cloud.mirrorStatus.isEmpty {
