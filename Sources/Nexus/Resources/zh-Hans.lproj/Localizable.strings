@@ -572,3 +572,35 @@
 "The installed app has not yet registered a native Service. Finder Sync can be hidden in iCloud Drive and other File Provider folders; the macOS Services fallback is listed after registration." = "当前安装包尚未注册原生服务。iCloud 云盘等文件提供者位置可能隐藏 Finder Sync 菜单；安装注册后可使用 macOS「服务」中的备用命令。";
 "This build is not signed for CloudKit. A container name alone is insufficient; use a development profile with the CloudKit capability, then reopen the newly signed app." = "此版本缺少有效的 CloudKit 签名权限。仅填写容器名称无效；请使用已启用 CloudKit 的开发配置文件重新签名安装，再打开应用。";
 "CloudKit signing setup guide" = "CloudKit 签名配置指南";
+
+// iCloud Drive user-folder synchronization
+"iCloud Drive sync" = "iCloud 云盘同步";
+"iCloud Drive clipboard folder" = "iCloud 云盘剪贴板同步文件夹";
+"Choose NexusClipboardSync folder…" = "选择 NexusClipboardSync 文件夹…";
+"Select your existing NexusClipboardSync folder in iCloud Drive. No developer subscription is needed." = "请选择你已在 iCloud 云盘创建的 NexusClipboardSync 文件夹。无需付费开发者会员。";
+"Enable folder clipboard synchronization" = "启用文件夹剪贴板同步";
+"Automatically synchronize every 5 minutes" = "每 5 分钟自动同步";
+"Synchronization is off by default. Nexus only reads and writes the folder you select, when authorized. Apple Files synchronizes it between devices independently." = "默认关闭同步。Nexus 仅在你授权后读取和写入所选文件夹；设备之间的传输由苹果「文件」服务完成。";
+"Select which clipboard data may be synchronized" = "选择允许同步的数据类别";
+"Include copied text" = "同步复制的文本";
+"Include names and collection titles" = "同步文件名与集合名称";
+"Include original local file paths" = "同步原始本地路径";
+"Original image and file bytes are not yet supported in folder synchronization. Paths on another device are descriptive only." = "文件夹同步目前尚不支持图片与文件原始内容。其他设备上的路径只用于说明，不能直接访问。";
+"Folder synchronization controls" = "文件夹同步操作";
+"Prepare selected folder" = "准备所选文件夹";
+"Prepare next 200 records" = "准备下一批 200 条历史";
+"Import synced records into local history" = "将同步记录导入本地历史";
+"Replay all folder changes" = "重新读取文件夹中的全部变更";
+"Pending updates" = "待同步变更";
+"Remove folder synchronization data" = "清除文件夹同步数据";
+"Local cache reset preserves independently saved history. Deleting synchronized records removes only Nexus-owned JSON files from the selected folder. Other devices can upload old records again." = "清除本地同步缓存不会删除原有历史。删除云盘同步记录只会移除所选文件夹中 Nexus 创建的 JSON 文件。其他设备可能重新上传旧记录。";
+"Clear local sync cache…" = "清除本地同步缓存…";
+"Delete synchronized Nexus folder records…" = "删除 Nexus 文件夹同步记录…";
+"Clear only the local folder sync cache?" = "仅清除当前设备的文件夹同步缓存？";
+"Clear local cache" = "清除本地缓存";
+"Original local clipboard history is preserved. Files in iCloud Drive are not deleted." = "原有本地剪贴板历史将保留，iCloud 云盘里的文件不会被删除。";
+"Delete Nexus folder sync data" = "删除 Nexus 文件夹同步数据";
+"This deletes Nexus-owned sync JSON documents in your selected folder, not the entire folder or unrelated iCloud Drive data. Disable synchronization on other devices first. Type DELETE to confirm." = "这会删除所选文件夹内 Nexus 创建的同步 JSON 文件，不会删除整个文件夹或其他 iCloud 云盘数据。请先关闭其他设备的同步，并输入 DELETE 确认。";
+"Delete sync records" = "删除同步记录";
+"Choose Nexus clipboard sync folder" = "选择 Nexus 剪贴板同步文件夹";
+"Select your existing NexusClipboardSync folder in iCloud Drive." = "请在 iCloud 云盘中选择已有的 NexusClipboardSync 文件夹。";
