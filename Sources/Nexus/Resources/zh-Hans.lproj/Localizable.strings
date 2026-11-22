@@ -604,3 +604,16 @@
 "Delete sync records" = "删除同步记录";
 "Choose Nexus clipboard sync folder" = "选择 Nexus 剪贴板同步文件夹";
 "Select your existing NexusClipboardSync folder in iCloud Drive." = "请在 iCloud 云盘中选择已有的 NexusClipboardSync 文件夹。";
+
+// Encrypted folder pairing
+"End-to-end encryption and device pairing" = "端到端加密与设备配对";
+"Encryption key is stored in this device's Keychain" = "加密密钥已存入本机钥匙串";
+"Reveal pairing key for another device" = "显示配对密钥以连接其他设备";
+"Copy pairing key" = "复制配对密钥";
+"Hide pairing key" = "隐藏配对密钥";
+"Generate encryption pairing key" = "生成加密配对密钥";
+"Use the same 64-character key on each paired device. It is never stored in iCloud Drive." = "每台配对设备必须使用相同的 64 位密钥。密钥不会保存到 iCloud 云盘。";
+"Enter a 64-character pairing key" = "输入 64 位配对密钥";
+"Save entered key in Keychain" = "将输入的密钥保存到钥匙串";
+"Never send this key through an untrusted channel. Losing it makes existing encrypted sync files unreadable." = "不要通过不可信的渠道发送此密钥。丢失密钥将导致原有加密同步文件无法读取。";
+"Folder sync v2 encrypts records with AES-256-GCM. Keep your pairing key private and verify your other devices use the same key." = "文件夹同步 v2 使用 AES-256-GCM 加密记录。请保护配对密钥，并确保其他设备使用相同密钥。";
