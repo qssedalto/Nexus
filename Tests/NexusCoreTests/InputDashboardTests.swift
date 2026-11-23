@@ -4,6 +4,31 @@ import XCTest
 @testable import NexusCore
 
 final class InputDashboardTests: XCTestCase {
+    func testSparseTrendAndLargeScrollPeakKeepCategoryTotalsIndependent() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try InputStatisticsStore(url: root.appendingPathComponent("input.sqlite"))
+        let start: Int64 = 1_800_000_000_000
+        XCTAssertTrue(try store.trend(from: start, to: start + 3_600_000,
+                                      resolution: .minute).isEmpty)
+        store.enqueue(ClassifiedInputEvent(timeMS: start + 1_000, category: "mouse",
+                                           name: "mouse_left", source: "test"))
+        for _ in 0..<500 {
+            store.enqueue(ClassifiedInputEvent(timeMS: start + 1_000, category: "scroll",
+                                               name: "scroll_down", source: "test"))
+        }
+        store.enqueue(ClassifiedInputEvent(timeMS: start + 3_600_000, category: "mouse",
+                                           name: "mouse_left", source: "test"))
+        let withinHour = try store.trend(from: start, to: start + 3_600_000,
+                                         resolution: .minute)
+        XCTAssertEqual(withinHour.count, 2)
+        XCTAssertEqual(withinHour.first(where: { $0.category == "mouse" })?.count, 1)
+        XCTAssertEqual(withinHour.first(where: { $0.category == "scroll" })?.count, 500)
+        XCTAssertEqual(try store.trend(from: start, to: start + 3_600_001,
+                                       resolution: .hour, category: "mouse")
+            .reduce(0) { $0 + $1.count }, 2)
+    }
+
     func testSecondAndMinuteTrendsKeepFineTimestampBoundaries() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }
