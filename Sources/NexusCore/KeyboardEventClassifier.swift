@@ -5,6 +5,12 @@ import Foundation
 /// A chord name describes observed modifiers and positions, NOT confirmation
 /// that an app or system shortcut action was executed.
 public enum KeyboardEventClassifier {
+    public struct KeyDownClassification: Equatable, Sendable {
+        public let category: String
+        public let name: String
+        public let observedChord: String?
+    }
+
     public enum Modifier: String, CaseIterable, Hashable, Sendable {
         case control, option, command, shift, fn
     }
@@ -47,5 +53,25 @@ public enum KeyboardEventClassifier {
             .filter { modifiers.contains($0) }
             .map(\.rawValue)
         return (names + [key]).joined(separator: "_")
+    }
+
+    /// A physical key press contributes one statistics event. An observed
+    /// chord replaces its base-key count rather than doubling trend totals.
+    public static func classifyKeyDown(
+        code: Int64, modifiers: Set<Modifier>
+    ) -> KeyDownClassification {
+        if let chord = shortcutName(code: code, modifiers: modifiers) {
+            return KeyDownClassification(category: "shortcut", name: chord,
+                                         observedChord: chord)
+        }
+        if let special = specialKeys[code] {
+            return KeyDownClassification(category: "keyboard", name: special,
+                                         observedChord: nil)
+        }
+        return KeyDownClassification(
+            category: "ordinary",
+            name: physicalKeyName(code: code, shifted: modifiers.contains(.shift)),
+            observedChord: nil
+        )
     }
 }

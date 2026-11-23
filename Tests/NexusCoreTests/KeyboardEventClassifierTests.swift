@@ -40,4 +40,22 @@ final class KeyboardEventClassifierTests: XCTestCase {
         XCTAssertEqual(KeyboardEventClassifier.shortcutName(code: 123, modifiers: [.command]),
                        "command_left")
     }
+
+    func testOneKeyDownProducesEitherChordOrBaseKeyCount() {
+        typealias Classifier = KeyboardEventClassifier
+        let chord = Classifier.classifyKeyDown(code: 18, modifiers: [.command, .shift])
+        XCTAssertEqual(chord.category, "shortcut")
+        XCTAssertEqual(chord.name, "command_shift_1")
+        XCTAssertEqual(chord.observedChord, chord.name)
+        let typed = Classifier.classifyKeyDown(code: 18, modifiers: [.shift])
+        XCTAssertEqual(typed.category, "ordinary")
+        XCTAssertEqual(typed.name, "shift_key_1")
+        XCTAssertNil(typed.observedChord)
+        let function = Classifier.classifyKeyDown(code: 122, modifiers: [])
+        XCTAssertEqual(function.category, "keyboard")
+        XCTAssertEqual(function.name, "f1")
+        XCTAssertNil(function.observedChord)
+        XCTAssertEqual(Classifier.classifyKeyDown(code: 999, modifiers: []).name,
+                       "character_total")
+    }
 }

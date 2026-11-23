@@ -87,11 +87,12 @@ final class InputMonitor: InputEventListening, @unchecked Sendable {
             let repeated = event.getIntegerValueField(.keyboardEventAutorepeat) != 0
             if repeated && !UserDefaults.standard.bool(forKey: "nexusCountKeyRepeats") { return }
             let code = event.getIntegerValueField(.keyboardEventKeycode)
-            let category = Self.specialKeys[code].map { _ in "keyboard" } ?? "ordinary"
+            let classification = KeyboardEventClassifier.classifyKeyDown(
+                code: code, modifiers: Self.modifierSet(event.flags))
+            let category = classification.category
             // Count physical keys by minute. Do not inspect event text or
             // retain a character stream, including during Secure Input.
-            let name = Self.specialKeys[code] ?? Self.physicalKeyName(
-                code: code, shifted: event.flags.contains(.maskShift))
+            let name = classification.name
             let timestamp = category == "ordinary" ? (timeMS / 60_000) * 60_000 : timeMS
             store.enqueue(ClassifiedInputEvent(timeMS: timestamp, category: category, name: name, source: "quartz_uptime", isRepeat: repeated))
             if category != "ordinary" {
@@ -99,17 +100,11 @@ final class InputMonitor: InputEventListening, @unchecked Sendable {
                     timeMS: timeMS, name: name, source: "quartz_uptime",
                     supported: true, keyCode: code,
                     modifiers: Self.modifierNames(event.flags),
-                    eventKind: "keyDown", isRepeat: repeated
+                    eventKind: classification.observedChord == nil ? "keyDown" : "chord",
+                    isRepeat: repeated
                 ))
             }
-            if let shortcut = Self.shortcutName(code: code, flags: event.flags) {
-                store.enqueue(ClassifiedInputEvent(timeMS: timeMS, category: "shortcut", name: shortcut, source: "quartz_uptime", isRepeat: repeated))
-                onDiagnostic?(InputDiagnosticEvent(
-                    timeMS: timeMS, name: shortcut, source: "quartz_uptime",
-                    supported: true, keyCode: code,
-                    modifiers: Self.modifierNames(event.flags),
-                    eventKind: "chord", isRepeat: repeated
-                ))
+            if let shortcut = classification.observedChord {
                 // This observes a keyboard request only. macOS provides no
                 // reliable third-party confirmation that a paste succeeded.
                 // It is independently opt-in and never reads clipboard text.
@@ -234,13 +229,17 @@ final class InputMonitor: InputEventListening, @unchecked Sendable {
     }
 
     static func shortcutName(code: Int64, flags: CGEventFlags) -> String? {
+        KeyboardEventClassifier.shortcutName(code: code, modifiers: modifierSet(flags))
+    }
+
+    private static func modifierSet(_ flags: CGEventFlags) -> Set<KeyboardEventClassifier.Modifier> {
         var modifiers = Set<KeyboardEventClassifier.Modifier>()
         if flags.contains(.maskControl) { modifiers.insert(.control) }
         if flags.contains(.maskAlternate) { modifiers.insert(.option) }
         if flags.contains(.maskCommand) { modifiers.insert(.command) }
         if flags.contains(.maskShift) { modifiers.insert(.shift) }
         if flags.contains(.maskSecondaryFn) { modifiers.insert(.fn) }
-        return KeyboardEventClassifier.shortcutName(code: code, modifiers: modifiers)
+        return modifiers
     }
 
     private static func wallTimeMS(forSystemUptime eventUptime: TimeInterval) -> Int64 {
