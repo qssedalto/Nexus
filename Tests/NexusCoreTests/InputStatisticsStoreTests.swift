@@ -1,8 +1,33 @@
 import Foundation
+import SQLite3
 import XCTest
 @testable import NexusCore
 
 final class InputStatisticsStoreTests: XCTestCase {
+    func testWriteStatusRecoversWithoutLosingPendingEvents() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("stats.sqlite")
+        let store = try InputStatisticsStore(url: url)
+        XCTAssertEqual(store.writeState, .ready)
+
+        var connection: OpaquePointer?
+        XCTAssertEqual(sqlite3_open(url.path, &connection), SQLITE_OK)
+        defer { sqlite3_close(connection) }
+        XCTAssertEqual(sqlite3_exec(connection, """
+            CREATE TRIGGER reject_test_write BEFORE INSERT ON input_events
+            BEGIN SELECT RAISE(ABORT, 'test write failure'); END;
+            """, nil, nil, nil), SQLITE_OK)
+        store.enqueue(ClassifiedInputEvent(timeMS: 1, category: "mouse", name: "mouse_left", source: "test"))
+        XCTAssertThrowsError(try store.flushPending())
+        XCTAssertEqual(store.writeState, .writeFailed)
+
+        XCTAssertEqual(sqlite3_exec(connection, "DROP TRIGGER reject_test_write", nil, nil, nil), SQLITE_OK)
+        try store.flushPending()
+        XCTAssertEqual(store.writeState, .written)
+        XCTAssertEqual(try store.counts(from: 0, to: 2).first?.count, 1)
+    }
+
     func testMillisecondBoundariesAndRestart() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

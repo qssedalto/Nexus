@@ -1,227 +1,357 @@
 import SwiftUI
 import NexusCore
 
-/// iCloud networking is manual unless the user enables the separate scheduled
-/// synchronization switch. Opening this view does not access the account.
+/// A single, progressive sync workflow. No folder reads or uploads occur just
+/// by opening this tab. Every destination and content type is opt-in.
 @MainActor
 struct ClipboardCloudSettingsView: View {
     @ObservedObject private var cloud = ClipboardCloudController.shared
+    @ObservedObject private var clipboard = ClipboardMonitor.shared
     @State private var confirmLocalCacheRemoval = false
-    @State private var showCloudEraseSheet = false
-    @State private var cloudEraseConfirmation = ""
+    @State private var showFolderEraseSheet = false
+    @State private var eraseConfirmation = ""
+    @State private var pairingExpanded = false
+    @State private var advancedExpanded = false
+
+    private var hasSyncSelection: Bool {
+        cloud.includeText || cloud.mirrorText || cloud.mirrorFiles || cloud.mirrorImages
+            || cloud.includeNames || cloud.includePaths
+    }
+
+    private var readyToBegin: Bool {
+        cloud.activationMode != .unavailable && hasSyncSelection && !cloud.running
+    }
 
     var body: some View {
         Form {
-            Section(localized("iCloud clipboard (user controlled)")) {
-                Toggle(localized("Enable iCloud clipboard history sync"), isOn: $cloud.enabled)
-                Toggle(localized("Automatically sync iCloud clipboard every 5 minutes"), isOn: $cloud.automaticSyncEnabled)
-                    .disabled(!cloud.enabled || !cloud.containerConfigured)
-                Text(localized("Automatic sync is off by default. If enabled, Nexus prepares at most 200 local history records per cycle and synchronizes only the CloudKit categories you have authorized. The private zone must first be created manually; turning off automatic sync stops future scheduled cycles."))
-                    .font(.caption).foregroundStyle(.secondary)
-                Text(localized("CloudKit requires a signed container and the selected data permissions. Manual sync works independently of the automatic schedule. Disabling either sync switch prevents future scheduled CloudKit requests."))
-                    .font(.caption).foregroundStyle(.secondary)
-                HStack {
-                    Label(
-                        localized(cloud.containerConfigured
-                                  ? "CloudKit container configured"
-                                  : "CloudKit container not configured for this build"),
-                        systemImage: cloud.containerConfigured ? "checkmark.shield" : "lock.shield"
-                    )
-                    .foregroundStyle(.secondary)
+            Section(localized("Sync location")) {
+                Picker(localized("Save in"), selection: Binding(
+                    get: { cloud.storage },
+                    set: { cloud.changeStorage(to: $0) }
+                )) {
+                    Text(localized("iCloud Drive")).tag(NexusSyncStorage.iCloudDrive)
+                    Text(localized("Local folder")).tag(NexusSyncStorage.localFolder)
                 }
-                if !cloud.containerConfigured {
-                    Text(localized("This build is not signed for CloudKit. A container name alone is insufficient; use a development profile with the CloudKit capability, then reopen the newly signed app."))
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-                    Link(localized("CloudKit signing setup guide"), destination: URL(
-                        string: "https://github.com/qssedalto/Nexus/blob/main/docs/CLOUDKIT_TEST_SETUP.md"
-                    )!)
+                .pickerStyle(.segmented)
+
+                Text(localized(cloud.storage == .iCloudDrive
+                    ? "iCloud Drive keeps the folder available on your Apple devices. Select the existing NexusClipboardSync folder."
+                    : "Local storage saves copies to the folder you choose. It does not automatically sync to other devices."))
                     .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                if cloud.containerConfigured {
+                    LabeledContent(localized("Selected folder")) {
+                        Text(cloud.selectedFolderPath)
+                            .font(.caption)
+                            .lineLimit(3)
+                            .textSelection(.enabled)
+                    }
+                    Button(localized("Change folder…")) {
+                        cloud.chooseSyncFolder()
+                    }
+                } else {
+                    Button(localized("Select folder…")) {
+                        cloud.chooseSyncFolder()
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
             }
 
-            Section(localized("Independent cloud data permissions")) {
-                Toggle(localized("Include copied text in iCloud"),
-                       isOn: $cloud.includeText).disabled(!cloud.enabled)
-                Toggle(localized("Include file names and collection names"),
-                       isOn: $cloud.includeNames).disabled(!cloud.enabled)
-                Toggle(localized("Include full source file paths"),
-                       isOn: $cloud.includePaths).disabled(!cloud.enabled)
-                Toggle(localized("Include original clipboard images in iCloud (up to 8 MB)"),
-                       isOn: $cloud.includeImages).disabled(!cloud.enabled)
-                Toggle(localized("Include one small local file original in iCloud (up to 8 MB)"),
-                       isOn: $cloud.includeFiles).disabled(!cloud.enabled)
-                Text(localized("Original image and single-file transfers have independent permission switches, off by default. File transfer excludes folders, symlinks, cloud-only files and packages. Turning off permission cannot erase copies already uploaded."))
-                    .font(.caption).foregroundStyle(.secondary)
-                    .font(.caption).foregroundStyle(.secondary)
+            Section(localized("Device pairing")) {
+                if !cloud.hasJournalContentSelection {
+                    Text(localized(
+                        "Ordinary folder copies do not require a pairing key. A key is only needed to synchronize encrypted history metadata."
+                    ))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                } else if cloud.pairingKeyConfigured {
+                    Label(localized("Encryption pairing key is ready"),
+                          systemImage: "checkmark.shield.fill")
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text(localized("Generate a key once to protect your synced data. Other devices use this same key."))
+                        .font(.callout)
+                    Button(localized("Generate pairing key")) {
+                        cloud.generatePairingKey()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+
+                if cloud.hasJournalContentSelection && cloud.pairingKeyConfigured {
+                    DisclosureGroup(localized("View or enter pairing key"),
+                                    isExpanded: $pairingExpanded) {
+                        Button(localized("Show pairing key")) {
+                            cloud.revealPairingKey()
+                        }
+                        if !cloud.revealedPairingKey.isEmpty {
+                            Text(cloud.revealedPairingKey)
+                                .font(.system(.caption, design: .monospaced))
+                                .textSelection(.enabled)
+                            Button(localized("Copy pairing key")) {
+                                cloud.copyPairingKey()
+                            }
+                            Button(localized("Hide pairing key")) {
+                                cloud.hidePairingKey()
+                            }
+                        }
+                        Text(localized("Only give the key to your own trusted devices."))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                } else if cloud.hasJournalContentSelection {
+                    DisclosureGroup(localized("Already have a pairing key?")) {
+                        SecureField(localized("Enter a 64-character pairing key"),
+                                    text: $cloud.pairingKeyEntry)
+                            .textFieldStyle(.roundedBorder)
+                        Button(localized("Use existing key")) {
+                            cloud.installPairingKey()
+                        }
+                        .disabled(cloud.pairingKeyEntry.isEmpty)
+                    }
+                }
             }
 
-            Section(localized("Prepare and sync clipboard")) {
-                HStack(spacing: 10) {
-                    Button(localized("Prepare next local history page")) {
-                        Task { await cloud.prepareLocalPage() }
-                    }
-                    .disabled(!cloud.enabled || cloud.running)
-                    Button(localized("Create private iCloud zone")) {
-                        Task { await cloud.setupPrivateZone() }
-                    }
-                    .disabled(!cloud.enabled || cloud.running || !cloud.containerConfigured)
-                    Button(localized("Sync now")) {
-                        Task { await cloud.syncNow() }
-                    }
-                    .disabled(!cloud.enabled || cloud.running || !cloud.containerConfigured)
-                    Button(localized("Reset cloud change cursor")) {
-                        cloud.resetServerCursor()
-                    }
-                    .disabled(!cloud.enabled || cloud.running)
+            Section(localized("What to synchronize")) {
+                Toggle(localized("Clipboard text"), isOn: $cloud.includeText)
+                Toggle(localized("Plain text files in selected folder"), isOn: $cloud.mirrorText)
+                Toggle(localized("Copied file contents"), isOn: $cloud.mirrorFiles)
+                Toggle(localized("Copied images"), isOn: $cloud.mirrorImages)
+                Toggle(localized("Favorites and collection names"), isOn: $cloud.includeNames)
+                Toggle(localized("Original file paths"), isOn: $cloud.includePaths)
+                if !hasSyncSelection {
+                    Text(localized("Choose at least one content type to start. Nothing is uploaded by default."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
-                Text(localized("Preparation only queues local data. Each click handles up to 200 history records; collections are included when their names are authorized. Sync now uploads pending changes and downloads one cloud change page."))
-                    .font(.caption).foregroundStyle(.secondary)
-                HStack {
-                    Text(localized("Next history page offset:"))
-                    Text(String(cloud.nextHistoryOffset)).monospacedDigit()
-                    Spacer()
-                    Text(localized("Pending local changes:"))
-                    Text(String(cloud.pendingCount)).monospacedDigit()
+                Text(localized("Visible folder copies are ordinary unencrypted files and may sync through iCloud Drive. Private pasteboard formats may not be recoverable."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(localized("Keyboard and mouse statistics are backed up separately in Keyboard and Mouse. Paste requests are kept in the local timeline."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section(localized("Sync status")) {
+                if !cloud.containerConfigured {
+                    Label(localized("First select a folder above."), systemImage: "folder")
+                        .foregroundStyle(.secondary)
+                } else if !hasSyncSelection {
+                    Label(localized("Select the content you want to synchronize."),
+                          systemImage: "checklist")
+                        .foregroundStyle(.secondary)
+                } else if cloud.mirrorOnlyEnabled && !cloud.enabled {
+                    Label(localized("Ordinary folder copies are active"),
+                          systemImage: "checkmark.circle.fill")
+                    Button(localized("Stop folder copies")) { cloud.stopSync() }
+                        .disabled(cloud.running)
+                } else if cloud.hasJournalContentSelection && !cloud.pairingKeyConfigured {
+                    Label(localized("Generate a pairing key to synchronize encrypted history."),
+                          systemImage: "key")
+                        .foregroundStyle(.secondary)
+                } else if !cloud.enabled {
+                    Button(localized(cloud.hasJournalContentSelection
+                        ? "Start syncing" : "Start folder copies")) {
+                        Task { await cloud.startSync() }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(!readyToBegin)
+                    Text(localized(cloud.hasJournalContentSelection
+                        ? "Nexus will prepare the encrypted folder and synchronize in one step."
+                        : "Nexus will save new copied content as ordinary, user-openable files."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    if cloud.hasJournalContentSelection {
+                        Toggle(localized("Sync automatically every 5 minutes"),
+                               isOn: $cloud.automaticSyncEnabled)
+                        Button(localized("Sync now")) {
+                            Task { await cloud.syncIncludingLocalHistory() }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(cloud.running)
+                    }
+                    Button(localized("Stop syncing")) { cloud.stopSync() }
+                        .disabled(cloud.running)
                 }
-                .font(.caption)
-                if let previous = cloud.lastSuccessfulSync {
-                    HStack {
-                        Text(localized("Last successful sync:"))
-                        Text(
-                            Date(timeIntervalSince1970:
-                                TimeInterval(previous.finishedTimeMS) / 1_000),
-                            style: .relative
-                        )
-                        Spacer()
-                        Text("\(previous.uploaded) ↑ / \(previous.downloaded) ↓")
-                            .monospacedDigit()
-                        if previous.moreComing || previous.pending > 0 {
-                            Text(localized("More changes pending"))
+                if cloud.running {
+                    ProgressView()
+                        .controlSize(.small)
+                }
+                if cloud.mirrorPending > 0 {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text("\(cloud.mirrorPending) " + localized("folder copies pending"))
+                            Spacer()
+                            Button(localized("Cancel folder copies")) {
+                                cloud.cancelMirrorTasks()
+                            }
+                        }
+                        if cloud.mirrorTotalBytes > 0 {
+                            ProgressView(
+                                value: Double(cloud.mirrorCompletedBytes),
+                                total: Double(cloud.mirrorTotalBytes)
+                            )
+                            Text(
+                                ByteCountFormatter.string(fromByteCount: cloud.mirrorCompletedBytes,
+                                                          countStyle: .file)
+                                + " / " +
+                                ByteCountFormatter.string(fromByteCount: cloud.mirrorTotalBytes,
+                                                          countStyle: .file)
+                            )
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
                         } else {
-                            Text(localized("Synchronized at last run"))
+                            ProgressView().controlSize(.small)
                         }
                     }
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                }
+                if !cloud.mirrorStatus.isEmpty {
+                    Text(cloud.mirrorStatus).font(.caption)
+                }
+                if cloud.mirrorInterruptedCount > 0 {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Label(
+                            "\(cloud.mirrorInterruptedCount) " +
+                            localized("incomplete folder copies found after interruption"),
+                            systemImage: "exclamationmark.triangle"
+                        )
+                        .font(.caption)
+                        Text(localized(
+                            "Unfinished copies are kept for review. Nexus never removes them automatically."
+                        ))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        Text(localized(
+                            "If Finder hides them, press Command-Shift-. to show hidden files."
+                        ))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        HStack {
+                            Button(localized("Show sync folder in Finder")) {
+                                cloud.revealInterruptedCopies()
+                            }
+                            Button(localized("Check again")) {
+                                Task { await cloud.refreshInterruptedCopies() }
+                            }
+                        }
+                    }
                 }
                 Text(cloud.status)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+                if let previous = cloud.lastSuccessfulSync {
+                    HStack {
+                        LabeledContent(localized("Written"), value: previous.uploaded.formatted())
+                        LabeledContent(localized("Received records"), value: previous.downloaded.formatted())
+                        LabeledContent(localized("Pending updates"), value: cloud.pendingCount.formatted())
+                    }
+                    LabeledContent(localized("Last sync"),
+                                   value: Date(timeIntervalSince1970:
+                                    TimeInterval(previous.finishedTimeMS) / 1000).formatted())
+                }
+                if cloud.enabled, !clipboard.historyEnabled || clipboard.paused {
+                    Text(localized(clipboard.historyEnabled
+                        ? "Clipboard history is paused. New copies are not added to sync."
+                        : "Clipboard history is off. New copies are not added to sync."))
+                        .font(.caption)
+                    Button(localized(clipboard.historyEnabled ? "Resume clipboard history" : "Enable clipboard history monitoring")) {
+                        if clipboard.historyEnabled { clipboard.paused = false }
+                        else { clipboard.historyEnabled = true }
+                    }
+                }
             }
 
-            Section(localized("iCloud clipboard data removal")) {
-                Text(localized("Removing local cache preserves your original clipboard history. Erasing the private iCloud zone deletes Nexus clipboard cloud records for this Apple account, but another device can upload its own older copies if sync remains enabled there."))
-                    .font(.caption).foregroundStyle(.secondary)
-                HStack {
-                    Button(localized("Clear local iCloud clipboard cache…"), role: .destructive) {
+            if cloud.enabled {
+                Section(localized("Synced clipboard history")) {
+                    if cloud.visibleSyncedRecords.isEmpty {
+                        Text(localized("No copied records matching your sync settings are available to preview."))
+                            .font(.caption).foregroundStyle(.secondary)
+                    } else {
+                        DisclosureGroup(localized("Preview synced records")) {
+                            ForEach(cloud.visibleSyncedRecords.prefix(20)) { record in
+                                Label(syncedTitle(record), systemImage: record.kind == .collection ? "folder" : "doc.on.clipboard")
+                                    .lineLimit(1)
+                            }
+                        }
+                    }
+                    if !cloud.cachedRecords.isEmpty {
+                        Button(localized("Import synced records into local history")) {
+                            Task { await cloud.restoreCachedHistory() }
+                        }
+                        .disabled(cloud.running)
+                    }
+                }
+            }
+
+            Section {
+                DisclosureGroup(localized("Advanced sync tools"), isExpanded: $advancedExpanded) {
+                    Button(localized("Prepare next 200 records")) {
+                        Task { await cloud.prepareLocalPage() }
+                    }
+                    .disabled(!cloud.enabled || cloud.running)
+                    Button(localized("Replay all folder changes")) {
+                        cloud.resetServerCursor()
+                    }
+                    .disabled(!cloud.enabled || cloud.running)
+                    Divider()
+                    Button(localized("Clear local sync cache…"), role: .destructive) {
                         confirmLocalCacheRemoval = true
                     }
                     .disabled(cloud.running)
-                    Button(localized("Erase Nexus clipboard data from iCloud…"),
+                    Button(localized("Delete synchronized Nexus folder records…"),
                            role: .destructive) {
-                        cloudEraseConfirmation = ""
-                        showCloudEraseSheet = true
+                        eraseConfirmation = ""
+                        showFolderEraseSheet = true
                     }
                     .disabled(cloud.running || !cloud.containerConfigured)
                 }
             }
-
-            Section(localized("Locally cached cloud history")) {
-                HStack {
-                    Text(localized("Remote records are a local preview, not a verified paste. Only plain text entries with authorized content may be copied again."))
-                        .font(.caption).foregroundStyle(.secondary)
-                    Spacer()
-                    Button(localized("Refresh local cache")) { cloud.refreshLocalCache() }
-                    Button(localized("Restore cached cloud history to local shelf")) {
-                        Task { await cloud.restoreCachedHistory() }
-                    }
-                    .disabled(!cloud.enabled || cloud.running)
-                }
-                if cloud.enabled {
-                    let remote = cloud.cachedRecords.filter {
-                        !$0.isDeleted && $0.kind == .operation
-                    }
-                    if remote.isEmpty {
-                        Text(localized("No cached cloud clipboard entries"))
-                            .foregroundStyle(.secondary)
-                    } else {
-                        ForEach(remote, id: \.id) { record in
-                            HStack {
-                                VStack(alignment: .leading) {
-                                    Text(record.id)
-                                        .font(.caption.monospaced())
-                                        .lineLimit(1)
-                                        .truncationMode(.middle)
-                                    if case .operation(let operation)? = record.payload {
-                                        Text(operation.text != nil && cloud.includeText
-                                             ? String(operation.text!.prefix(120))
-                                             : localized("Metadata only"))
-                                            .font(.caption)
-                                            .lineLimit(2)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                }
-                                Spacer(minLength: 12)
-                                if case .operation(let operation)? = record.payload,
-                                   operation.file != nil && cloud.includeFiles {
-                                    Button(localized("Save remote file…")) {
-                                        cloud.saveCachedRemoteFile(recordID: record.id)
-                                    }
-                                }
-                                Button(localized("Copy text")) {
-                                    cloud.copyRemoteText(record)
-                                }
-                                .disabled(!cloud.includeText || {
-                                    if case .operation(let operation)? = record.payload {
-                                        return operation.type != "text_copy" || operation.text == nil
-                                    }
-                                    return true
-                                }())
-                            }
-                        }
-                    }
-                } else {
-                    Text(localized("Enable iCloud clipboard consent to inspect its local cache"))
-                        .foregroundStyle(.secondary)
-                }
-            }
         }
         .formStyle(.grouped)
-        .padding(.horizontal, 8)
-        .confirmationDialog(
-            localized("Clear only the local iCloud clipboard cache?"),
-            isPresented: $confirmLocalCacheRemoval
-        ) {
-            Button(localized("Clear local iCloud clipboard cache"), role: .destructive) {
+        .confirmationDialog(localized("Clear only the local folder sync cache?"),
+                            isPresented: $confirmLocalCacheRemoval,
+                            titleVisibility: .visible) {
+            Button(localized("Clear local cache"), role: .destructive) {
                 Task { await cloud.clearLocalCloudData() }
             }
         } message: {
-            Text(localized("The local cloud outbox, cached records, cloud cursors and imported mirrors will be removed. Original locally copied entries are preserved; no network request is made."))
+            Text(localized("Original local clipboard history is preserved. Files in the selected folder are not deleted."))
         }
-        .sheet(isPresented: $showCloudEraseSheet) {
-            VStack(alignment: .leading, spacing: 16) {
-                Text(localized("Erase private Nexus iCloud clipboard zone"))
+        .sheet(isPresented: $showFolderEraseSheet) {
+            VStack(alignment: .leading, spacing: 14) {
+                Text(localized("Delete Nexus folder sync data"))
                     .font(.headline)
-                Text(localized("This permanently deletes the entire dedicated NexusClipboard zone from the signed-in Apple account. Disable sync on other devices before proceeding to prevent re-upload. Your original local clipboard history is preserved."))
+                Text(localized("Only Nexus encrypted sync records are deleted from the selected folder. Your other files and original clipboard history are preserved. Type DELETE to confirm."))
                     .font(.callout)
-                TextField(localized("Type DELETE to confirm"), text: $cloudEraseConfirmation)
+                TextField("DELETE", text: $eraseConfirmation)
                     .textFieldStyle(.roundedBorder)
                 HStack {
+                    Button(localized("Cancel")) { showFolderEraseSheet = false }
                     Spacer()
-                    Button(localized("Cancel")) {
-                        showCloudEraseSheet = false
+                    Button(localized("Delete sync records"), role: .destructive) {
+                        let code = eraseConfirmation
+                        showFolderEraseSheet = false
+                        Task { await cloud.eraseSyncedFolderData(confirmation: code) }
                     }
-                    Button(localized("Erase Nexus iCloud records"), role: .destructive) {
-                        let confirmation = cloudEraseConfirmation
-                        showCloudEraseSheet = false
-                        Task { await cloud.erasePrivateNexusCloudZone(confirmation: confirmation) }
-                    }
-                    .disabled(cloudEraseConfirmation != "DELETE" || cloud.running)
+                    .disabled(eraseConfirmation != "DELETE" || cloud.running)
                 }
             }
             .padding(24)
-            .frame(minWidth: 460, idealWidth: 520)
+            .frame(minWidth: 460, idealWidth: 540)
+        }
+    }
+
+    private func syncedTitle(_ record: ClipboardCloudRecord) -> String {
+        switch record.payload {
+        case .collection(let collection): return collection.name
+        case .operation(let operation):
+            let preview = operation.text ?? operation.items.first?.name ?? operation.items.first?.path
+            if let preview, !preview.isEmpty { return String(preview.prefix(120)) }
+            if operation.type == "image_copy" { return localized("Image copy") }
+            if operation.type == "text_copy" { return localized("Text copy") }
+            return localized("File copy")
+        default: return localized("Unknown")
         }
     }
 }

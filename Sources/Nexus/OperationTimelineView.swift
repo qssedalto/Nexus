@@ -3,7 +3,8 @@ import NexusCore
 
 struct OperationTimelineView: View {
     @ObservedObject var appState: AppState
-    @State private var start = Date().addingTimeInterval(-86400)
+    @ObservedObject private var clipboard = ClipboardMonitor.shared
+    @State private var start = Calendar.current.date(byAdding: .day, value: -30, to: .now) ?? .now
     @State private var end = Date()
     @State private var startMillisecond = 0
     @State private var endMillisecond = 999
@@ -12,6 +13,9 @@ struct OperationTimelineView: View {
     @State private var search = ""
     @State private var operationType = "All"
     @State private var itemKind = "All"
+    @State private var rangeError = false
+    @State private var hasLoadedTimeline = false
+    @State private var showingAllHistory = false
     @State private var sizeStatus: String?
     @State private var activeSizeItem: String?
     @State private var folderSizeTask: Task<Void, Never>?
@@ -39,8 +43,33 @@ struct OperationTimelineView: View {
                 TextField("ms", value: $endMillisecond, format: .number)
                     .frame(width: 48)
                 Button(localized("Query"), action: query)
+                Button(localized("All history")) {
+                    rangeError = false
+                    showingAllHistory = true
+                    appState.refreshOperations(from: 0)
+                }
             }
             .font(.caption)
+            if rangeError {
+                Text(localized("End time must be at or after start time"))
+                    .font(.caption).foregroundStyle(.orange)
+            } else if showingAllHistory {
+                Text(localized("Showing all history")).font(.caption).foregroundStyle(.secondary)
+            }
+            if !clipboard.historyEnabled || clipboard.paused {
+                HStack {
+                    Text(localized(clipboard.historyEnabled
+                        ? "Copy history collection is paused" : "Copy history collection is off"))
+                    Button(localized(clipboard.historyEnabled ? "Resume clipboard history" : "Enable clipboard history monitoring")) {
+                        if clipboard.historyEnabled { clipboard.paused = false }
+                        else { clipboard.historyEnabled = true }
+                    }
+                }
+                .font(.caption)
+            } else if !clipboard.enabled && !clipboard.textEnabled && !clipboard.imageEnabled {
+                Text(localized("Select file, text, or image recording in Privacy & Permissions."))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             TextField(localized("Search history"), text: $search)
             Picker(localized("Operation"), selection: $operationType) {
                 Text(localized("All")).tag("All")
@@ -49,7 +78,7 @@ struct OperationTimelineView: View {
                 Text(localized("Drag/drop copy")).tag("drop_copy")
                 Text(localized("Text copy")).tag("text_copy")
                 Text(localized("Image copy")).tag("image_copy")
-                Text(localized("Paste request")).tag("paste_request")
+                Text(localized("Paste")).tag("paste_request")
             }
             Picker(localized("Item type"), selection: $itemKind) {
                 Text(localized("All")).tag("All")
@@ -71,69 +100,98 @@ struct OperationTimelineView: View {
                     }
                 }
             }
+            if let error = appState.operationQueryError {
+                Text(error).foregroundStyle(.orange)
+            } else if appState.loadingOperations && appState.operations.isEmpty {
+                ProgressView().controlSize(.small)
+            } else if visible.isEmpty {
+                Text(localized(appState.operations.isEmpty
+                    ? "No operations in this time range" : "No operations match these filters"))
+                    .foregroundStyle(.secondary)
+            }
             List(visible) { operation in
-                DisclosureGroup {
-                    ForEach(Array(operation.items.enumerated()), id: \.offset) { position, item in
-                        VStack(alignment: .leading) {
-                            Text(item.name).fontWeight(.medium)
-                            HStack {
-                                Text(item.source ?? localized("Unknown source"))
-                                    .font(.caption).textSelection(.enabled)
-                                if let source = item.source {
-                                    Button {
-                                        appState.copyAgain(source)
-                                    } label: {
-                                        Image(systemName: "doc.on.doc")
-                                    }
-                                    .buttonStyle(.borderless)
-                                    .help(localized("Copy source path"))
-                                }
-                            }
-                            Text("\(item.kind) · \(item.fileExtension ?? localized("Unknown")) · \(item.size.map(String.init) ?? localized("Unknown"))")
-                                .font(.caption).foregroundStyle(.secondary)
-                            if (item.kind == "folder" || item.kind == "package"),
-                               let path = item.source, path.hasPrefix("/"), item.size == nil {
-                                Button(localized("Calculate folder size (background)")) {
-                                    calculateFolderSize(operationID: operation.id, position: position, path: path)
-                                }
-                                .disabled(activeSizeItem != nil)
-                            }
-                        }
-                    }
-                    Text("\(localized("Detection")): \(operation.detectionMethod)")
-                    Text("\(localized("Status")): \(operation.status)")
-                    HStack {
-                        Text("\(localized("Target")): \(operation.target ?? localized("Unknown"))")
-                        if let target = operation.target {
-                            Button {
-                                appState.copyAgain(target)
-                            } label: { Image(systemName: "doc.on.doc") }
-                                .buttonStyle(.borderless)
-                                .help(localized("Copy target path"))
-                        }
-                    }
-                    Text("\(localized("Duration")): \(operation.durationMS.map(String.init) ?? localized("Unknown")) ms")
-                    if let copied = operation.clipboardText {
-                        Text(copied).textSelection(.enabled)
-                    }
-                } label: {
+                if operation.type == "paste_request" {
                     HStack {
                         Text(Self.timestamp(operation.eventTimeMS ?? operation.detectedTimeMS))
                             .monospacedDigit()
-                        Text(localized(operation.type == "drop_copy" ? "Drag/drop copy" : operation.type == "paste_request" ? "Paste request" : operation.type == "text_copy" ? "Text copy" : operation.type == "image_copy" ? "Image copy" : operation.type == "copy" ? "File copy" : "Path copy"))
-                        Text(operation.type == "paste_request"
-                             ? localized("Paste requested, completion unknown")
-                             : operation.type == "text_copy" ? (operation.clipboardText ?? localized("Text"))
-                             : (operation.items.count == 1 ? operation.items[0].name
-                                : "\(operation.items.count) \(localized("items"))"))
-                            .lineLimit(1)
+                        Text(localized("Paste detected"))
                     }
+                } else {
+                    timelineEntry(operation)
                 }
             }
         }
         .padding()
-        .onAppear { query() }
+        .onAppear {
+            // Keep the default recent range open to new events until the user
+            // runs a query with an explicit end time.
+            if hasLoadedTimeline {
+                appState.refreshOperations()
+            } else {
+                hasLoadedTimeline = true
+                appState.refreshOperations(from: Int64(start.timeIntervalSince1970 * 1_000))
+            }
+        }
+        .onChange(of: clipboard.savedRevision) { _ in appState.refreshOperations() }
         .onDisappear { folderSizeTask?.cancel() }
+    }
+
+    private func timelineEntry(_ operation: RecordedOperation) -> some View {
+        DisclosureGroup {
+            ForEach(Array(operation.items.enumerated()), id: \.offset) { position, item in
+                VStack(alignment: .leading) {
+                    Text(item.name).fontWeight(.medium)
+                    HStack {
+                        Text(item.source ?? localized("Unknown source"))
+                            .font(.caption).textSelection(.enabled)
+                        if let source = item.source {
+                            Button {
+                                appState.copyAgain(source)
+                            } label: {
+                                Image(systemName: "doc.on.doc")
+                            }
+                            .buttonStyle(.borderless)
+                            .help(localized("Copy source path"))
+                        }
+                    }
+                    Text("\(item.kind) · \(item.fileExtension ?? localized("Unknown")) · \(item.size.map(String.init) ?? localized("Unknown"))")
+                        .font(.caption).foregroundStyle(.secondary)
+                    if (item.kind == "folder" || item.kind == "package"),
+                       let path = item.source, path.hasPrefix("/"), item.size == nil {
+                        Button(localized("Calculate folder size (background)")) {
+                            calculateFolderSize(operationID: operation.id, position: position, path: path)
+                        }
+                        .disabled(activeSizeItem != nil)
+                    }
+                }
+            }
+            Text("\(localized("Detection")): \(operation.detectionMethod)")
+            Text("\(localized("Status")): \(operation.status)")
+            HStack {
+                Text("\(localized("Target")): \(operation.target ?? localized("Unknown"))")
+                if let target = operation.target {
+                    Button {
+                        appState.copyAgain(target)
+                    } label: { Image(systemName: "doc.on.doc") }
+                        .buttonStyle(.borderless)
+                        .help(localized("Copy target path"))
+                }
+            }
+            Text("\(localized("Duration")): \(operation.durationMS.map(String.init) ?? localized("Unknown")) ms")
+            if let copied = operation.clipboardText {
+                Text(copied).textSelection(.enabled)
+            }
+        } label: {
+            HStack {
+                Text(Self.timestamp(operation.eventTimeMS ?? operation.detectedTimeMS))
+                    .monospacedDigit()
+                Text(localized(operation.type == "drop_copy" ? "Drag/drop copy" : operation.type == "text_copy" ? "Text copy" : operation.type == "image_copy" ? "Image copy" : operation.type == "copy" ? "File copy" : "Path copy"))
+                Text(operation.type == "text_copy" ? (operation.clipboardText ?? localized("Text"))
+                     : (operation.items.count == 1 ? operation.items[0].name
+                        : "\(operation.items.count) \(localized("items"))"))
+                    .lineLimit(1)
+            }
+        }
     }
 
     private func calculateFolderSize(operationID: String, position: Int, path: String) {
@@ -182,7 +240,9 @@ struct OperationTimelineView: View {
     private func query() {
         let lower = Int64(start.timeIntervalSince1970 / 60) * 60_000 + Int64(max(0, min(59, startSecond))) * 1000 + Int64(max(0, min(999, startMillisecond)))
         let upper = Int64(end.timeIntervalSince1970 / 60) * 60_000 + Int64(max(0, min(59, endSecond))) * 1000 + Int64(max(0, min(999, endMillisecond)))
-        guard lower <= upper else { return }
+        rangeError = lower > upper
+        guard !rangeError else { return }
+        showingAllHistory = false
         appState.refreshOperations(from: lower, to: upper == Int64.max ? upper : upper + 1)
     }
 

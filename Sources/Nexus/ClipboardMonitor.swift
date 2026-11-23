@@ -98,6 +98,10 @@ final class ClipboardMonitor: ObservableObject {
     var onDetected: ((String) -> Void)?
 
     private let store = OperationStore.shared()
+    /// A missing SQLite store must never look like successful recording.
+    var storageAvailable: Bool { store != nil }
+    var isCollectingHistory: Bool { timer != nil && storageAvailable }
+
     private var timer: Timer?
     private var retentionTimer: Timer?
     private var lastChangeCount: Int
@@ -134,15 +138,30 @@ final class ClipboardMonitor: ObservableObject {
         lastChangeCount = NSPasteboard.general.changeCount
     }
 
+    func historyDidChange() {
+        savedRevision &+= 1
+    }
+
+    /// Re-evaluate opt-in observation whenever sync formats or destination
+    /// become enabled/disabled, without altering saved clipboard history.
+    func refreshObservationConfiguration() {
+        configureTimer()
+    }
+
     private func configureTimer() {
         timer?.invalidate()
         retentionTimer?.invalidate()
         timer = nil
         retentionTimer = nil
         lastChangeCount = NSPasteboard.general.changeCount
+        let sync = ClipboardCloudController.shared
         if ClipboardRetentionActivityPolicy.shouldObserve(
             paused: paused, files: enabled, text: textEnabled,
-            images: imageEnabled, historyEnabled: historyEnabled
+            images: imageEnabled, historyEnabled: historyEnabled,
+            mirrorEnabled: ((sync.enabled && sync.folderPrepared) || sync.mirrorOnlyEnabled)
+                && sync.containerConfigured,
+            mirrorFiles: sync.mirrorFiles, mirrorText: sync.mirrorText,
+            mirrorImages: sync.mirrorImages
         ) {
             timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
                 MainActor.assumeIsolated { self?.checkPasteboard() }
@@ -185,7 +204,7 @@ final class ClipboardMonitor: ObservableObject {
                 if removed > 0 {
                     // Refresh the visible shelf after retained history is
                     // committed, not before the background cleanup finishes.
-                    savedRevision &+= 1
+                    historyDidChange()
                 }
             case .failure(let error):
                 cleanupStatus = error.localizedDescription
@@ -193,7 +212,8 @@ final class ClipboardMonitor: ObservableObject {
         }
     }
 
-    private func persist(_ write: @escaping @Sendable () throws -> Void) {
+    private func persist(feedbackKey: String? = nil,
+                         _ write: @escaping @Sendable () throws -> Void) {
         Task { [weak self] in
             let committed = await Task.detached(priority: .utility) { () -> Bool in
                 do {
@@ -206,7 +226,10 @@ final class ClipboardMonitor: ObservableObject {
             // This actor-bound revision is only a freshness signal. Clipboard
             // text and image bytes never travel through notifications.
             if committed {
-                self?.savedRevision &+= 1
+                self?.historyDidChange()
+                // Only notify after the history entry is durable. Detection
+                // alone must not be represented as a successfully saved copy.
+                if let feedbackKey { self?.onDetected?(feedbackKey) }
             }
         }
     }
@@ -214,7 +237,9 @@ final class ClipboardMonitor: ObservableObject {
     private func checkPasteboard() {
         // Guard again for a timer callback already queued when the user
         // disabled clipboard observation.
-        guard historyEnabled, !paused else { return }
+        let sync = ClipboardCloudController.shared
+        let mirrorActive = (sync.enabled && sync.folderPrepared) || sync.mirrorOnlyEnabled
+        guard !paused, historyEnabled || mirrorActive else { return }
         let pasteboard = NSPasteboard.general
         let count = pasteboard.changeCount
         guard count != lastChangeCount else { return }
@@ -241,9 +266,9 @@ final class ClipboardMonitor: ObservableObject {
 
         let urls = URLDropReader.fileURLs(from: pasteboard)
         if !urls.isEmpty {
-            guard enabled, let store else { return }
-            onDetected?("Clipboard files detected")
-            persist {
+            ClipboardCloudController.shared.mirrorCopied(.files(urls))
+            guard historyEnabled, enabled, let store else { return }
+            persist(feedbackKey: "Clipboard files detected") {
                 try store.record(type: "copy", urls: urls,
                                  sourceApplication: observedForegroundID,
                                  detectionMethod: "clipboard_frontmost_observed",
@@ -265,13 +290,24 @@ final class ClipboardMonitor: ObservableObject {
         })
         let imageDeclared = encodedImageType != nil
             || pasteboard.types?.contains(where: { $0.rawValue == "public.image" }) == true
-        if (enabled || imageEnabled), imageDeclared, let store {
-            onDetected?("Clipboard image detected")
+        if imageDeclared, let encodedImageType,
+           let originalImage = pasteboard.data(forType: encodedImageType) {
+            let ext: String
+            switch encodedImageType.rawValue {
+            case "public.tiff": ext = "tiff"
+            case "public.jpeg": ext = "jpeg"
+            case "public.heic": ext = "heic"
+            case "com.compuserve.gif": ext = "gif"
+            default: ext = "png"
+            }
+            ClipboardCloudController.shared.mirrorCopied(.image(originalImage, extensionName: ext))
+        }
+        if historyEnabled, (enabled || imageEnabled), imageDeclared, let store {
             if imageEnabled, let encodedImageType,
                let data = pasteboard.data(forType: encodedImageType),
                data.count > 0 && data.count <= maximumImageBytes {
                 let type = encodedImageType.rawValue
-                persist {
+                persist(feedbackKey: "Clipboard image detected") {
                     if let thumbnail = ClipboardThumbnailMaker.jpegPreview(from: data) {
                         do {
                             try store.recordClipboardImage(
@@ -290,7 +326,7 @@ final class ClipboardMonitor: ObservableObject {
                                      detectedTimeMS: detected)
                 }
             } else {
-                persist {
+                persist(feedbackKey: "Clipboard image detected") {
                     try store.record(type: "image_copy", urls: [],
                                      sourceApplication: observedForegroundID,
                                      detectionMethod: "clipboard_frontmost_observed",
@@ -299,12 +335,28 @@ final class ClipboardMonitor: ObservableObject {
             }
             return
         }
+        if imageDeclared { return }
 
-        guard textEnabled, let store,
+        if let copiedText = pasteboard.string(forType: .string), !copiedText.isEmpty {
+            // Folder-mirror consent is independent of the history preview
+            // setting. Prefer exact public RTF bytes over a lossy re-render.
+            if let originalRTF = pasteboard.data(forType: .rtf), !originalRTF.isEmpty {
+                ClipboardCloudController.shared.mirrorCopied(
+                    .richText(text: copiedText, rtf: originalRTF)
+                )
+            } else if let originalHTML = pasteboard.data(forType: .html),
+                      !originalHTML.isEmpty {
+                ClipboardCloudController.shared.mirrorCopied(
+                    .html(text: copiedText, html: originalHTML)
+                )
+            } else {
+                ClipboardCloudController.shared.mirrorCopied(.text(copiedText))
+            }
+        }
+        guard historyEnabled, textEnabled, let store,
               let text = pasteboard.string(forType: .string),
               !text.isEmpty,
               text.utf8.count <= maximumTextBytes else { return }
-        onDetected?("Clipboard text detected")
         // RTF and HTML formatting both require the existing independent
         // typography opt-in. HTML is parsed offline with a strict tag
         // allowlist, never rendered as a webpage or loaded by WebKit.
@@ -314,7 +366,7 @@ final class ClipboardMonitor: ObservableObject {
             ? pasteboard.string(forType: NSPasteboard.PasteboardType("public.url-name"))
             : nil
         let duplicatePolicy = textDuplicatePolicy
-        persist {
+        persist(feedbackKey: "Clipboard text detected") {
             let original = text.trimmingCharacters(in: .whitespacesAndNewlines)
             var sanitized: ClipboardRichTextPreview?
             var format = "rtf"

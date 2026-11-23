@@ -36,4 +36,24 @@ final class ClipboardPanelPlacementTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(frame.minY, screen.minY)
         XCTAssertLessThanOrEqual(frame.maxY, screen.maxY)
     }
+    func testMinimumSizeShrinksOnCompactLaptopScreens() {
+        let small = CGRect(x: 0, y: 0, width: 640, height: 480)
+        let minimum = ClipboardPanelPlacement.minimumSize(inside: small)
+        XCTAssertEqual(minimum.width, 616)
+        XCTAssertEqual(minimum.height, 444)
+        let adjusted = ClipboardPanelPlacement.frame(
+            inside: small, requestedSize: minimum
+        )
+        XCTAssertLessThanOrEqual(adjusted.maxX, small.maxX)
+        XCTAssertLessThanOrEqual(adjusted.maxY, small.maxY)
+        XCTAssertGreaterThanOrEqual(adjusted.minX, small.minX)
+        XCTAssertGreaterThanOrEqual(adjusted.minY, small.minY)
+    }
+
+    func testPreferredMinimumIsRetainedOnFullSizeDisplay() {
+        let wide = CGRect(x: -1728, y: 20, width: 1728, height: 1070)
+        let minimum = ClipboardPanelPlacement.minimumSize(inside: wide)
+        XCTAssertEqual(minimum, CGSize(width: 820, height: 580))
+    }
+
 }

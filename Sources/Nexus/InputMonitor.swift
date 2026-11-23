@@ -3,39 +3,57 @@ import Carbon
 import CoreGraphics
 import NexusCore
 
-final class InputMonitor: @unchecked Sendable {
+enum ClipboardShortcutObservation: Sendable {
+    case copy, paste, pasteRecorded
+}
+
+final class InputMonitor: InputEventListening, @unchecked Sendable {
     private let store: InputStatisticsStore
     private let operationStore = OperationStore.shared()
     private var tap: CFMachPort?
     private var source: CFRunLoopSource?
+    private var startFailed = false
+    private(set) var receivedEvents = false
     private var mediaMonitor: Any?
     private var hidMonitor: HIDConsumerMonitor?
     private var recentSystemEvents: [String: (source: String, timeMS: Int64)] = [:]
     var onDiagnostic: (@Sendable (InputDiagnosticEvent) -> Void)?
-    var onPasteRequest: (@Sendable (Int64) -> Void)?
+    var onClipboardShortcut: (@Sendable (ClipboardShortcutObservation) -> Void)?
 
     init(store: InputStatisticsStore) { self.store = store }
 
-    var hasPermission: Bool { CGPreflightListenEventAccess() }
+    var tapState: InputTapState {
+        guard let tap else { return startFailed ? .creationFailed : .stopped }
+        return CFMachPortIsValid(tap) && CGEvent.tapIsEnabled(tap: tap) ? .listening : .disabled
+    }
 
-    @discardableResult
-    func start() -> Bool {
-        guard tap == nil, hasPermission else { return false }
-        let eventTypes: [CGEventType] = [.keyDown, .flagsChanged, .leftMouseDown, .rightMouseDown, .otherMouseDown, .scrollWheel]
+    func start() {
+        guard tapState != .listening else { return }
+        stop()
+        let eventTypes: [CGEventType] = [.keyDown, .keyUp, .flagsChanged, .leftMouseDown, .rightMouseDown, .otherMouseDown, .scrollWheel]
         let mask = eventTypes.reduce(CGEventMask(0)) { $0 | (CGEventMask(1) << $1.rawValue) }
         let callback: CGEventTapCallBack = { proxy, type, event, context in
             guard let context else { return Unmanaged.passUnretained(event) }
             let monitor = Unmanaged<InputMonitor>.fromOpaque(context).takeUnretainedValue()
             if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-                if let tap = monitor.tap, monitor.hasPermission { CGEvent.tapEnable(tap: tap, enable: true) }
+                if let tap = monitor.tap, CGPreflightListenEventAccess() {
+                    CGEvent.tapEnable(tap: tap, enable: true)
+                }
                 return Unmanaged.passUnretained(event)
             }
+            if (type == .keyDown || type == .keyUp || type == .flagsChanged) && IsSecureEventInputEnabled() {
+                return Unmanaged.passUnretained(event)
+            }
+            monitor.receivedEvents = true
             monitor.classify(type: type, event: event)
             return Unmanaged.passUnretained(event)
         }
-        guard let tap = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .headInsertEventTap, options: .listenOnly, eventsOfInterest: mask, callback: callback, userInfo: Unmanaged.passUnretained(self).toOpaque()) else { return false }
+        guard let tap = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .headInsertEventTap, options: .listenOnly, eventsOfInterest: mask, callback: callback, userInfo: Unmanaged.passUnretained(self).toOpaque()),
+              let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0) else {
+            startFailed = true
+            return
+        }
         self.tap = tap
-        let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
         self.source = source
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
@@ -46,12 +64,11 @@ final class InputMonitor: @unchecked Sendable {
             self?.recordSystemEvent(name: name, timestampMS: timestampMS, source: source)
         }
         if hid.start() { hidMonitor = hid }
-        return true
     }
 
     func stop() {
         if let source { CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes) }
-        if let tap { CGEvent.tapEnable(tap: tap, enable: false) }
+        if let tap { CFMachPortInvalidate(tap) }
         if let mediaMonitor { NSEvent.removeMonitor(mediaMonitor) }
         hidMonitor?.stop()
         hidMonitor = nil
@@ -59,51 +76,80 @@ final class InputMonitor: @unchecked Sendable {
         mediaMonitor = nil
         source = nil
         tap = nil
+        startFailed = false
+        receivedEvents = false
     }
 
     private func classify(type: CGEventType, event: CGEvent) {
         let timeMS = Self.wallTimeMS(forSystemUptime: TimeInterval(event.timestamp) / 1_000_000_000)
         switch type {
         case .keyDown:
-            guard !IsSecureEventInputEnabled() else { return }
             let repeated = event.getIntegerValueField(.keyboardEventAutorepeat) != 0
             if repeated && !UserDefaults.standard.bool(forKey: "nexusCountKeyRepeats") { return }
             let code = event.getIntegerValueField(.keyboardEventKeycode)
-            let category = Self.specialKeys[code].map { _ in "keyboard" } ?? "ordinary"
-            let name = Self.specialKeys[code] ?? "character_total"
+            let classification = KeyboardEventClassifier.classifyKeyDown(
+                code: code, modifiers: Self.modifierSet(event.flags))
+            let category = classification.category
+            // Count physical keys by minute. Do not inspect event text or
+            // retain a character stream, including during Secure Input.
+            let name = classification.name
             let timestamp = category == "ordinary" ? (timeMS / 60_000) * 60_000 : timeMS
             store.enqueue(ClassifiedInputEvent(timeMS: timestamp, category: category, name: name, source: "quartz_uptime", isRepeat: repeated))
             if category != "ordinary" {
-                onDiagnostic?(InputDiagnosticEvent(timeMS: timeMS, name: name, source: "quartz_uptime", supported: true))
+                onDiagnostic?(InputDiagnosticEvent(
+                    timeMS: timeMS, name: name, source: "quartz_uptime",
+                    supported: true, keyCode: code,
+                    modifiers: Self.modifierNames(event.flags),
+                    eventKind: classification.observedChord == nil ? "keyDown" : "chord",
+                    isRepeat: repeated
+                ))
             }
-            if let shortcut = Self.shortcutName(code: code, flags: event.flags) {
-                store.enqueue(ClassifiedInputEvent(timeMS: timeMS, category: "shortcut", name: shortcut, source: "quartz_uptime", isRepeat: repeated))
-                onDiagnostic?(InputDiagnosticEvent(timeMS: timeMS, name: shortcut, source: "quartz_uptime", supported: true))
+            if let shortcut = classification.observedChord {
                 // This observes a keyboard request only. macOS provides no
                 // reliable third-party confirmation that a paste succeeded.
                 // It is independently opt-in and never reads clipboard text.
+                if shortcut == "command_c", !repeated {
+                    onClipboardShortcut?(.copy)
+                }
                 if shortcut == "command_v", !repeated,
                    UserDefaults.standard.bool(forKey: "nexusMonitorPasteRequests") {
+                    onClipboardShortcut?(.paste)
                     let recordStore = operationStore
                     let observedMS = Int64(Date().timeIntervalSince1970 * 1000)
+                    let onClipboardShortcut = onClipboardShortcut
                     Task.detached(priority: .utility) {
-                        try? recordStore?.record(
+                        guard let recordStore, (try? recordStore.record(
                             type: "paste_request", urls: [],
                             sourceApplication: nil,
                             detectionMethod: "quartz_shortcut",
                             eventTimeMS: timeMS, detectedTimeMS: observedMS
-                        )
+                        )) != nil else { return }
+                        onClipboardShortcut?(.pasteRecorded)
                     }
-                    onPasteRequest?(timeMS)
                 }
             }
+        case .keyUp:
+            // Only known special-key releases are visible in opt-in,
+            // in-memory diagnostics. Never retain ordinary typing sequences.
+            guard onDiagnostic != nil else { return }
+            let code = event.getIntegerValueField(.keyboardEventKeycode)
+            guard let name = Self.specialKeys[code] else { return }
+            onDiagnostic?(InputDiagnosticEvent(
+                timeMS: timeMS, name: name, source: "quartz_uptime",
+                supported: true, keyCode: code,
+                modifiers: Self.modifierNames(event.flags), eventKind: "keyUp"
+            ))
         case .flagsChanged:
-            guard !IsSecureEventInputEnabled() else { return }
             let code = event.getIntegerValueField(.keyboardEventKeycode)
             guard let name = Self.modifiers[code] else { return }
             if name == "caps_lock" || event.flags.contains(Self.modifierFlag(for: name)) {
                 store.enqueue(ClassifiedInputEvent(timeMS: timeMS, category: "modifier", name: name, source: "quartz_uptime"))
-                onDiagnostic?(InputDiagnosticEvent(timeMS: timeMS, name: name, source: "quartz_uptime", supported: true))
+                onDiagnostic?(InputDiagnosticEvent(
+                    timeMS: timeMS, name: name, source: "quartz_uptime",
+                    supported: true, keyCode: code,
+                    modifiers: Self.modifierNames(event.flags),
+                    eventKind: "modifierChange"
+                ))
                 if name == "caps_lock" {
                     store.enqueue(ClassifiedInputEvent(timeMS: timeMS, category: "system", name: event.flags.contains(.maskAlphaShift) ? "caps_lock_on" : "caps_lock_off", source: "quartz_uptime"))
                 }
@@ -167,25 +213,33 @@ final class InputMonitor: @unchecked Sendable {
             timeMS: timestampMS, name: name, source: source, supported: true))
     }
 
-    private static let specialKeys: [Int64: String] = [53: "escape", 122: "f1", 120: "f2", 99: "f3", 118: "f4", 96: "f5", 97: "f6", 98: "f7", 100: "f8", 101: "f9", 109: "f10", 103: "f11", 111: "f12", 105: "f13", 107: "f14", 113: "f15", 106: "f16", 64: "f17", 79: "f18", 80: "f19", 90: "f20", 51: "delete", 117: "forward_delete", 36: "return", 48: "tab", 49: "space", 123: "left", 124: "right", 125: "down", 126: "up", 115: "home", 119: "end", 116: "page_up", 121: "page_down"]
-    private static let shortcutKeys: [Int64: String] = [8: "c", 9: "v", 7: "x", 6: "z", 48: "tab", 49: "space", 12: "q", 53: "escape"]
-    private static func shortcutName(code: Int64, flags: CGEventFlags) -> String? {
-        if flags.contains(.maskSecondaryFn), let function = specialKeys[code], function.first == "f",
-           Int(function.dropFirst()) != nil {
-            return "fn_\(function)"
-        }
-        if flags.contains(.maskCommand),
-           let function = specialKeys[code],
-           function.hasPrefix("f"), Int(function.dropFirst()) != nil {
-            return flags.contains(.maskShift)
-                ? "command_shift_\(function)" : "command_\(function)"
-        }
-        guard flags.contains(.maskCommand), let key = shortcutKeys[code] else { return nil }
-        if key == "z" && flags.contains(.maskShift) { return "command_shift_z" }
-        if key == "q" && flags.contains(.maskControl) { return "control_command_q" }
-        if key == "escape" && flags.contains(.maskAlternate) { return "command_option_escape" }
-        if flags.contains(.maskAlternate) || flags.contains(.maskControl) || flags.contains(.maskShift) { return nil }
-        return "command_\(key)"
+    private static let specialKeys = KeyboardEventClassifier.specialKeys
+
+    private static func modifierNames(_ flags: CGEventFlags) -> [String] {
+        let mappings: [(CGEventFlags, String)] = [
+            (.maskControl, "Control"), (.maskAlternate, "Option"),
+            (.maskCommand, "Command"), (.maskShift, "Shift"),
+            (.maskSecondaryFn, "Fn")
+        ]
+        return mappings.compactMap { flags.contains($0.0) ? $0.1 : nil }
+    }
+
+    static func physicalKeyName(code: Int64, shifted: Bool) -> String {
+        KeyboardEventClassifier.physicalKeyName(code: code, shifted: shifted)
+    }
+
+    static func shortcutName(code: Int64, flags: CGEventFlags) -> String? {
+        KeyboardEventClassifier.shortcutName(code: code, modifiers: modifierSet(flags))
+    }
+
+    private static func modifierSet(_ flags: CGEventFlags) -> Set<KeyboardEventClassifier.Modifier> {
+        var modifiers = Set<KeyboardEventClassifier.Modifier>()
+        if flags.contains(.maskControl) { modifiers.insert(.control) }
+        if flags.contains(.maskAlternate) { modifiers.insert(.option) }
+        if flags.contains(.maskCommand) { modifiers.insert(.command) }
+        if flags.contains(.maskShift) { modifiers.insert(.shift) }
+        if flags.contains(.maskSecondaryFn) { modifiers.insert(.fn) }
+        return modifiers
     }
 
     private static func wallTimeMS(forSystemUptime eventUptime: TimeInterval) -> Int64 {

@@ -12,13 +12,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let finderExtensionMigrationController = FinderExtensionMigrationController.production()
     private let welcomeGuideStore = WelcomeGuideStore()
     private lazy var welcomeGuideController = WelcomeGuideWindowController(
-        onOpenSettings: { [weak self] in self?.openSettingsFromWelcome() }
+        onOpenMenu: { [weak self] in
+            self?.statusItemController?.showMenu()
+        }
     )
     private var welcomeGuideObserver: NSObjectProtocol?
 
 
     func applicationWillTerminate(_ notification: Notification) {
         ClipboardHotkeyController.shared.shutdown()
+        InputStatisticsController.shared.stopAndFlush()
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -28,17 +31,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // Newly installed users only; respect a persisted disabled preference.
             appState.setLaunchAtLoginEnabled(true)
         }
-        let state = appState
-        InputStatisticsController.shared.setPasteRequestHandler { _ in
-            Task { @MainActor in
-                state.clipboardDidChange("Paste request detected")
+        InputStatisticsController.shared.setClipboardShortcutHandler { [weak self] observation in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                switch observation {
+                case .copy:
+                    // While history is paused there is no pasteboard read or write.
+                    if !ClipboardMonitor.shared.isCollectingHistory {
+                        self.appState.clipboardDidChange("Copy shortcut detected")
+                    }
+                case .paste: self.appState.clipboardDidChange("Paste detected")
+                case .pasteRecorded: self.appState.refreshOperations()
+                }
             }
         }
-        InputStatisticsController.shared.startIfPermitted()
+        InputStatisticsController.shared.refreshPermissionStatus()
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            Task { @MainActor in
+                InputStatisticsController.shared.refreshPermissionStatus()
+            }
+        }
         _ = InputCloudBackupController.shared
         _ = NetworkSyncController.shared
-        if UserDefaults.standard.bool(forKey: "nexusCloudClipboardEnabled"),
-           UserDefaults.standard.bool(forKey: "nexusCloudClipboardAutomaticSync") {
+        if UserDefaults.standard.bool(forKey: "nexusFolderClipboardEnabled"),
+           UserDefaults.standard.bool(forKey: "nexusFolderClipboardAutomaticSync") {
             _ = ClipboardCloudController.shared
         }
         ClipboardMonitor.shared.onDetected = { [weak self] key in
@@ -89,14 +109,4 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 
-    private func openSettingsFromWelcome() {
-        welcomeGuideController.dismiss()
-        DispatchQueue.main.async {
-            NSApp.activate(ignoringOtherApps: true)
-            let opened = NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-            if !opened {
-                NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
-            }
-        }
-    }
 }

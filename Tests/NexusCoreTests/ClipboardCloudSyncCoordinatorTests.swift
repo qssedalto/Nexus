@@ -241,3 +241,121 @@ final class ClipboardCloudSyncCoordinatorTests: XCTestCase {
         }
     }
 }
+
+
+/// Real local file I/O tests: the free transport is never permitted to
+/// write readable clipboard text to the user's iCloud Drive folder.
+final class ClipboardFolderTransportTests: XCTestCase {
+    private func temporaryFolder() throws -> URL {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+            .appendingPathComponent(ClipboardFolderTransport.folderName, isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        return root
+    }
+
+    private func collection(_ name: String = "私人收藏集合") -> ClipboardCloudRecord {
+        ClipboardCloudRecord(
+            id: ClipboardCloudRecord.collectionID("sample"),
+            kind: .collection,
+            revision: ClipboardCloudRevision(counter: 1, deviceID: "test-mac"),
+            payload: .collection(ClipboardCloudCollection(name: name))
+        )
+    }
+
+    func testEncryptedFolderTransportRoundTripAndRetry() async throws {
+        let folder = try temporaryFolder()
+        defer { try? FileManager.default.removeItem(at: folder.deletingLastPathComponent()) }
+        let transport = try ClipboardFolderTransport(folderURL: folder,
+            keyData: Data(repeating: 0x42, count: 32))
+        try await transport.prepareFolderIfRequested()
+        let record = collection()
+        let acknowledgements = try await transport.upload([record], permissionCheck: { _ in true })
+        XCTAssertEqual(acknowledgements.count, 1)
+        let root = folder.appendingPathComponent("encrypted-changes", isDirectory: true)
+        let files = try FileManager.default.contentsOfDirectory(at: root,
+            includingPropertiesForKeys: nil)
+        XCTAssertEqual(files.count, 1)
+        let raw = try Data(contentsOf: try XCTUnwrap(files.first))
+        XCTAssertFalse(String(decoding: raw, as: UTF8.self).contains("私人收藏集合"),
+                       "iCloud Drive must never contain plaintext collection names")
+        let page = try await transport.fetch(after: nil)
+        XCTAssertEqual(page.changes, [record])
+        XCTAssertEqual(page.token, Data("0".utf8))
+        let retried = try await transport.upload([record], permissionCheck: { _ in true })
+        XCTAssertEqual(retried.count, 1, "An immutable retry must not create a duplicate")
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(
+            at: root, includingPropertiesForKeys: nil).count, 1)
+    }
+
+    func testCopiedTextAppearsInSyncedHistoryOnBothDevices() async throws {
+        let folder = try temporaryFolder()
+        let root = folder.deletingLastPathComponent()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let transport = try ClipboardFolderTransport(folderURL: folder,
+            keyData: Data(repeating: 0x38, count: 32))
+        try await transport.prepareFolderIfRequested()
+        let leftStore = try OperationStore(url: root.appendingPathComponent("left-history.sqlite"))
+        let rightStore = try OperationStore(url: root.appendingPathComponent("right-history.sqlite"))
+        let left = try ClipboardCloudJournal(url: root.appendingPathComponent("left-journal.sqlite"))
+        let right = try ClipboardCloudJournal(url: root.appendingPathComponent("right-journal.sqlite"))
+        let consent = ClipboardCloudConsent(enabled: true, includeText: true)
+        try leftStore.record(type: "paste_request", urls: [], sourceApplication: nil,
+                             detectionMethod: "test")
+        let pasteOnly = try ClipboardCloudLocalSnapshot.stagePage(
+            from: leftStore, in: left, deviceID: "left", consent: consent
+        )
+        XCTAssertEqual(pasteOnly.inspected, 0)
+        try leftStore.record(type: "text_copy", urls: [], sourceApplication: nil,
+                             detectionMethod: "test", clipboardText: "Sample copy")
+        let copy = try ClipboardCloudLocalSnapshot.stagePage(
+            from: leftStore, in: left, deviceID: "left", consent: consent
+        )
+        XCTAssertEqual(copy.staged, 1)
+        XCTAssertTrue(try left.cachedRecords(synchronizedOnly: true).isEmpty)
+
+        let sender = try ClipboardCloudSyncCoordinator(journal: left, transport: transport, zoneID: "test")
+        let receiver = try ClipboardCloudSyncCoordinator(journal: right, transport: transport, zoneID: "test")
+        let sent = try await sender.syncOnce(consent: consent)
+        let received = try await receiver.syncOnce(consent: consent)
+        XCTAssertEqual(sent.uploaded, 1)
+        XCTAssertEqual(received.downloaded, 1)
+        let synced = try right.cachedRecords(synchronizedOnly: true)
+        XCTAssertEqual(synced, try left.cachedRecords(synchronizedOnly: true))
+        XCTAssertEqual(try rightStore.importCloudHistory(synced, consent: consent), 1)
+        XCTAssertEqual(try rightStore.importCloudHistory(synced, consent: consent), 0)
+        XCTAssertEqual(try rightStore.query(from: 0, to: Int64.max).first?.clipboardText, "Sample copy")
+    }
+
+    func testIncorrectPairingKeyCannotReadRecords() async throws {
+        let folder = try temporaryFolder()
+        defer { try? FileManager.default.removeItem(at: folder.deletingLastPathComponent()) }
+        let original = try ClipboardFolderTransport(folderURL: folder,
+            keyData: Data(repeating: 0x11, count: 32))
+        try await original.prepareFolderIfRequested()
+        _ = try await original.upload([collection()], permissionCheck: { _ in true })
+        let wrong = try ClipboardFolderTransport(folderURL: folder,
+            keyData: Data(repeating: 0x22, count: 32))
+        do {
+            _ = try await wrong.fetch(after: nil)
+            XCTFail("Wrong secret should never decrypt an encrypted change")
+        } catch {
+            // Authentication failure is required. No partial import.
+        }
+    }
+
+    func testRevokedConsentPreventsFileCreation() async throws {
+        let folder = try temporaryFolder()
+        defer { try? FileManager.default.removeItem(at: folder.deletingLastPathComponent()) }
+        let transport = try ClipboardFolderTransport(folderURL: folder,
+            keyData: Data(repeating: 0x66, count: 32))
+        try await transport.prepareFolderIfRequested()
+        let acknowledgements = try await transport.upload([collection()],
+            permissionCheck: { _ in false })
+        XCTAssertTrue(acknowledgements.isEmpty)
+        let files = try FileManager.default.contentsOfDirectory(
+            at: folder.appendingPathComponent("encrypted-changes"),
+            includingPropertiesForKeys: nil)
+        XCTAssertTrue(files.isEmpty)
+    }
+}

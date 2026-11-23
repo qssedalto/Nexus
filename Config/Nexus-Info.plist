@@ -30,11 +30,6 @@
 	<string>Copyright © 2026 qssedalto. Portions © 2026 Marco Gomiero.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
-	<key>NexusAppGroupIdentifier</key>
-	<string>$(APP_GROUP_ID)</string>
-	<!-- Native macOS Services is the supported fallback for iCloud Drive
-	     and File Provider folders where Finder Sync contextual menus are suppressed.
-	     It appears in Finder > Services when macOS makes it available. -->
 	<key>NSServices</key>
 	<array>
 		<dict>
@@ -47,15 +42,19 @@
 			<string>copySelectedPaths</string>
 			<key>NSPortName</key>
 			<string>$(EXECUTABLE_NAME)</string>
-			<key>NSServiceDescription</key>
-			<string>Copy the file system paths of selected Finder items</string>
 			<key>NSRequiredContext</key>
 			<dict/>
 			<key>NSSendFileTypes</key>
 			<array>
 				<string>public.item</string>
 			</array>
+			<key>NSServiceDescription</key>
+			<string>Copy the file system paths of selected Finder items</string>
 		</dict>
 	</array>
+	<key>NexusAppGroupIdentifier</key>
+	<string>$(APP_GROUP_ID)</string>
+	<key>NexusCloudKitContainerIdentifier</key>
+	<string>$(NEXUS_CLOUDKIT_CONTAINER_ID)</string>
 </dict>
 </plist>

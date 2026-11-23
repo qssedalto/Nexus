@@ -1,5 +1,5 @@
 import AppKit
-import ApplicationServices
+import Security
 import SwiftUI
 import NexusCore
 
@@ -12,9 +12,66 @@ struct PrivacySettingsView: View {
     @AppStorage("nexusMonitorPasteRequests") private var pasteObservation = false
     @AppStorage("nexusClipboardFileThumbnailPreviews") private var allowFilePreviews = false
     @AppStorage("nexusClipboardRemoteTitlesEnabled") private var allowRemoteTitles = false
+    @State private var diagnosticsExpanded = false
     @State private var fullTextEnabled = false
     @State private var fullTextBusy = false
     @State private var fullTextStatus = ""
+
+    private var accessibilityGranted: Bool { statistics.permissionState.accessibilityGranted }
+
+    private var listenerStatus: String {
+        if !statistics.enabled { return "Statistics are turned off" }
+        if statistics.paused { return "Statistics are paused" }
+        if !statistics.permissionGranted { return "Waiting for Input Monitoring permission" }
+        if statistics.permissionState.storage == nil { return "Listener stopped because SQLite could not open" }
+        switch statistics.permissionState.tap {
+        case .listening: return "Event listener is running"
+        case .disabled: return "macOS disabled the event listener"
+        case .creationFailed, .stopped: return "Event listener could not start"
+        }
+    }
+
+    private var storageStatus: String {
+        switch statistics.permissionState.storage {
+        case nil: return "Could not open the statistics database"
+        case .ready: return "Open, waiting for a write this session"
+        case .written: return "Statistics written this session"
+        case .writeFailed: return "Statistics write failed, retrying"
+        }
+    }
+
+    private var signingTeam: String {
+        var code: SecCode?
+        var staticCode: SecStaticCode?
+        var information: CFDictionary?
+        guard SecCodeCopySelf([], &code) == errSecSuccess, let code,
+              SecCodeCopyStaticCode(code, [], &staticCode) == errSecSuccess, let staticCode,
+              SecCodeCopySigningInformation(staticCode, SecCSFlags(rawValue: kSecCSSigningInformation),
+                                            &information) == errSecSuccess,
+              let details = information as? [String: Any] else {
+            return localized("Signing information unavailable")
+        }
+        return details[kSecCodeInfoTeamIdentifier as String] as? String
+            ?? localized("No signing team (Ad Hoc or unsigned)")
+    }
+
+    private var permissionDiagnostics: some View {
+        DisclosureGroup(localized("Local permission diagnostics"), isExpanded: $diagnosticsExpanded) {
+            LabeledContent(localized("Running app"), value: Bundle.main.bundlePath)
+            LabeledContent(localized("Executable"), value: Bundle.main.executablePath ?? "—")
+            LabeledContent(localized("Bundle ID"), value: Bundle.main.bundleIdentifier ?? "—")
+            LabeledContent(localized("Process ID"), value: String(ProcessInfo.processInfo.processIdentifier))
+            LabeledContent(localized("Signing team"), value: signingTeam)
+            LabeledContent("CGPreflightListenEventAccess", value: String(statistics.permissionGranted))
+            LabeledContent("AXIsProcessTrusted", value: String(accessibilityGranted))
+            LabeledContent(localized("Event tap"), value: localized(listenerStatus))
+            LabeledContent(localized("Events received by this tap"),
+                           value: localized(statistics.permissionState.receivedEvents
+                                ? "Received" : "None observed yet"))
+            LabeledContent("SQLite", value: localized(storageStatus))
+        }
+        .textSelection(.enabled)
+    }
 
     private func configureFullTextIndex(_ enabled: Bool) {
         guard !fullTextBusy else { return }
@@ -44,35 +101,96 @@ struct PrivacySettingsView: View {
             Section(localized("Input monitoring and permissions")) {
                 HStack {
                     Label(
-                        localized(statistics.permissionGranted ? "Input permission granted" : "Input permission required"),
-                        systemImage: statistics.permissionGranted ? "checkmark.shield" : "lock.shield"
+                        localized(statistics.permissionGranted
+                            ? "Input monitoring: granted" : "Input monitoring: not granted"),
+                        systemImage: statistics.permissionGranted
+                            ? "checkmark.shield.fill" : "lock.shield"
                     )
                     Spacer()
                     if !statistics.permissionGranted {
-                        Button(localized("Grant input permission")) {
+                        Button(localized("Grant permission…")) {
                             statistics.requestPermission()
                         }
                     }
                 }
-                Toggle(localized("Enable keyboard and mouse statistics"), isOn: $statistics.enabled)
-                Toggle(localized("Pause statistics"), isOn: $statistics.paused)
-                    .disabled(!statistics.enabled)
-                HStack {
-                    Text(localized("Accessibility permission for quick paste"))
-                    Spacer()
-                    Text(localized(AXIsProcessTrusted() ? "Granted" : "Not granted"))
+                if !statistics.permissionGranted {
+                    Text(localized("For keyboard and mouse counts, enable Nexus Drive in System Settings > Privacy & Security > Input Monitoring."))
+                        .font(.caption)
                         .foregroundStyle(.secondary)
-                    Button(localized("Request access…")) {
-                        _ = AXIsProcessTrustedWithOptions([
-                            "AXTrustedCheckOptionPrompt": true
-                        ] as CFDictionary)
+                    Button(localized("Open Input Monitoring settings")) {
+                        statistics.openInputMonitoringSettings()
                     }
                 }
-                Text(localized("Nexus never reads typed text, password fields, or browser pages. Statistical key categories are stored locally unless you explicitly configure network sync."))
-                    .font(.caption).foregroundStyle(.secondary)
+                Toggle(localized("Enable keyboard and mouse statistics"),
+                       isOn: $statistics.enabled)
+                Toggle(localized("Pause statistics"), isOn: $statistics.paused)
+                    .disabled(!statistics.enabled)
+
+                Divider()
+
+                HStack {
+                    Label(localized("Quick paste (Accessibility)"),
+                          systemImage: accessibilityGranted
+                            ? "checkmark.shield.fill" : "hand.raised")
+                    Spacer()
+                    Text(localized(accessibilityGranted
+                        ? "Granted" : "Not granted"))
+                        .foregroundColor(accessibilityGranted ? .green : .secondary)
+                    if !accessibilityGranted {
+                        Button(localized("Grant permission…")) {
+                            statistics.requestAccessibilityPermission()
+                        }
+                    }
+                }
+                Text(localized("Accessibility permission is only needed for quick paste. It is separate from Input Monitoring."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                if !accessibilityGranted {
+                    Button(localized("Open Accessibility settings")) {
+                        statistics.openAccessibilitySettings()
+                    }
+                }
+
+                Label(localized(listenerStatus),
+                      systemImage: statistics.monitoringActive ? "checkmark.circle" : "info.circle")
+                    .foregroundStyle(.secondary)
+                if statistics.permissionState.storage == nil || statistics.permissionState.storage == .writeFailed {
+                    Text(localized(storageStatus)).font(.caption).foregroundStyle(.orange)
+                }
+                if !statistics.permissionGranted || !accessibilityGranted {
+                    Text(localized("In System Settings → Privacy & Security, open Input Monitoring or Accessibility. If the entry is already on, remove that Nexus Drive entry with the minus button, add the app shown below with the plus button, and turn it on. Then restart Nexus Drive here."))
+                        .font(.caption).foregroundStyle(.secondary)
+                    Text(Bundle.main.bundlePath)
+                        .font(.caption).textSelection(.enabled)
+                    Button(localized("Show running app in Finder")) {
+                        NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])
+                    }
+                }
+                HStack {
+                    Button(localized("Refresh permission status")) {
+                        statistics.refreshPermissionStatus()
+                    }
+                    Button(localized("Restart Nexus Drive to apply permissions")) {
+                        NexusAppRelauncher.restart()
+                    }
+                    .help(localized("Restarts this exact application automatically. Your saved history is preserved."))
+                }
+
+                permissionDiagnostics
+                Text(localized("Keyboard and mouse counts stay on this Mac unless you separately enable server uploads."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section(localized("Clipboard history privacy")) {
+                if !clipboard.storageAvailable {
+                    Label(localized("Local clipboard storage could not be opened. Restart Nexus Drive after rebuilding the app."),
+                          systemImage: "exclamationmark.triangle")
+                        .foregroundStyle(.orange)
+                } else if !clipboard.enabled && !clipboard.textEnabled && !clipboard.imageEnabled {
+                    Text(localized("No clipboard types are selected. Enable Record clipboard text, file copying, or images below to begin collecting new entries."))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 Toggle(localized("Enable clipboard history monitoring"), isOn: $clipboard.historyEnabled)
                 Toggle(localized("Monitor file copies from the clipboard"), isOn: $clipboard.enabled)
                     .disabled(!clipboard.historyEnabled)
@@ -162,9 +280,17 @@ struct PrivacySettingsView: View {
                 }
             }
 
+            if Bundle.main.bundleIdentifier == "com.qssedalto.nexus.drive.dev" {
+                Section(localized("Server sync (advanced)")) {
+                    Text(localized("Server uploads are optional. Configure and test your own API in Server sync (advanced). They are unrelated to folder sync."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
             Section(localized("Network consent")) {
                 Toggle(localized("Allow statistics upload to configured server"), isOn: $sync.statisticsUploadEnabled)
                 Toggle(localized("Automatic sync"), isOn: $sync.automatic)
+                    .disabled(!sync.hasToken || !sync.statisticsUploadEnabled)
                 Toggle(localized("Precise non-text events"), isOn: $sync.preciseEvents)
                     .disabled(!sync.statisticsUploadEnabled)
                 Toggle(localized("Allow operation metadata sync"), isOn: $sync.operationSyncEnabled)
@@ -177,6 +303,10 @@ struct PrivacySettingsView: View {
                 Text(localized("Operation uploads are off by default. Full paths and clipboard contents require separate consent even after metadata sync is enabled. Server-side deletion is controlled from Network sync."))
                     .font(.caption).foregroundStyle(.secondary)
             }
+            }
+        }
+        .onAppear {
+            statistics.refreshPermissionStatus()
         }
         .formStyle(.grouped)
         .padding(.horizontal, 8)

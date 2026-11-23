@@ -4,6 +4,48 @@ import XCTest
 @testable import NexusCore
 
 final class InputDashboardTests: XCTestCase {
+    func testSparseTrendAndLargeScrollPeakKeepCategoryTotalsIndependent() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try InputStatisticsStore(url: root.appendingPathComponent("input.sqlite"))
+        let start: Int64 = 1_800_000_000_000
+        XCTAssertTrue(try store.trend(from: start, to: start + 3_600_000,
+                                      resolution: .minute).isEmpty)
+        store.enqueue(ClassifiedInputEvent(timeMS: start + 1_000, category: "mouse",
+                                           name: "mouse_left", source: "test"))
+        for _ in 0..<500 {
+            store.enqueue(ClassifiedInputEvent(timeMS: start + 1_000, category: "scroll",
+                                               name: "scroll_down", source: "test"))
+        }
+        store.enqueue(ClassifiedInputEvent(timeMS: start + 3_600_000, category: "mouse",
+                                           name: "mouse_left", source: "test"))
+        let withinHour = try store.trend(from: start, to: start + 3_600_000,
+                                         resolution: .minute)
+        XCTAssertEqual(withinHour.count, 2)
+        XCTAssertEqual(withinHour.first(where: { $0.category == "mouse" })?.count, 1)
+        XCTAssertEqual(withinHour.first(where: { $0.category == "scroll" })?.count, 500)
+        XCTAssertEqual(try store.trend(from: start, to: start + 3_600_001,
+                                       resolution: .hour, category: "mouse")
+            .reduce(0) { $0 + $1.count }, 2)
+    }
+
+    func testSecondAndMinuteTrendsKeepFineTimestampBoundaries() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try InputStatisticsStore(url: root.appendingPathComponent("input.sqlite"))
+        let base: Int64 = 1_800_000_000_000
+        for offset in [Int64(999), 1_000, 59_999, 60_000, 60_001] {
+            store.enqueue(ClassifiedInputEvent(timeMS: base + offset, category: "mouse",
+                                                name: "mouse_left", source: "test"))
+        }
+        let seconds = try store.trend(from: base, to: base + 60_001, resolution: .second)
+        XCTAssertEqual(seconds.map(\.startMS), [base, base + 1_000, base + 59_000, base + 60_000])
+        XCTAssertEqual(seconds.map(\.count), [1, 1, 1, 1])
+        let minutes = try store.trend(from: base, to: base + 60_001, resolution: .minute)
+        XCTAssertEqual(minutes.map(\.startMS), [base, base + 60_000])
+        XCTAssertEqual(minutes.map(\.count), [3, 1])
+    }
+
     func testOverviewRankingAndExactMillisecondBuckets() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
@@ -110,6 +152,59 @@ final class InputDashboardTests: XCTestCase {
         XCTAssertEqual(try store.trend(from: 2000, to: 2003, resolution: .hour,
                                        source: hid).reduce(0) { $0 + $1.count }, 1)
         XCTAssertEqual(try store.sourceCounts(from: 2001, to: 2003).count, 2)
+    }
+
+    func testUTCHourBucketsAcrossDenverDaylightSavingTransitions() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try InputStatisticsStore(url: root.appendingPathComponent("input.sqlite"))
+        let formatter = ISO8601DateFormatter()
+        let transitions = [
+            ["2026-03-08T08:59:59Z", "2026-03-08T09:00:00Z"],
+            ["2026-11-01T07:59:59Z", "2026-11-01T08:00:00Z"],
+        ]
+        var local = Calendar(identifier: .gregorian)
+        local.timeZone = TimeZone(identifier: "America/Denver")!
+        let hours = transitions.map { pair -> [Date] in pair.compactMap(formatter.date(from:)) }
+        XCTAssertEqual(hours.map(\.count), [2, 2])
+        // Spring skips one local hour; fall repeats it. The underlying UTC
+        // event bucket must not merge or duplicate either physical hour.
+        XCTAssertEqual(
+            local.component(.hour, from: hours[0][0]),
+            1
+        )
+        XCTAssertEqual(local.component(.hour, from: hours[0][1]), 3)
+        XCTAssertEqual(local.component(.hour, from: hours[1][0]), 1)
+        XCTAssertEqual(local.component(.hour, from: hours[1][1]), 1)
+        for (idx, pair) in hours.enumerated() {
+            let times = pair.map { Int64($0.timeIntervalSince1970 * 1_000) }
+            store.enqueue(ClassifiedInputEvent(
+                timeMS: times[0], category: "mouse", name: "mouse_left",
+                source: "dst-\(idx)"
+            ))
+            store.enqueue(ClassifiedInputEvent(
+                timeMS: times[1], category: "mouse", name: "mouse_left",
+                source: "dst-\(idx)"
+            ))
+            // Another event category shares the exact wall-clock transition,
+            // but category filtering must not double-count it.
+            store.enqueue(ClassifiedInputEvent(
+                timeMS: times[1], category: "scroll", name: "scroll_up",
+                source: "dst-\(idx)"
+            ))
+            let rows = try store.trend(
+                from: times[0] - 1000, to: times[1] + 1000,
+                resolution: .hour, category: "mouse", source: "dst-\(idx)"
+            )
+            XCTAssertEqual(rows.count, 2)
+            XCTAssertEqual(rows.map(\.count), [1, 1])
+            XCTAssertEqual(rows[1].startMS - rows[0].startMS, 3_600_000)
+            let all = try store.trend(
+                from: times[0] - 1000, to: times[1] + 1000,
+                resolution: .hour, source: "dst-\(idx)"
+            )
+            XCTAssertEqual(all.reduce(Int64(0)) { $0 + $1.count }, 3)
+        }
     }
 
 }

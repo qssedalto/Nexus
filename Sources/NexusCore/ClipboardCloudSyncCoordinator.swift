@@ -1,4 +1,6 @@
 import Foundation
+import CryptoKit
+import Security
 
 /// An acknowledgement must identify the exact mutation. A matching record ID
 /// alone is not enough when a user edits an entry during an in-flight upload.
@@ -205,4 +207,308 @@ public actor ClipboardCloudSyncCoordinator {
             pending: try journal.pendingCount(), moreComing: false
         )
     }
+}
+
+
+// MARK: - iCloud Drive folder transport (CloudKit-free build path)
+/// A user-selected iCloud Drive directory is the transport. This deliberately
+/// requests NO iCloud/CloudKit entitlements and never contacts an Apple API.
+/// The system's File Provider handles synchronization outside this process.
+///
+/// Protocol v2 stores AES-256-GCM encrypted, UUID-named change files. The caller retains
+/// its SQLite journal and applies deterministic record merges. Binary payloads
+/// are intentionally unsupported until a verified asset protocol exists.
+public actor ClipboardFolderTransport: ClipboardCloudTransport, ClipboardCloudPrivateZoneDeletion {
+    public enum FolderError: Error, LocalizedError, Sendable {
+        case invalidDirectory, notPrepared, unsupportedAsset, invalidDocument
+        case oversizedDocument, conflictingMutation, inaccessibleFile, invalidEncryptionKey
+
+        public var errorDescription: String? {
+            switch self {
+            case .invalidDirectory: "Choose the NexusClipboardSync folder."
+            case .notPrepared: "Prepare the selected NexusClipboardSync folder first."
+            case .unsupportedAsset: "Original image and file transfer is not yet supported."
+            case .invalidDocument: "A sync document has an invalid format."
+            case .oversizedDocument: "A sync document exceeds the allowed size."
+            case .conflictingMutation: "The same mutation identifier has different contents."
+            case .inaccessibleFile: "The selected folder cannot be accessed."
+            case .invalidEncryptionKey: "Configure your 64-digit pairing key before syncing."
+            }
+        }
+    }
+
+    public static let folderName = "NexusClipboardSync"
+    private static let markerName = ".nexus-folder-sync-v2"
+    private static let maxBytes = 256 * 1_024
+    private let root: URL
+    private let encryptionKey: SymmetricKey
+    // Local mode may use any explicitly chosen user folder; never broaden
+    // the strict named-folder requirement of the iCloud mode by default.
+    private let allowSelectedLocalFolder: Bool
+
+    private struct Envelope: Codable {
+        let schemaVersion: Int
+        let record: ClipboardCloudRecord
+    }
+
+    public init(folderURL: URL, keyData: Data,
+                allowSelectedLocalFolder: Bool = false) throws {
+        guard keyData.count == 32 else { throw FolderError.invalidEncryptionKey }
+        root = folderURL.standardizedFileURL
+        encryptionKey = SymmetricKey(data: keyData)
+        self.allowSelectedLocalFolder = allowSelectedLocalFolder
+    }
+
+    /// Explicit initialization only, after the user selects the directory.
+    public func prepareFolderIfRequested() throws {
+        try withAccess {
+            let marker = root.appendingPathComponent(Self.markerName)
+            let directory = changesURL()
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            if !FileManager.default.fileExists(atPath: marker.path) {
+                try Data("Nexus encrypted clipboard folder protocol v2\n".utf8)
+                    .write(to: marker, options: .atomic)
+            }
+        }
+    }
+
+    public func upload(
+        _ records: [ClipboardCloudRecord],
+        permissionCheck: @escaping @Sendable (ClipboardCloudRecord) async -> Bool
+    ) async throws -> [ClipboardCloudUploadAck] {
+        var acknowledgements: [ClipboardCloudUploadAck] = []
+        for record in records {
+            try Task.checkCancellation()
+            guard await permissionCheck(record) else { continue }
+            _ = try record.validated()
+            guard !Self.hasBinaryReference(record) else { throw FolderError.unsupportedAsset }
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.sortedKeys]
+            let bytes = try encoder.encode(Envelope(schemaVersion: 2, record: record))
+            guard bytes.count <= Self.maxBytes else { throw FolderError.oversizedDocument }
+            guard let encrypted = try AES.GCM.seal(bytes, using: encryptionKey).combined else {
+                throw FolderError.invalidDocument
+            }
+            try withAccess {
+                try requirePrepared()
+                let target = changesURL().appendingPathComponent(record.mutationID + ".nxe")
+                let coordinator = NSFileCoordinator(filePresenter: nil)
+                var coordinationError: NSError?
+                var failure: Error?
+                coordinator.coordinate(writingItemAt: target, options: [], error: &coordinationError) { coordinatedURL in
+                    do {
+                        if FileManager.default.fileExists(atPath: coordinatedURL.path) {
+                            let current = try Data(contentsOf: coordinatedURL)
+                            let previous = try AES.GCM.open(
+                                AES.GCM.SealedBox(combined: current), using: encryptionKey
+                            )
+                            guard previous == bytes else { throw FolderError.conflictingMutation }
+                        } else {
+                            try encrypted.write(to: coordinatedURL, options: .atomic)
+                        }
+                    } catch { failure = error }
+                }
+                if let failure { throw failure }
+                if let coordinationError { throw coordinationError }
+            }
+            acknowledgements.append(ClipboardCloudUploadAck(
+                id: record.id, mutationID: record.mutationID
+            ))
+        }
+        return acknowledgements
+    }
+
+    /// A cycling index is intentional: newly-arrived File Provider entries
+    /// can appear anywhere in lexical order. When a pass reaches the end,
+    /// replay starts from zero; the journal deduplicates known mutations.
+    /// This gives eventual replay without an ever-growing token or trusting
+    /// unreliable cross-device modification timestamps.
+    public func fetch(after token: Data?) async throws -> ClipboardCloudDownloadPage {
+        try Task.checkCancellation()
+        return try withAccess {
+            try requirePrepared()
+            let files = try FileManager.default.contentsOfDirectory(
+                at: changesURL(), includingPropertiesForKeys: nil
+            ).filter {
+                Self.mutationFileID($0) != nil
+            }.sorted { $0.lastPathComponent < $1.lastPathComponent }
+            let provided = token.flatMap { String(data: $0, encoding: .utf8) }
+                .flatMap(Int.init) ?? 0
+            let start = (provided >= 0 && provided < files.count) ? provided : 0
+            let end = min(files.count, start + 200)
+            var records: [ClipboardCloudRecord] = []
+            for url in files[start..<end] {
+                let coordinator = NSFileCoordinator(filePresenter: nil)
+                var coordinationError: NSError?
+                var content: Data?
+                var failure: Error?
+                coordinator.coordinate(readingItemAt: url, options: [], error: &coordinationError) { coordinated in
+                    do {
+                        let metadata = try FileManager.default.attributesOfItem(atPath: coordinated.path)
+                        guard let length = metadata[.size] as? NSNumber,
+                              length.intValue > 28, length.intValue <= Self.maxBytes + 28 else {
+                            throw FolderError.oversizedDocument
+                        }
+                        guard let encrypted = try? Data(contentsOf: coordinated),
+                              encrypted.count <= Self.maxBytes + 28 else {
+                            throw FolderError.oversizedDocument
+                        }
+                        content = encrypted
+                    } catch { failure = error }
+                }
+                if let failure { throw failure }
+                if let coordinationError { throw coordinationError }
+                guard let content,
+                      let cleartext = try? AES.GCM.open(
+                        AES.GCM.SealedBox(combined: content), using: encryptionKey
+                      ),
+                      let envelope = try? JSONDecoder().decode(Envelope.self, from: cleartext),
+                      envelope.schemaVersion == 2,
+                      UUID(uuidString: envelope.record.mutationID) == Self.mutationFileID(url),
+                      (try? envelope.record.validated()) != nil,
+                      !Self.hasBinaryReference(envelope.record) else {
+                    throw FolderError.invalidDocument
+                }
+                records.append(envelope.record)
+            }
+            let more = end < files.count
+            let next = more ? end : 0
+            return ClipboardCloudDownloadPage(
+                changes: records,
+                token: Data(String(next).utf8),
+                moreComing: more
+            )
+        }
+    }
+
+    /// Explicit DELETE-only operation. Never touches other user documents,
+    /// the selected root, or data outside Nexus's protocol-owned UUID files.
+    public func deletePrivateNexusZone() async throws {
+        try withAccess {
+            try requirePrepared()
+            let files = try FileManager.default.contentsOfDirectory(
+                at: changesURL(), includingPropertiesForKeys: nil
+            )
+            for url in files where Self.mutationFileID(url) != nil {
+                try FileManager.default.removeItem(at: url)
+            }
+        }
+    }
+
+    private func changesURL() -> URL {
+        root.appendingPathComponent("encrypted-changes", isDirectory: true)
+    }
+    
+    private static func mutationFileID(_ url: URL) -> UUID? {
+        guard url.pathExtension == "nxe" else { return nil }
+        return UUID(uuidString: url.deletingPathExtension().lastPathComponent)
+    }
+
+    private func requirePrepared() throws {
+        guard FileManager.default.fileExists(
+            atPath: root.appendingPathComponent(Self.markerName).path
+        ) else { throw FolderError.notPrepared }
+    }
+
+    private func withAccess<T>(_ operation: () throws -> T) throws -> T {
+        // Foundation exposes this on both macOS and iOS (unlike
+        // FileManager.homeDirectoryForCurrentUser, which is macOS-only).
+        let home = URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true).standardizedFileURL
+        guard root.isFileURL,
+              root.path != "/",
+              root != home,
+              (root.lastPathComponent == Self.folderName || allowSelectedLocalFolder),
+              (try? root.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey]))?.isDirectory == true,
+              (try? root.resourceValues(forKeys: [.isSymbolicLinkKey]))?.isSymbolicLink != true
+        else { throw FolderError.invalidDirectory }
+        let secured = root.startAccessingSecurityScopedResource()
+        defer { if secured { root.stopAccessingSecurityScopedResource() } }
+        return try operation()
+    }
+
+    private static func hasBinaryReference(_ record: ClipboardCloudRecord) -> Bool {
+        guard case .operation(let operation)? = record.payload else { return false }
+        return operation.image != nil || operation.file != nil
+    }
+}
+
+
+ 
+/// The pairing secret is intentionally stored in the device Keychain, never
+/// inside the iCloud Drive folder or UserDefaults. Share the generated secret
+/// out-of-band with the user's other devices.
+public enum ClipboardFolderPairingKey {
+    private static let service = "com.qssedalto.nexus.folder-sync"
+    private static let account = "encryption-key-v2"
+
+    public enum KeyError: Error, LocalizedError {
+        case invalidFormat, generationFailed, keychainFailure(OSStatus), notConfigured
+        case alreadyConfigured
+
+        public var errorDescription: String? {
+            switch self {
+            case .invalidFormat: "Pairing key must contain exactly 64 hexadecimal characters."
+            case .generationFailed: "Could not generate a secure random pairing key."
+            case .keychainFailure(let code): "Could not access the Keychain (\(code))."
+            case .notConfigured: "Generate or import a folder sync pairing key first."
+            case .alreadyConfigured: "A different pairing key is already saved. Nexus will not replace it silently."
+            }
+        }
+    }
+
+    public static func generate() throws -> String {
+        var bytes = [UInt8](repeating: 0, count: 32)
+        let result = bytes.withUnsafeMutableBytes { buffer in
+            SecRandomCopyBytes(kSecRandomDefault, buffer.count, buffer.baseAddress!)
+        }
+        guard result == errSecSuccess else { throw KeyError.generationFailed }
+        let hex = bytes.map { String(format: "%02x", $0) }.joined()
+        try save(hex: hex)
+        return hex
+    }
+
+    public static func save(hex: String) throws {
+        guard hex.utf8.count == 64 else { throw KeyError.invalidFormat }
+        var data = Data()
+        let chars = Array(hex.utf8)
+        for index in stride(from: 0, to: 64, by: 2) {
+            let pair = String(decoding: chars[index..<(index + 2)], as: UTF8.self)
+            guard let byte = UInt8(pair, radix: 16) else { throw KeyError.invalidFormat }
+            data.append(byte)
+        }
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+        var insertion = query
+        insertion[kSecValueData as String] = data
+        insertion[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        let status = SecItemAdd(insertion as CFDictionary, nil)
+        if status == errSecDuplicateItem {
+            // Never rotate or destroy the only decryption key as a side
+            // effect of typing a different key into Settings.
+            guard try load() == data else { throw KeyError.alreadyConfigured }
+        } else if status != errSecSuccess {
+            throw KeyError.keychainFailure(status)
+        }
+    }
+
+    public static func load() throws -> Data {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        var found: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &found)
+        guard status != errSecItemNotFound else { throw KeyError.notConfigured }
+        guard status == errSecSuccess else { throw KeyError.keychainFailure(status) }
+        guard let data = found as? Data, data.count == 32 else { throw KeyError.invalidFormat }
+        return data
+    }
+
+    public static func isConfigured() -> Bool { (try? load()) != nil }
 }

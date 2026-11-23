@@ -70,3 +70,81 @@ jobs:
             echo 'ERROR: default build unexpectedly advertises CloudKit' >&2
             exit 1
           fi
+
+      # Pull-request artifact: distinct identity and isolated local data.
+      # This is an Ad Hoc signed preview, not a notarized release or a
+      # provisioning-profile-backed Finder Sync distribution.
+      - name: Build independently installable Nexus Drive (Release)
+        if: github.event_name == 'pull_request' && github.head_ref == 'feat/icloud-drive-folder-sync'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # CI deliberately distributes an Ad Hoc signed preview; it has no
+          # personal Apple Development certificate or provisioning profile.
+          SIGNING_MODE=adhoc ARCHES=arm64 bash Scripts/build_drive_dev.sh --release --verify
+          APP="Nexus Drive.app"
+          INFO="$APP/Contents/Info.plist"
+          EXT="$APP/Contents/PlugIns/NexusFinderSync.appex"
+          test -d "$APP" && test -d "$EXT"
+          test -s "$APP/Contents/Resources/NexusWebsite.html"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$INFO")" = "com.qssedalto.nexus.drive.dev"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$EXT/Contents/Info.plist")" = "com.qssedalto.nexus.drive.dev.findersync"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :NexusBuildVariant' "$INFO")" = "dev"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIconName' "$INFO")" = "AppIconDev"
+          if [[ ! -f "$APP/Contents/Resources/Assets.car" &&
+                ! -f "$APP/Contents/Resources/AppIconDev.icns" ]]; then
+            echo "::error::Compiled Nexus icon is missing from the application bundle."
+            exit 1
+          fi
+          if /usr/libexec/PlistBuddy -c 'Print :NexusCloudKitContainerIdentifier' "$INFO" >/dev/null 2>&1; then
+            echo "::error::Drive edition must not claim a CloudKit container."
+            exit 1
+          fi
+          /usr/bin/codesign --verify --deep --strict --verbose=2 "$APP"
+          /usr/bin/codesign --verify --strict --verbose=2 "$EXT"
+          /usr/bin/codesign -d --entitlements :- "$APP" > "$RUNNER_TEMP/nexus-drive-entitlements.plist" 2>/dev/null
+          if /usr/libexec/PlistBuddy -c 'Print :com.apple.developer.icloud-services' "$RUNNER_TEMP/nexus-drive-entitlements.plist" >/dev/null 2>&1; then
+            echo "::error::Free Drive build unexpectedly has CloudKit entitlement."
+            exit 1
+          fi
+          test "$(/usr/bin/lipo -archs "$APP/Contents/MacOS/Nexus Drive")" = arm64
+          mkdir -p "$RUNNER_TEMP/nexus-drive-dist"
+          ZIP="$RUNNER_TEMP/nexus-drive-dist/Nexus-Drive-macOS-arm64.zip"
+          /usr/bin/ditto --norsrc -c -k --keepParent "$APP" "$ZIP"
+          /usr/bin/unzip -tq "$ZIP"
+          test -s "$ZIP"
+          {
+            echo "## Nexus Drive (iCloud Drive edition)"
+            echo ""
+            echo "- Download: **Nexus-Drive-macOS-arm64-${GITHUB_RUN_NUMBER}** (Artifacts below)"
+            echo "- Release configuration, arm64, Ad Hoc signed, not notarized"
+            echo "- Application and Finder extension included; extension activation may require compatible developer provisioning"
+            echo "- CloudKit entitlement deliberately absent; folder sync must be enabled manually"
+            echo "- Independent build: does not overwrite Nexus.app; sync features remain under evaluation"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Nexus Drive app ZIP
+        if: github.event_name == 'pull_request' && github.head_ref == 'feat/icloud-drive-folder-sync'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nexus-Drive-macOS-arm64-${{ github.run_number }}
+          path: ${{ runner.temp }}/nexus-drive-dist/Nexus-Drive-macOS-arm64.zip
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  server:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate API protocol on both server implementations
+        run: |
+          node --test Server/test_worker.mjs
+          python -m unittest discover -s Server -p 'test_*.py'

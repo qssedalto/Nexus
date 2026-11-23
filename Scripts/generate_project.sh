@@ -21,3 +21,16 @@ fi
 export MARKETING_VERSION BUILD_NUMBER
 
 xcodegen generate --spec "$ROOT_DIR/project.yml" --project "$ROOT_DIR"
+
+# XcodeGen releases differ on whether they emit this default scheme setting.
+# Keep the checked-in scheme stable across local and GitHub macOS toolchains.
+python3 - "$ROOT_DIR/Nexus.xcodeproj/xcshareddata/xcschemes/Nexus.xcscheme" <<'PY'
+from pathlib import Path
+import sys
+
+scheme = Path(sys.argv[1])
+generated = scheme.read_text()
+normalized = generated.replace('      buildArchitectures = "Automatic"\n', '', 1)
+if normalized != generated:
+    scheme.write_text(normalized)
+PY

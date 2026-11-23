@@ -63,7 +63,7 @@ public final class AppSettingsStore: @unchecked Sendable {
 
     public var feedbackDuration: Double {
         get {
-            guard defaults.object(forKey: Key.feedbackDuration) != nil else { return 0.9 }
+            guard defaults.object(forKey: Key.feedbackDuration) != nil else { return 1.5 }
             return defaults.double(forKey: Key.feedbackDuration)
         }
         set { defaults.set(newValue, forKey: Key.feedbackDuration) }

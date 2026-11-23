@@ -60,8 +60,9 @@ public final class OperationStore: @unchecked Sendable {
     private let lock = NSLock()
 
     public static func shared(bundle: Bundle = .main) -> OperationStore? {
-        guard let group = bundle.object(forInfoDictionaryKey: SharedSettings.appGroupIdentifierInfoKey) as? String,
-              let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: group) else { return nil }
+        guard let container = SharedSettings.localDatabaseDirectory(bundle: bundle) else {
+            return nil
+        }
         return try? OperationStore(url: container.appendingPathComponent("NexusOperations.sqlite"))
     }
 
@@ -477,7 +478,10 @@ public final class OperationStore: @unchecked Sendable {
         bind(endMS, to: 2, in: statement)
         if let limit { bind(Int64(max(1, min(5000, limit))), to: 3, in: statement) }
         var results: [RecordedOperation] = []
-        while sqlite3_step(statement) == SQLITE_ROW {
+        while true {
+            let step = sqlite3_step(statement)
+            if step == SQLITE_DONE { break }
+            guard step == SQLITE_ROW else { throw StoreError.read }
             results.append(try readOperation(from: statement))
         }
         return results

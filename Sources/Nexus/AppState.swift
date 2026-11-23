@@ -12,6 +12,8 @@ final class AppState: ObservableObject {
     @Published private(set) var useFinderSubmenu: Bool
     @Published private(set) var feedbackDuration: Double
     @Published private(set) var operations: [RecordedOperation] = []
+    @Published private(set) var loadingOperations = false
+    @Published private(set) var operationQueryError: String?
     @Published private(set) var shelfOperations: [RecordedOperation] = []
 
     private let settings: AppSettingsStore
@@ -23,6 +25,7 @@ final class AppState: ObservableObject {
     private let finderExtensionController: FinderExtensionManaging
     private var feedbackTask: Task<Void, Never>?
     private var operationQueryID = UUID()
+    private var operationRange: (from: Int64, to: Int64)?
     private var shelfQueryID = UUID()
 
     init(
@@ -127,7 +130,16 @@ final class AppState: ObservableObject {
     // Reuse the single existing status-bar feedback popover for passive
     // clipboard changes. Detection does not imply successful paste.
     func clipboardDidChange(_ key: String) {
-        showFeedback(.observed(localized(key)))
+        // ClipboardMonitor dispatches these three messages only AFTER a
+        // successful local SQLite commit. A successful history save is
+        // verifiable; a third-party paste is not.
+        switch key {
+        case "Clipboard files detected", "Clipboard image detected",
+             "Clipboard text detected":
+            showFeedback(.success(localized(key)))
+        default:
+            showFeedback(.observed(localized(key)))
+        }
     }
 
     func finderCopyDidSucceed() {
@@ -135,20 +147,45 @@ final class AppState: ObservableObject {
         showFeedback(.success(localized("Path copied")))
     }
 
+    func clipboardCopyDidSucceed() {
+        showFeedback(.success(localized("Copied again")))
+    }
+
+    func clipboardCopyDidFail(_ reason: String) {
+        showFeedback(.failure(reason))
+    }
+
     /// The initial menu/settings refresh uses only recent records. Explicit
     /// timeline range queries keep their full, user-selected range.
-    func refreshOperations(from startMS: Int64? = nil, to endMS: Int64 = Int64.max) {
+    @discardableResult
+    func refreshOperations(from startMS: Int64? = nil,
+                           to endMS: Int64 = Int64.max) -> Task<Void, Never> {
         let queryID = UUID()
         operationQueryID = queryID
+        if let startMS { operationRange = (startMS, endMS) }
+        loadingOperations = true
+        operationQueryError = nil
         let store = operationStore
-        let lower = startMS ?? Int64(Date().addingTimeInterval(-30 * 86400).timeIntervalSince1970 * 1000)
-        let implicitLimit: Int? = startMS == nil ? 500 : nil
-        Task { [weak self] in
+        let lower = operationRange?.from ?? Int64(Date().addingTimeInterval(-30 * 86400).timeIntervalSince1970 * 1000)
+        let upper = operationRange?.to ?? Int64.max
+        let implicitLimit: Int? = operationRange == nil ? 500 : nil
+        return Task { [weak self] in
             let results = await Task.detached(priority: .utility) {
-                (try? store?.query(from: lower, to: endMS, limit: implicitLimit)) ?? []
+                Result {
+                    guard let store else { throw OperationStore.StoreError.open }
+                    return try store.query(from: lower, to: upper, limit: implicitLimit)
+                }
             }.value
-            guard self?.operationQueryID == queryID else { return }
-            self?.operations = results
+            guard let self, operationQueryID == queryID else { return }
+            loadingOperations = false
+            switch results {
+            case .success(let records):
+                operations = records
+            case .failure:
+                operations = []
+                operationQueryError = localized(store == nil
+                    ? "Local history database unavailable" : "Could not query the operation timeline")
+            }
         }
     }
 
@@ -263,10 +300,11 @@ final class AppState: ObservableObject {
 
     private func showFeedback(_ feedback: DropFeedback) {
         feedbackTask?.cancel()
-        guard feedbackDuration > 0 else { self.feedback = nil; return }
+        let duration = feedbackDuration
+        guard duration > 0 else { self.feedback = nil; return }
         self.feedback = feedback
         feedbackTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(self?.feedbackDuration ?? 0.9))
+            try? await Task.sleep(for: .seconds(duration))
             await MainActor.run {
                 if !Task.isCancelled {
                     self?.feedback = nil

@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 EXPLICIT_APP_NAME=${APP_NAME:-}
+EXPLICIT_APP_ICON_NAME=${APP_ICON_NAME:-}
 EXPLICIT_BUNDLE_ID=${BUNDLE_ID:-}
 EXPLICIT_SIGNING_MODE=${SIGNING_MODE:-}
 EXPLICIT_APP_IDENTITY=${APP_IDENTITY:-}
@@ -24,6 +25,15 @@ if [[ -f "$ROOT_DIR/.env" ]]; then
   set -a
   source "$ROOT_DIR/.env"
   set +a
+fi
+
+# The folder edition must never accidentally receive paid CloudKit entitlements.
+# A provisioned CloudKit test build belongs to feat/cloudkit-provisioned-track.
+if [[ -n "${NEXUS_CLOUDKIT_CONTAINER_ID:-}" ||
+      -n "${NEXUS_CLOUDKIT_PROVISIONING_PROFILE:-}" ]]; then
+  echo "ERROR: CloudKit provisioning is not available in the free folder-sync edition." >&2
+  echo "Use the separate feat/cloudkit-provisioned-track branch instead." >&2
+  exit 1
 fi
 
 CONFIGURATION=${CONFIGURATION:-release}
@@ -71,6 +81,7 @@ esac
 
 APP_NAME=${EXPLICIT_APP_NAME:-$DEFAULT_APP_NAME}
 BUNDLE_ID=${EXPLICIT_BUNDLE_ID:-$DEFAULT_BUNDLE_ID}
+APP_ICON_NAME=${EXPLICIT_APP_ICON_NAME:-$APP_ICON_NAME}
 
 if [[ -z "$APP_NAME" || "$APP_NAME" == "." || "$APP_NAME" == ".." || "$APP_NAME" == */* ]]; then
   echo "ERROR: APP_NAME must be a non-empty file name without path components." >&2
@@ -116,7 +127,12 @@ derive_signing_team_identifier() {
     /bin/cp /usr/bin/true "$probe_dir/probe"
     /usr/bin/codesign --force --sign "$APP_IDENTITY" "$probe_dir/probe" >/dev/null 2>&1
     /usr/bin/codesign -d --verbose=4 "$probe_dir/probe" 2>&1 \
-      | /usr/bin/awk -F= '/^TeamIdentifier=/{print $2; exit}'
+      | /usr/bin/awk -v mode="$SIGNING_MODE" -F= '
+          /^Authority=/ && !authority { authority=$2 }
+          /^TeamIdentifier=/ { team=$2 }
+          END {
+            if (mode != "development" || authority ~ /^Apple Development:/) print team
+          }'
   )
 }
 
@@ -125,7 +141,7 @@ if [[ "$SIGNING_MODE" == "adhoc" || -z "$APP_IDENTITY" ]]; then
 else
   SIGNING_TEAM_ID=$(derive_signing_team_identifier)
   if [[ -z "$SIGNING_TEAM_ID" || "$SIGNING_TEAM_ID" == "not set" ]]; then
-    echo "ERROR: Could not derive the team identifier from APP_IDENTITY." >&2
+    echo "ERROR: APP_IDENTITY did not provide a valid team for SIGNING_MODE=$SIGNING_MODE." >&2
     exit 1
   fi
 fi
@@ -156,6 +172,10 @@ fi
 # entitlement-less release that merely *claims* a container is available.
 CLOUDKIT_CONTAINER_ID=${EXPLICIT_NEXUS_CLOUDKIT_CONTAINER_ID:-${NEXUS_CLOUDKIT_CONTAINER_ID:-}}
 CLOUDKIT_PROFILE=${EXPLICIT_NEXUS_CLOUDKIT_PROVISIONING_PROFILE:-${NEXUS_CLOUDKIT_PROVISIONING_PROFILE:-}}
+if [[ "${NEXUS_REQUIRE_FOLDER_ONLY:-0}" == "1" && -n "$CLOUDKIT_CONTAINER_ID" ]]; then
+  echo "ERROR: Nexus Drive Dev never requests CloudKit. Remove CloudKit configuration from this build." >&2
+  exit 1
+fi
 if [[ -n "$CLOUDKIT_CONTAINER_ID" ]]; then
   if [[ ! "$CLOUDKIT_CONTAINER_ID" =~ ^iCloud\.[A-Za-z0-9][A-Za-z0-9.-]*$ ]]; then
     echo "ERROR: NEXUS_CLOUDKIT_CONTAINER_ID must be a real iCloud.* container ID." >&2
@@ -280,7 +300,11 @@ if [[ -n "$ARCHES_VALUE" ]]; then
   XCODEBUILD_ARGS+=("ARCHS=$ARCHES_VALUE" ONLY_ACTIVE_ARCH=NO)
 fi
 
-/bin/rm -rf "$CONFIGURATION_PRODUCTS"
+# In local edit/build loops, keep Xcode's existing product outputs so only
+# modified modules need recompiling. CI retains the clean output behavior.
+if [[ "${NEXUS_FAST_LOCAL_BUILD:-0}" != "1" ]]; then
+  /bin/rm -rf "$CONFIGURATION_PRODUCTS"
+fi
 xcodebuild "${XCODEBUILD_ARGS[@]}" build -quiet
 
 APP_BUNDLE="$ROOT_DIR/$APP_NAME.app"
@@ -291,6 +315,13 @@ fi
 
 rm -rf "$APP_BUNDLE"
 /usr/bin/ditto "$BUILT_APP" "$APP_BUNDLE"
+# Local, self-contained Nexus product site. Include the HTML in preview apps
+# instead of redirecting the About link to the unrelated qsseda.com home page.
+if [[ -f "$ROOT_DIR/Sources/Nexus/Resources/NexusWebsite.html" ]]; then
+  /bin/mkdir -p "$APP_BUNDLE/Contents/Resources"
+  /usr/bin/ditto "$ROOT_DIR/Sources/Nexus/Resources/NexusWebsite.html" \
+    "$APP_BUNDLE/Contents/Resources/NexusWebsite.html"
+fi
 
 if [[ "$CONFIGURATION" == "release" ]]; then
   UNEXPECTED_DEBUG_DYLIB="$(

@@ -9,7 +9,7 @@ final class ClipboardCloudRunSummaryTests: XCTestCase {
             pending: 2, moreComing: true
         )
         let result = try XCTUnwrap(ClipboardCloudRunSummary(
-            report: report, finishedTimeMS: 1_800_000_000_000
+            report: report, finishedTimeMS: 1_800_000_000_000, localHistoryInspected: 16
         ))
         XCTAssertFalse(result.isBacklogCleared)
         let payload = try JSONEncoder().encode(result)
@@ -22,6 +22,15 @@ final class ClipboardCloudRunSummaryTests: XCTestCase {
         XCTAssertFalse(text.contains("path"))
         XCTAssertFalse(text.contains("token"))
         XCTAssertFalse(text.contains("deviceID"))
+    }
+
+    func testOlderStatusWithoutLocalScanStillDecodes() throws {
+        let payload = Data("""
+            {"finishedTimeMS":10,"uploaded":0,"downloaded":0,"pending":0,"moreComing":false}
+            """.utf8)
+        let result = try JSONDecoder().decode(ClipboardCloudRunSummary.self, from: payload)
+        XCTAssertNil(result.localHistoryInspected)
+        XCTAssertTrue(result.isBacklogCleared)
     }
 
     func testDisabledOrOutOfRangeReportsNeverBecomeSuccessfulStatus() {

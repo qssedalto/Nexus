@@ -5,6 +5,56 @@ public enum SharedSettings {
     public static let appGroupIdentifierInfoKey = "NexusAppGroupIdentifier"
     public static let finderCopyNotification = Notification.Name("com.qssedalto.nexus.finderCopyCompleted")
 
+    /// Drive builds signed ad-hoc may not have an authorized App Group.
+    /// In that case NEVER silently drop all local clipboard/statistics
+    /// records: store them in the user Application Support directory for
+    /// this *isolated* bundle ID. Production/CloudKit editions retain their
+    /// normal App Group behavior. Existing fallback records keep precedence
+    /// if an App Group later becomes available after a signing change.
+    public static func localDatabaseDirectory(bundle: Bundle = .main) -> URL? {
+        let group = bundle.object(forInfoDictionaryKey: appGroupIdentifierInfoKey) as? String
+        let groupDirectory = group.flatMap {
+            FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: $0)
+        }
+        guard bundle.bundleIdentifier == "com.qssedalto.nexus.drive.dev" else {
+            return groupDirectory
+        }
+        guard let support = FileManager.default.urls(
+            for: .applicationSupportDirectory, in: .userDomainMask
+        ).first else { return groupDirectory }
+        let fallback = support.appendingPathComponent(
+            "com.qssedalto.nexus.drive.dev", isDirectory: true
+        )
+        let history = fallback.appendingPathComponent("NexusOperations.sqlite")
+        let statistics = fallback.appendingPathComponent("NexusStatistics.sqlite")
+        let journal = fallback.appendingPathComponent("NexusClipboardFolderJournal.sqlite")
+        if FileManager.default.fileExists(atPath: history.path)
+            || FileManager.default.fileExists(atPath: statistics.path)
+            || FileManager.default.fileExists(atPath: journal.path) {
+            return fallback
+        }
+        // A new Drive installation uses isolated Application Support by
+        // default, regardless of whether this build is Ad Hoc or signed with
+        // an Apple Development certificate. This keeps the history at a
+        // stable location across local signing and TCC permission changes.
+        // Preserve previously stored App Group data when it exists.
+        if let groupDirectory {
+            let names = [
+                "NexusOperations.sqlite", "NexusStatistics.sqlite",
+                "NexusClipboardFolderJournal.sqlite"
+            ]
+            if names.contains(where: {
+                FileManager.default.fileExists(
+                    atPath: groupDirectory.appendingPathComponent($0).path
+                )
+            }) {
+                return groupDirectory
+            }
+        }
+        return fallback
+    }
+
+
     // The old group is read-only during the move. We never delete old data or overwrite new data.
     private static let legacySettingsKeys = [
         "historyEntries", "historyLimit", "selectedPathFormat",

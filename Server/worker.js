@@ -1,11 +1,11 @@
 const allowed = {
   ordinary: new Set(["character_total"]),
-  keyboard: new Set(["escape", "delete", "forward_delete", "return", "tab", "space", "left", "right", "up", "down", "home", "end", "page_up", "page_down"]),
+  keyboard: new Set(["escape", "delete", "forward_delete", "return", "tab", "space", "left", "right", "up", "down", "home", "end", "page_up", "page_down", "scroll_lock", "insert", "num_lock"]),
   modifier: new Set(["left_command", "right_command", "left_option", "right_option", "left_control", "right_control", "left_shift", "right_shift", "caps_lock", "fn"]),
   shortcut: new Set(["command_c", "command_v", "command_x", "command_z", "command_shift_z", "command_tab", "command_space", "command_q", "control_command_q", "command_escape", "command_option_escape"]),
   mouse: new Set(["mouse_left", "mouse_right", "mouse_middle", "mouse_back", "mouse_forward"]),
   scroll: new Set(["scroll_up", "scroll_down", "scroll_left", "scroll_right"]),
-  system: new Set(["volume_up", "volume_down", "brightness_up", "brightness_down", "mute", "play_pause", "next", "previous", "fast_forward", "rewind", "keyboard_light_up", "keyboard_light_down", "keyboard_light_toggle", "caps_lock_on", "caps_lock_off"]),
+  system: new Set(["volume_up", "volume_down", "brightness_up", "brightness_down", "mute", "play_pause", "next", "previous", "fast_forward", "rewind", "keyboard_light_up", "keyboard_light_down", "keyboard_light_toggle", "caps_lock_on", "caps_lock_off", "power", "sleep", "media_record", "stop", "eject", "calculator", "screensaver", "spotlight_search", "fn"]),
 };
 
 function json(value, status = 200) {
@@ -31,14 +31,40 @@ function bounds(url) {
   return { start, end, device: url.searchParams.get("device_id") };
 }
 
+// Accept bounded physical-key identifiers and combinations, never raw input
+// text. Keep legacy aggregate names for backward-compatible synchronization.
+const physicalKey = /^(?:[a-z0-9]|semicolon|comma|slash|period|equal|minus|left_bracket|right_bracket|quote|backslash|grave|keypad_(?:[0-9]|decimal|multiply|plus|clear|divide|enter|minus|equal))$/;
+const functionKey = /^f(?:[1-9]|1\d|2[0-4])$/;
+const modifiers = new Set(["control", "option", "command", "shift", "fn"]);
+
+function validEventName(category, name) {
+  if (typeof category !== "string" || typeof name !== "string" ||
+      !/^[a-z0-9_]{1,80}$/.test(name)) return false;
+  if (allowed[category]?.has(name)) return true;
+  if (category === "ordinary") {
+    if (name.startsWith("shift_key_")) return physicalKey.test(name.slice(10));
+    if (name.startsWith("key_")) return physicalKey.test(name.slice(4));
+  }
+  if (category === "keyboard") return functionKey.test(name);
+  if (category === "mouse") return /^mouse_extra_\d{1,2}$/.test(name);
+  if (category === "shortcut") {
+    const parts = name.split("_");
+    const active = [];
+    while (parts.length && modifiers.has(parts[0])) active.push(parts.shift());
+    const base = parts.join("_");
+    if (!active.length || active.length > modifiers.size ||
+        new Set(active).size !== active.length ||
+        !active.some(modifier => modifier !== "shift")) return false;
+    return physicalKey.test(base) || functionKey.test(base) || allowed.keyboard.has(base);
+  }
+  return false;
+}
+
 function validEvent(event) {
-  if (!event || !Number.isSafeInteger(event.id) || event.id < 0 || !Number.isSafeInteger(event.time_ms) || event.time_ms < 0) return false;
+  if (!event || !Number.isSafeInteger(event.id) || event.id < 0 ||
+      !Number.isSafeInteger(event.time_ms) || event.time_ms < 0) return false;
   if (!Number.isSafeInteger(event.count) || event.count < 1 || event.count > 1_000_000) return false;
-  if (typeof event.name !== "string") return false;
-  return allowed[event.category]?.has(event.name) ||
-    (event.category === "keyboard" && /^f(?:[1-9]|1\d|2[0-4])$/.test(event.name)) ||
-    (event.category === "mouse" && /^mouse_extra_\d{1,2}$/.test(event.name)) ||
-    (event.category === "shortcut" && /^fn_f(?:[1-9]|1\d|2[0-4])$/.test(event.name));
+  return validEventName(event.category, event.name);
 }
 
 // This endpoint never inspects image bytes. It carries bounded metadata and

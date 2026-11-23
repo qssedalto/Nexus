@@ -10,6 +10,7 @@ struct MobileHomeView: View {
     @State private var collectionName = ""
     @State private var showCreateCollection = false
     @State private var search = ""
+    @State private var showFolderPicker = false
     @State private var showLocalCloudClear = false
     @State private var showCloudEraseSheet = false
     @State private var cloudEraseConfirmation = ""
@@ -121,12 +122,34 @@ struct MobileHomeView: View {
 
             NavigationStack {
                 Form {
-                    Section("iCloud clipboard privacy") {
-                        Toggle("Enable iCloud clipboard sync", isOn: $cloud.cloudEnabled)
+                    Section("Encrypted folder pairing") {
+                        if cloud.pairingKeyConfigured {
+                            Label("Encryption key saved in Keychain", systemImage: "lock.shield")
+                        } else {
+                            Text("Enter the 64-character encryption key generated on your Mac. The secret is never written to iCloud Drive.")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                        SecureField("64-character pairing key", text: $cloud.pairingKeyEntry)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                        Button("Save pairing key") {
+                            cloud.savePairingKey()
+                        }
+                        .disabled(cloud.pairingKeyEntry.isEmpty)
+                    }
+                    Section("iCloud Drive folder sync") {
+                        Button("Choose NexusClipboardSync folder…") {
+                            showFolderPicker = true
+                        }
+                        if cloud.containerConfigured {
+                            LabeledContent("Selected folder", value: cloud.selectedFolderLabel)
+                        }
+                        Toggle("Enable folder sync", isOn: $cloud.cloudEnabled)
+                            .disabled(!cloud.containerConfigured || !cloud.pairingKeyConfigured)
                         Toggle("Sync iCloud clipboard when Nexus becomes active",
                                isOn: $cloud.foregroundSyncEnabled)
                             .disabled(!cloud.cloudEnabled || !cloud.containerConfigured)
-                        Text("Foreground sync is optional and checks at most once every 5 minutes. It uses your selected iCloud permissions and never reads another app's clipboard. Create the private iCloud zone manually before enabling.")
+                        Text("Foreground sync checks at most every 5 minutes, without background clipboard monitoring. Select and prepare your iCloud Drive folder first.")
                             .font(.caption).foregroundStyle(.secondary)
                         Toggle("Include clipboard text", isOn: $cloud.includeText)
                             .disabled(!cloud.cloudEnabled)
@@ -134,24 +157,19 @@ struct MobileHomeView: View {
                             .disabled(!cloud.cloudEnabled)
                         Toggle("Include file paths", isOn: $cloud.includePaths)
                             .disabled(!cloud.cloudEnabled)
-                        Toggle("Include original clipboard images (up to 8 MB)",
-                               isOn: $cloud.includeImages)
-                            .disabled(!cloud.cloudEnabled)
-                        Toggle("Include one small original file (up to 8 MB)",
-                               isOn: $cloud.includeFiles)
-                            .disabled(!cloud.cloudEnabled)
-                        Text("Image and single-file originals use independent iCloud permissions. Files are exported only when you request it; Nexus does not inspect the clipboard in the background.")
+                        Text("Original image and file transfer is not yet implemented in folder sync; only authorized text and metadata are supported.")
+                            .font(.caption).foregroundStyle(.secondary)
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     Section("Manual synchronization") {
-                        LabeledContent("CloudKit container", value:
+                        LabeledContent("iCloud Drive folder", value:
                             cloud.containerConfigured
-                                ? String(localized: "Configured")
+                                ? cloud.selectedFolderLabel
                                 : String(localized: "Not configured"))
-                        Button("Create private iCloud zone") {
-                            Task { await cloud.setupPrivateZone() }
+                        Button("Prepare selected folder") {
+                            Task { await cloud.prepareSelectedFolder() }
                         }
-                        .disabled(!cloud.cloudEnabled || !cloud.containerConfigured || cloud.running)
+                        .disabled(!cloud.cloudEnabled || !cloud.containerConfigured || !cloud.pairingKeyConfigured || cloud.running)
                         Button("Sync now") {
                             Task { await cloud.syncNow() }
                         }
@@ -179,13 +197,13 @@ struct MobileHomeView: View {
                         .disabled(!cloud.cloudEnabled || cloud.running)
                     }
                     Section("Cloud clipboard data removal") {
-                        Text("Local cache removal preserves offline clipboard history. Deleting the Nexus iCloud zone removes its cloud records, but another device can re-upload old copies unless sync is disabled there.")
+                        Text("Local cache removal preserves offline history. Deleting sync records removes Nexus-owned files from the selected folder. Other devices may re-upload old copies.")
                             .font(.caption).foregroundStyle(.secondary)
                         Button("Clear local iCloud cache", role: .destructive) {
                             showLocalCloudClear = true
                         }
                         .disabled(cloud.running)
-                        Button("Erase Nexus clipboard data from iCloud…",
+                        Button("Delete Nexus folder sync records…",
                                role: .destructive) {
                             cloudEraseConfirmation = ""
                             showCloudEraseSheet = true
@@ -194,7 +212,7 @@ struct MobileHomeView: View {
                     }
                     Section("Status") {
                         Text(cloud.status).foregroundStyle(.secondary)
-                        Text("A signed build with the matching Apple CloudKit container and account is required for actual cross-device synchronization. The app cannot auto-paste into other iOS apps.")
+                        Text("A user-selected iCloud Drive folder replaces CloudKit. The app cannot auto-paste into other iOS apps or monitor their clipboards.")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 }
@@ -213,22 +231,22 @@ struct MobileHomeView: View {
                 .sheet(isPresented: $showCloudEraseSheet) {
                     NavigationStack {
                         Form {
-                            Section("Erase private Nexus iCloud clipboard zone") {
-                                Text("This permanently deletes the NexusClipboard zone for the signed-in Apple account. Disable sync on other devices before erasing, or they may upload old content again. Offline clipboard history is preserved.")
+                            Section("Delete Nexus synchronized folder records") {
+                                Text("This deletes Nexus-owned JSON sync documents in your chosen folder. Disable sync on other devices first. Offline clipboard history is preserved.")
                                     .font(.callout)
                                 TextField("Type DELETE to confirm",
                                           text: $cloudEraseConfirmation)
                                     .autocorrectionDisabled()
-                                Button("Erase Nexus iCloud records",
+                                Button("Delete Nexus sync records",
                                        role: .destructive) {
                                     let confirmation = cloudEraseConfirmation
                                     showCloudEraseSheet = false
-                                    Task { await cloud.erasePrivateNexusCloudZone(confirmation: confirmation) }
+                                    Task { await cloud.eraseSyncedFolderData(confirmation: confirmation) }
                                 }
                                 .disabled(cloudEraseConfirmation != "DELETE" || cloud.running)
                             }
                         }
-                        .navigationTitle("Erase iCloud Data")
+                        .navigationTitle("Delete folder sync data")
                         .toolbar {
                             ToolbarItem(placement: .cancellationAction) {
                                 Button("Cancel") { showCloudEraseSheet = false }
@@ -252,6 +270,19 @@ struct MobileHomeView: View {
         .onChange(of: cloud.foregroundSyncEnabled) { enabled in
             if enabled && scenePhase == .active {
                 Task { await cloud.syncWhenForegroundEligible() }
+            }
+        }
+        .fileImporter(
+            isPresented: $showFolderPicker,
+            allowedContentTypes: [.folder],
+            allowsMultipleSelection: false
+        ) { result in
+            switch result {
+            case .success(let urls):
+                if let folder = urls.first { cloud.selectSyncFolder(folder) }
+            case .failure(let error):
+                // A cancelled picker leaves the existing folder unchanged.
+                _ = error
             }
         }
         .fileExporter(

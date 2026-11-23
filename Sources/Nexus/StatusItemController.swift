@@ -11,6 +11,8 @@ final class StatusItemController {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let popover = NSPopover()
     private let feedbackPopover = NSPopover()
+    private var centeredMenu: NSPanel?
+    private var unanchoredFeedbackWindow: NSPanel?
     private let dropReadyPopover = NSPopover()
     private var clipboardShelfPanel: NSPanel?
     private var previousFrontmostApp: NSRunningApplication?
@@ -28,12 +30,14 @@ final class StatusItemController {
             return
         }
 
-        statusItem.length = buildInfo.isDevBuild ? NSStatusItem.variableLength : NSStatusItem.squareLength
+        statusItem.length = buildInfo.showsDevelopmentLabel ? NSStatusItem.variableLength : NSStatusItem.squareLength
         button.image = StatusIconProvider.image(for: .idle)
         button.image?.size = NSSize(width: 22, height: 22)
-        button.title = buildInfo.isDevBuild ? localized(" DEV") : ""
-        button.toolTip = buildInfo.isDevBuild ? localized("Nexus Dev Build") : "Nexus"
-        button.imagePosition = buildInfo.isDevBuild ? .imageLeft : .imageOnly
+        button.title = buildInfo.showsDevelopmentLabel ? localized(" DEV") : ""
+        button.toolTip = buildInfo.isDriveEdition
+            ? "Nexus Drive"
+            : (buildInfo.showsDevelopmentLabel ? localized("Nexus Dev Build") : "Nexus")
+        button.imagePosition = buildInfo.showsDevelopmentLabel ? .imageLeft : .imageOnly
         button.contentTintColor = nil
 
         let view = DropTargetStatusView(frame: button.bounds)
@@ -73,26 +77,10 @@ final class StatusItemController {
 
         popover.behavior = .transient
         popover.contentSize = NSSize(width: 360, height: menuPopoverHeight)
-        popover.contentViewController = NSHostingController(
-            rootView: MenuPopoverView(
-                appState: appState,
-                buildInfo: buildInfo,
-                onPrepareSettings: { [weak self] in
-                    self?.prepareToOpenSettings()
-                },
-                onOpenLegacySettings: { [weak self] in
-                    self?.openLegacySettings()
-                },
-                onOpenClipboardShelf: { [weak self] in
-                    self?.showClipboardShelf()
-                },
-                onQuit: { NSApp.terminate(nil) }
-            )
-        )
+        popover.contentViewController = menuContent()
 
         feedbackPopover.behavior = .transient
-        feedbackPopover.contentSize = NSSize(width: 280, height: 66)
-
+        feedbackPopover.contentSize = FeedbackPopoverView.contentSize
         dropReadyPopover.behavior = .transient
         dropReadyPopover.contentSize = NSSize(width: 280, height: 66)
 
@@ -108,29 +96,99 @@ final class StatusItemController {
         keepStatusViewOnTop()
         feedbackDismissTask?.cancel()
         hideDropReadyCue()
-        feedbackPopover.performClose(nil)
-        popover.performClose(nil)
+        dismissFeedbackPopover()
+        closeMenu()
     }
 
     private func togglePopover() {
-        guard let anchorView = statusItem.button else {
+        if popover.isShown || centeredMenu?.isVisible == true {
+            closeMenu()
+        } else {
+            showMenu()
+        }
+    }
+
+    func showMenu() {
+        if popover.isShown { return }
+        if let centeredMenu, centeredMenu.isVisible {
+            centeredMenu.makeKeyAndOrderFront(nil)
+            return
+        }
+        dismissFeedbackPopover()
+        appState.refreshHistory()
+        appState.refreshFinderExtensionStatus()
+        guard let anchor = visibleMenuAnchor else {
+            showCenteredMenu()
             return
         }
         keepStatusViewOnTop()
-
-        if popover.isShown {
-            popover.performClose(nil)
-        } else {
-            appState.refreshHistory()
-            appState.refreshFinderExtensionStatus()
-            popover.contentSize = NSSize(width: 360, height: menuPopoverHeight)
-            popover.show(relativeTo: anchorView.bounds, of: anchorView, preferredEdge: .minY)
-            clearMenuPopoverFocus()
-            DispatchQueue.main.async { [weak self] in
-                self?.clearMenuPopoverFocus()
-            }
-            keepStatusViewOnTop()
+        popover.contentSize = NSSize(width: 360, height: menuPopoverHeight)
+        popover.show(relativeTo: anchor.bounds, of: anchor, preferredEdge: .minY)
+        guard popover.isShown else {
+            showCenteredMenu()
+            return
         }
+        clearMenuPopoverFocus()
+        DispatchQueue.main.async { [weak self] in self?.clearMenuPopoverFocus() }
+    }
+
+    private var visibleMenuAnchor: NSStatusBarButton? {
+        guard statusItem.isVisible, let button = statusItem.button, !button.isHiddenOrHasHiddenAncestor,
+              button.alphaValue > 0, let window = button.window, window.alphaValue > 0,
+              window.isVisible, window.occlusionState.contains(.visible)
+        else { return nil }
+        let frame = window.convertToScreen(button.convert(button.bounds, to: nil))
+        guard !frame.isEmpty, NSScreen.screens.contains(where: {
+            $0.frame.contains(NSPoint(x: frame.midX, y: frame.midY))
+        }) else { return nil }
+        return button
+    }
+
+    private func showCenteredMenu() {
+        let panel = centeredMenu ?? NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 360, height: menuPopoverHeight),
+            styleMask: [.titled, .closable, .utilityWindow],
+            backing: .buffered, defer: false
+        )
+        panel.title = localized("Nexus menu")
+        panel.isReleasedWhenClosed = false
+        panel.hidesOnDeactivate = true
+        panel.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
+        panel.contentViewController = menuContent()
+        panel.setContentSize(NSSize(width: 360, height: menuPopoverHeight))
+        if let visible = interactionScreen?.visibleFrame {
+            panel.setFrameOrigin(NSPoint(x: visible.midX - panel.frame.width / 2,
+                                         y: visible.midY - panel.frame.height / 2))
+        } else {
+            panel.center()
+        }
+        centeredMenu = panel
+        NSApp.activate(ignoringOtherApps: true)
+        panel.makeKeyAndOrderFront(nil)
+    }
+
+    private func menuContent() -> NSHostingController<MenuPopoverView> {
+        NSHostingController(rootView: MenuPopoverView(
+            appState: appState, buildInfo: buildInfo,
+            onPrepareSettings: { [weak self] in self?.prepareToOpenSettings() },
+            onOpenLegacySettings: { [weak self] in self?.openLegacySettings() },
+            onOpenClipboardShelf: { [weak self] in self?.showClipboardShelf() },
+            onOpenHelp: { [weak self] in
+                self?.closeMenu()
+                NotificationCenter.default.post(name: .nexusShowWelcomeGuide, object: nil)
+            },
+            onQuit: { NSApp.terminate(nil) }
+        ))
+    }
+
+    private func closeMenu() {
+        popover.performClose(nil)
+        centeredMenu?.orderOut(nil)
+    }
+
+    private var interactionScreen: NSScreen? {
+        let mouse = NSEvent.mouseLocation
+        return NSScreen.screens.first(where: { $0.frame.contains(mouse) }) ?? NSScreen.main
     }
 
     private func clearMenuPopoverFocus() {
@@ -143,7 +201,7 @@ final class StatusItemController {
     }
 
     private var menuPopoverHeight: CGFloat {
-        appState.lastCopiedOutput == nil ? 355 : 417
+        appState.lastCopiedOutput == nil ? 380 : 442
     }
 
     private func toggleClipboardShelf() {
@@ -155,7 +213,7 @@ final class StatusItemController {
     }
 
     private func showClipboardShelf() {
-        popover.performClose(nil)
+        closeMenu()
         if let frontmost = NSWorkspace.shared.frontmostApplication,
            frontmost.bundleIdentifier != Bundle.main.bundleIdentifier {
             previousFrontmostApp = frontmost
@@ -166,16 +224,19 @@ final class StatusItemController {
             panel = existing
         } else {
             let created = NSPanel(
-                contentRect: NSRect(x: 0, y: 0, width: 900, height: 480),
+                contentRect: NSRect(x: 0, y: 0, width: 1100, height: 700),
                 styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
                 backing: .buffered,
                 defer: false
             )
             created.title = localized("Clipboard Shelf")
-            created.level = .floating
+            // A normal window can be covered by other apps. Do not permanently float above them.
+            created.level = .normal
             created.isReleasedWhenClosed = false
             created.hidesOnDeactivate = false
-            created.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+            created.collectionBehavior = [.moveToActiveSpace]
+            created.minSize = NSSize(width: 820, height: 580)
+            created.setFrameAutosaveName("NexusClipboardShelf")
             created.contentViewController = NSHostingController(
                 rootView: ClipboardShelfView(
                     appState: appState,
@@ -191,14 +252,22 @@ final class StatusItemController {
         let preferredScreen = NSScreen.screens.first(where: { $0.frame.contains(mouseLocation) })
             ?? NSScreen.main
         if let visible = preferredScreen?.visibleFrame {
-            let frame = ClipboardPanelPlacement.frame(
-                inside: visible, requestedSize: panel.frame.size
-            )
-            panel.setFrame(frame, display: true)
+            // Respect the autosaved user size, but prevent a fixed minimum
+            // size from forcing the window off a smaller connected display.
+            panel.minSize = ClipboardPanelPlacement.minimumSize(inside: visible)
+            if !NSScreen.screens.contains(where: { $0.visibleFrame.contains(panel.frame) }) {
+                let frame = ClipboardPanelPlacement.frame(
+                    inside: visible, requestedSize: panel.frame.size,
+                    bottomInset: 24
+                )
+                panel.setFrame(frame, display: true)
+            }
         }
         appState.refreshOperations()
         NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
+        // Raise once on explicit user invocation, without always-on-top behavior.
+        panel.orderFrontRegardless()
     }
 
     /// Called only following an explicit double click or Return by the user.
@@ -232,17 +301,21 @@ final class StatusItemController {
                 currentClipboardChangeCount: NSPasteboard.general.changeCount
             ) else { return }
             let source = CGEventSource(stateID: .hidSystemState)
-            let down = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: true)
-            let up = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: false)
-            down?.flags = .maskCommand
-            up?.flags = .maskCommand
-            down?.post(tap: .cghidEventTap)
-            up?.post(tap: .cghidEventTap)
+            guard let down = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: true),
+                  let up = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: false) else { return }
+            down.flags = .maskCommand
+            up.flags = .maskCommand
+            down.post(tap: .cghidEventTap)
+            up.post(tap: .cghidEventTap)
+            if !InputStatisticsController.shared.monitoringActive ||
+                !UserDefaults.standard.bool(forKey: "nexusMonitorPasteRequests") {
+                self.appState.clipboardDidChange("Paste detected")
+            }
         }
     }
 
     private func prepareToOpenSettings() {
-        popover.performClose(nil)
+        closeMenu()
         NSApp.activate(ignoringOtherApps: true)
     }
 
@@ -255,34 +328,68 @@ final class StatusItemController {
     }
 
     private func showFeedbackPopover(_ feedback: DropFeedback) {
-        guard let anchorView = statusItem.button else {
-            return
-        }
-
+        let duration = appState.feedbackDuration
         feedbackDismissTask?.cancel()
+        dismissFeedbackPopover()
         hideDropReadyCue()
-        if feedbackPopover.isShown {
-            feedbackPopover.performClose(nil)
-        }
+        // Both menu presentations already display feedback in their header.
+        guard duration > 0, !popover.isShown, centeredMenu?.isVisible != true else { return }
 
-        if popover.isShown {
-            feedbackPopover.performClose(nil)
-        } else {
-            feedbackPopover.contentViewController = NSHostingController(
-                rootView: FeedbackPopoverView(feedback: feedback)
-            )
-            feedbackPopover.show(relativeTo: anchorView.bounds, of: anchorView, preferredEdge: .minY)
-            feedbackPopover.contentViewController?.view.window?.ignoresMouseEvents = true
-        }
-
-        feedbackDismissTask = Task { [weak feedbackPopover] in
-            try? await Task.sleep(for: .seconds(appState.feedbackDuration))
-            await MainActor.run {
-                if !Task.isCancelled {
-                    feedbackPopover?.performClose(nil)
-                }
+        if let anchor = visibleMenuAnchor {
+            let content = NSHostingController(rootView: FeedbackPopoverView(feedback: feedback))
+            feedbackPopover.contentViewController = content
+            feedbackPopover.show(relativeTo: anchor.bounds, of: anchor, preferredEdge: .minY)
+            if feedbackPopover.isShown {
+                content.view.window?.ignoresMouseEvents = true
+            } else {
+                feedbackPopover.contentViewController = nil
+                showUnanchoredFeedback(feedback)
             }
+        } else {
+            showUnanchoredFeedback(feedback)
         }
+        feedbackDismissTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(duration))
+            if !Task.isCancelled { self?.dismissFeedbackPopover() }
+        }
+    }
+
+    private func dismissFeedbackPopover() {
+        feedbackPopover.performClose(nil)
+        unanchoredFeedbackWindow?.orderOut(nil)
+    }
+
+    private func showUnanchoredFeedback(_ feedback: DropFeedback) {
+        let panel: NSPanel
+        if let existing = unanchoredFeedbackWindow {
+            panel = existing
+        } else {
+            panel = NSPanel(
+                contentRect: NSRect(origin: .zero, size: FeedbackPopoverView.contentSize),
+                styleMask: [.borderless, .nonactivatingPanel],
+                backing: .buffered, defer: false
+            )
+            panel.isReleasedWhenClosed = false
+            panel.isOpaque = false
+            panel.backgroundColor = .clear
+            panel.hasShadow = true
+            panel.level = .statusBar
+            panel.hidesOnDeactivate = false
+            panel.ignoresMouseEvents = true
+            panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+            unanchoredFeedbackWindow = panel
+        }
+        panel.contentViewController = NSHostingController(
+            rootView: FeedbackPopoverView(feedback: feedback)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+        )
+        if let visible = interactionScreen?.visibleFrame {
+            panel.setFrameOrigin(NSPoint(
+                x: max(visible.minX, visible.maxX - panel.frame.width - 12),
+                y: max(visible.minY, visible.maxY - panel.frame.height - 8)
+            ))
+        }
+        panel.orderFrontRegardless()
     }
 
     private func showDropReadyCue() {

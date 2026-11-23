@@ -100,17 +100,26 @@ final class HIDConsumerMonitor: @unchecked Sendable {
     /// attached models sharing vendor/product without retaining serials.
     /// No UDID, serial number, BT MAC address or typed text is collected.
     private static func sourceName(for device: IOHIDDevice, category: String) -> String {
+        let productName = (IOHIDDeviceGetProperty(device, kIOHIDProductKey as CFString) as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let displayName = productName.flatMap { name -> String? in
+            let cleaned = String(name.filter {
+                !$0.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains)
+            }.prefix(64))
+            return cleaned.isEmpty ? nil : cleaned
+        }
+        let suffix = displayName.map { ":name:" + $0 } ?? ""
         let vendor = (IOHIDDeviceGetProperty(device, kIOHIDVendorIDKey as CFString) as? NSNumber)?.intValue
         let product = (IOHIDDeviceGetProperty(device, kIOHIDProductIDKey as CFString) as? NSNumber)?.intValue
         guard let vendor, let product else {
-            return category + ":unknown_device"
+            return category + ":unknown_device" + suffix
         }
         let prefix = "\(category):vendor_\(vendor)_product_\(product)"
         if let location = (IOHIDDeviceGetProperty(device, kIOHIDLocationIDKey as CFString) as? NSNumber)?.intValue,
            location > 0 {
-            return prefix + "_location_\(location)"
+            return prefix + "_location_\(location)" + suffix
         }
-        return prefix + "_location_unknown"
+        return prefix + "_location_unknown" + suffix
     }
 
     private static func timestamp(for rawTicks: UInt64) -> Int64 {

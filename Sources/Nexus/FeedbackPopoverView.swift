@@ -1,24 +1,31 @@
 import SwiftUI
 
+extension DropFeedback {
+    var symbol: String {
+        switch kind {
+        case .success: "checkmark.circle.fill"
+        case .failure: "xmark.octagon.fill"
+        case .observation: "doc.on.clipboard"
+        }
+    }
+
+    var color: Color {
+        switch kind {
+        case .success: .green
+        case .failure: .red
+        case .observation: .primary
+        }
+    }
+}
+
 struct FeedbackPopoverView: View {
+    static let contentSize = CGSize(width: 220, height: 52)
     let feedback: DropFeedback
 
     var body: some View {
         StatusPopoverContentView(
-            systemImage: {
-                switch feedback.kind {
-                case .success: "checkmark.circle.fill"
-                case .failure: "xmark.octagon.fill"
-                case .observation: "eye.circle.fill"
-                }
-            }(),
-            iconColor: {
-                switch feedback.kind {
-                case .success: .green
-                case .failure: .red
-                case .observation: .secondary
-                }
-            }(),
+            systemImage: feedback.symbol,
+            iconColor: feedback.color,
             title: feedback.message,
             detail: feedback.detail
         )
@@ -43,11 +50,10 @@ private struct StatusPopoverContentView: View {
     let detail: String?
 
     var body: some View {
-        HStack(alignment: .top, spacing: 9) {
+        HStack(alignment: .center, spacing: 9) {
             Image(systemName: systemImage)
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(iconColor)
-                .padding(.top, 1)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
@@ -63,10 +69,9 @@ private struct StatusPopoverContentView: View {
                 }
             }
 
-            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 12)
-        .frame(width: 280, height: 66)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        .frame(width: FeedbackPopoverView.contentSize.width, height: FeedbackPopoverView.contentSize.height)
         .background(.regularMaterial)
     }
 }

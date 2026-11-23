@@ -9,8 +9,10 @@ public struct ClipboardCloudRunSummary: Codable, Sendable, Equatable {
     public let downloaded: Int
     public let pending: Int
     public let moreComing: Bool
+    public let localHistoryInspected: Int?
 
-    public init?(report: ClipboardCloudSyncReport, finishedTimeMS: Int64) {
+    public init?(report: ClipboardCloudSyncReport, finishedTimeMS: Int64,
+                 localHistoryInspected: Int? = nil) {
         guard report.enabled, finishedTimeMS > 0,
               report.uploaded >= 0, report.uploaded <= 100,
               report.downloaded >= 0, report.downloaded <= 200,
@@ -21,6 +23,7 @@ public struct ClipboardCloudRunSummary: Codable, Sendable, Equatable {
         downloaded = report.downloaded
         pending = report.pending
         moreComing = report.moreComing
+        self.localHistoryInspected = localHistoryInspected
     }
 
     public var isBacklogCleared: Bool {
