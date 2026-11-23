@@ -150,12 +150,6 @@ struct MenuPopoverView: View {
                     }
                 }
             }
-            Divider()
-            Button {
-                onOpenClipboardShelf()
-            } label: {
-                Label(localized("Open clipboard shelf"), systemImage: "square.stack.3d.up")
-            }
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "doc.on.clipboard").frame(width: 20)
@@ -177,8 +171,8 @@ struct MenuPopoverView: View {
         let store = OperationStore.shared()
         let pins = Set(pinnedRaw.split(separator: "\n").map(String.init))
         let values = await Task.detached(priority: .utility) {
-            let rows = (try? store?.query(
-                from: 0, to: Int64.max, limit: 30
+            let rows = (try? store?.searchClipboard(
+                query: "", limit: 5
             )) ?? []
             let favourites = (try? store?.query(ids: Array(pins))) ?? []
             let pinned = ClipboardQuickMenuSummary.recent(

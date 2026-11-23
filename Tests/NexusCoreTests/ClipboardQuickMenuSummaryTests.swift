@@ -49,4 +49,24 @@ final class ClipboardQuickMenuSummaryTests: XCTestCase {
         XCTAssertEqual(ClipboardQuickMenuSummary.title(for: rows[1]),
                        "Copied image")
     }
+
+    func testRecentClipboardIsNotHiddenByUnrelatedOperations() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try OperationStore(url: root.appendingPathComponent("history.sqlite"))
+        try store.record(type: "text_copy", urls: [], sourceApplication: nil,
+                         detectionMethod: "clipboard", detectedTimeMS: 1,
+                         clipboardText: "Still available")
+        for index in 2...40 {
+            try store.record(type: "drop", urls: [URL(fileURLWithPath: "/tmp/\(index)")],
+                             sourceApplication: nil, detectionMethod: "test",
+                             detectedTimeMS: Int64(index))
+        }
+        XCTAssertTrue(ClipboardQuickMenuSummary.recent(
+            from: try store.query(from: 0, to: Int64.max, limit: 30)
+        ).isEmpty)
+        let recent = try store.searchClipboard(query: "", limit: 5)
+        XCTAssertEqual(recent.map(\.clipboardText), ["Still available"])
+    }
 }
