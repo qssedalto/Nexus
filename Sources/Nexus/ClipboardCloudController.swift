@@ -83,6 +83,7 @@ final class ClipboardCloudController: ObservableObject {
     @Published var mirrorFiles: Bool {
         didSet {
             defaults.set(mirrorFiles, forKey: "nexusFolderMirrorFiles")
+            if !mirrorFiles { cancelMirrorTasks(of: .files) }
             // Do not touch ClipboardMonitor.shared synchronously here:
             // the controller may still be initializing and ClipboardMonitor
             // queries this controller while configuring its own timer.
@@ -96,6 +97,7 @@ final class ClipboardCloudController: ObservableObject {
     @Published var mirrorText: Bool {
         didSet {
             defaults.set(mirrorText, forKey: "nexusFolderMirrorText")
+            if !mirrorText { cancelMirrorTasks(of: .text) }
             // Do not touch ClipboardMonitor.shared synchronously here:
             // the controller may still be initializing and ClipboardMonitor
             // queries this controller while configuring its own timer.
@@ -109,6 +111,7 @@ final class ClipboardCloudController: ObservableObject {
     @Published var mirrorImages: Bool {
         didSet {
             defaults.set(mirrorImages, forKey: "nexusFolderMirrorImages")
+            if !mirrorImages { cancelMirrorTasks(of: .images) }
             // Do not touch ClipboardMonitor.shared synchronously here:
             // the controller may still be initializing and ClipboardMonitor
             // queries this controller while configuring its own timer.
@@ -147,6 +150,8 @@ final class ClipboardCloudController: ObservableObject {
     private var automaticSyncTask: Task<Void, Never>?
     private var automaticCycleRunning = false
     private var mirrorTasks: [UUID: Task<URL, Error>] = [:]
+    private enum MirrorKind { case files, text, images }
+    private var mirrorKinds: [UUID: MirrorKind] = [:]
     private var mirrorProgressByID: [UUID: (copied: Int64, total: Int64)] = [:]
 
     private init() {
@@ -320,10 +325,17 @@ final class ClipboardCloudController: ObservableObject {
     func mirrorCopied(_ content: ClipboardFolderMirror.Content) {
         guard ((enabled && folderPrepared) || mirrorOnlyEnabled),
               let folder = selectedFolderURL else { return }
+        let kind: MirrorKind
         switch content {
-        case .files: guard mirrorFiles else { return }
-        case .text, .richText, .html: guard mirrorText else { return }
-        case .image: guard mirrorImages else { return }
+        case .files:
+            guard mirrorFiles else { return }
+            kind = .files
+        case .text, .richText, .html:
+            guard mirrorText else { return }
+            kind = .text
+        case .image:
+            guard mirrorImages else { return }
+            kind = .images
         }
         let id = UUID()
         let task = Task.detached(priority: .utility) { () throws -> URL in
@@ -343,6 +355,7 @@ final class ClipboardCloudController: ObservableObject {
             )
         }
         mirrorTasks[id] = task
+        mirrorKinds[id] = kind
         mirrorProgressByID[id] = (0, 0)
         mirrorPending = mirrorTasks.count
         updateMirrorProgress()
@@ -359,6 +372,7 @@ final class ClipboardCloudController: ObservableObject {
                 self?.mirrorStatus = localized("Folder copy failed") + ": " + error.localizedDescription
             }
             self?.mirrorTasks[id] = nil
+            self?.mirrorKinds[id] = nil
             self?.mirrorProgressByID[id] = nil
             self?.mirrorPending = self?.mirrorTasks.count ?? 0
             self?.updateMirrorProgress()
@@ -375,6 +389,12 @@ final class ClipboardCloudController: ObservableObject {
 
     func cancelMirrorTasks() {
         for task in mirrorTasks.values { task.cancel() }
+    }
+
+    private func cancelMirrorTasks(of kind: MirrorKind) {
+        for (id, task) in mirrorTasks where mirrorKinds[id] == kind {
+            task.cancel()
+        }
     }
 
     /// Only inspect a user-authorized folder, and never remove an abandoned
