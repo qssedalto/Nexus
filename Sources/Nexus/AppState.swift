@@ -157,7 +157,9 @@ final class AppState: ObservableObject {
 
     /// The initial menu/settings refresh uses only recent records. Explicit
     /// timeline range queries keep their full, user-selected range.
-    func refreshOperations(from startMS: Int64? = nil, to endMS: Int64 = Int64.max) {
+    @discardableResult
+    func refreshOperations(from startMS: Int64? = nil,
+                           to endMS: Int64 = Int64.max) -> Task<Void, Never> {
         let queryID = UUID()
         operationQueryID = queryID
         if let startMS { operationRange = (startMS, endMS) }
@@ -167,7 +169,7 @@ final class AppState: ObservableObject {
         let lower = operationRange?.from ?? Int64(Date().addingTimeInterval(-30 * 86400).timeIntervalSince1970 * 1000)
         let upper = operationRange?.to ?? Int64.max
         let implicitLimit: Int? = operationRange == nil ? 500 : nil
-        Task { [weak self] in
+        return Task { [weak self] in
             let results = await Task.detached(priority: .utility) {
                 Result {
                     guard let store else { throw OperationStore.StoreError.open }

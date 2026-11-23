@@ -24,11 +24,7 @@ struct AppStateTests {
         appState.refreshOperations(from: now + 1, to: now + 100)
         try store.record(type: "text_copy", urls: [], sourceApplication: nil,
                          detectionMethod: "test", eventTimeMS: now + 10, clipboardText: "Inside range")
-        appState.refreshOperations()
-        let deadline = ContinuousClock.now.advanced(by: .seconds(2))
-        while appState.loadingOperations && ContinuousClock.now < deadline {
-            try await Task.sleep(for: .milliseconds(5))
-        }
+        await appState.refreshOperations().value
         #expect(!appState.loadingOperations)
         #expect(appState.operations.compactMap(\.clipboardText) == ["Inside range"])
     }
