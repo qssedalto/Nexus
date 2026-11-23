@@ -306,8 +306,7 @@ struct InputStatisticsView: View {
             .onChange(of: selectedPreset) { _ in
                 applyPreset()
             }
-            // Two self-contained rows remain legible at the minimum Settings
-            // width. A single long HStack previously overlapped the macOS tab strip.
+            if selectedPreset == "custom" {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) {
                     Text(localized("From")).frame(width: 46, alignment: .leading)
@@ -336,6 +335,7 @@ struct InputStatisticsView: View {
             }
             .font(.caption)
             .padding(.vertical, 4)
+            }
             HStack {
                 Picker(localized("Device or event source"), selection: $controller.selectedSource) {
                     Text(localized("All sources")).tag("")
@@ -344,54 +344,28 @@ struct InputStatisticsView: View {
                     }
                 }
                 .onChange(of: controller.selectedSource) { _ in query() }
-                Button(localized("Reset source filter")) {
-                    controller.selectedSource = ""
-                    query()
+                Menu {
+                    Button(localized("Reset source filter")) {
+                        controller.selectedSource = ""
+                        query()
+                    }
+                    .disabled(controller.selectedSource.isEmpty)
+                    Button(localized("Rename source…")) {
+                        if let sourceToRename { editSource(sourceToRename) }
+                    }
+                    .disabled(sourceToRename == nil)
+                } label: {
+                    Image(systemName: "ellipsis.circle")
                 }
-                .disabled(controller.selectedSource.isEmpty)
-                Button(localized("Rename source…")) {
-                    if let sourceToRename { editSource(sourceToRename) }
-                }
-                .disabled(sourceToRename == nil)
-            }
-            HStack(spacing: 8) {
-                statCard(localized("Keyboard presses"), controller.overview.keyboard, "keyboard")
-                statCard(localized("Mouse clicks"), controller.overview.mouse, "cursorarrow.click")
-                statCard(localized("Special keys"), controller.overview.specialKeys, "command")
-            }
-            HStack(spacing: 8) {
-                statCard(localized("Shortcuts"), controller.overview.shortcuts, "keyboard.badge.ellipsis")
-                statCard(localized("Scroll events"), controller.overview.scrolls, "arrow.up.arrow.down")
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(localized("First recorded")).font(.caption).foregroundStyle(.secondary)
-                    Text(controller.overview.firstEventMS.map {
-                        Date(timeIntervalSince1970: TimeInterval($0)/1000)
-                            .formatted(date: .abbreviated, time: .shortened)
-                    } ?? localized("Unknown"))
-                    .font(.caption).fontWeight(.medium)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            HStack {
-                Text(localized("Time trend")).font(.headline)
-                Spacer()
-                Picker(localized("Resolution"), selection: $controller.trendResolution) {
-                    Text(localized("Per second")).tag(InputTrendResolution.second)
-                    Text(localized("Per minute")).tag(InputTrendResolution.minute)
-                    Text(localized("Hourly")).tag(InputTrendResolution.hour)
-                    Text(localized("Daily")).tag(InputTrendResolution.day)
-                    Text(localized("Weekly")).tag(InputTrendResolution.week)
-                    Text(localized("Monthly")).tag(InputTrendResolution.month)
-                }
-                .frame(width: 120)
-                .onChange(of: controller.trendResolution) { _ in query() }
+                .menuStyle(.borderlessButton)
+                .accessibilityLabel(localized("Source options"))
             }
             if let range = controller.trendRange {
-                InputTrendChart(
-                    buckets: controller.trend, range: range,
-                    resolution: controller.trendResolution, limited: controller.trendRangeIsLimited
+                InputTrendSection(
+                    overview: controller.overview, buckets: controller.trend,
+                    range: range, resolution: $controller.trendResolution,
+                    limited: controller.trendRangeIsLimited, onQuery: query
                 )
-                .id(range)
             }
             HStack {
                 Text(localized("Key and shortcut ranking")).font(.headline)
@@ -727,17 +701,6 @@ struct InputStatisticsView: View {
         return "keyboard"
     }
 
-    private func statCard(_ label: String, _ count: Int64, _ symbol: String) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Label(label, systemImage: symbol).font(.caption).foregroundStyle(.secondary)
-            Text(count.formatted())
-                .font(.title3.weight(.semibold)).monospacedDigit()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(8)
-        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
-    }
-
     private func applyPreset() {
         let calendar = Calendar.current
         let now = Date()
@@ -775,221 +738,622 @@ struct InputStatisticsView: View {
     }
 }
 
-private struct InputTrendChart: View {
+struct InputTrendDisplayData {
+    let buckets: [InputTrendBucket]
+    let resolution: InputTrendResolution
+    let visibleCategories: Set<String>
+
+    var visible: [InputTrendBucket] {
+        buckets.filter { visibleCategories.contains($0.category) && $0.count > 0 }
+    }
+
+    var starts: [Int64] { Array(Set(visible.map(\.startMS))).sorted() }
+
+    func details(at startMS: Int64) -> [InputTrendBucket] {
+        visible.filter { $0.startMS == startMS }.sorted { $0.category < $1.category }
+    }
+
+    func total(at startMS: Int64) -> Int64 {
+        details(at: startMS).reduce(0) { $0 + $1.count }
+    }
+
+    func total(for category: String) -> Int64 {
+        buckets.filter { $0.category == category }.reduce(0) { $0 + $1.count }
+    }
+
+    func nearestStart(to x: CGFloat, maximumDistance: CGFloat = 28,
+                      position: (Int64) -> CGFloat?) -> Int64? {
+        starts.compactMap { start -> (Int64, CGFloat)? in
+            position(start).map { (start, abs($0 - x)) }
+        }
+        .min { $0.1 < $1.1 }
+        .flatMap { $0.1 <= maximumDistance ? $0.0 : nil }
+    }
+
+    func domain(in full: ClosedRange<Date>, focused: Bool) -> ClosedRange<Date> {
+        guard focused, let first = starts.first, let last = starts.last else { return full }
+        let step = bucketEnd(after: first) - first
+        let span = max(last - first, step * 4)
+        let padding = max(step, span / 12)
+        let lower = max(Int64(full.lowerBound.timeIntervalSince1970 * 1000), first - padding)
+        let upper = min(Int64(full.upperBound.timeIntervalSince1970 * 1000), last + padding)
+        guard lower < upper else { return full }
+        return Date(timeIntervalSince1970: Double(lower) / 1000)
+            ... Date(timeIntervalSince1970: Double(upper) / 1000)
+    }
+
+    func bucketEnd(after startMS: Int64) -> Int64 {
+        let date = Date(timeIntervalSince1970: Double(startMS) / 1000)
+        let next = InputTrendResolution.bucketCalendar.date(
+            byAdding: resolution.calendarComponent, value: 1, to: date
+        ) ?? date.addingTimeInterval(1)
+        return Int64(next.timeIntervalSince1970 * 1000)
+    }
+
+    /// Each run only joins adjacent UTC buckets. An unrecorded gap is never drawn as activity.
+    func runs(for category: String) -> [[InputTrendBucket]] {
+        let sorted = visible.filter { $0.category == category }.sorted { $0.startMS < $1.startMS }
+        var result: [[InputTrendBucket]] = []
+        for bucket in sorted {
+            if let previous = result.last?.last, bucket.startMS == bucketEnd(after: previous.startMS) {
+                result[result.count - 1].append(bucket)
+            } else {
+                result.append([bucket])
+            }
+        }
+        return result
+    }
+}
+
+struct InputTrendSection: View {
+    @Environment(\.locale) private var locale
+    let overview: InputStatisticsOverview
     let buckets: [InputTrendBucket]
     let range: ClosedRange<Date>
-    let resolution: InputTrendResolution
+    @Binding var resolution: InputTrendResolution
     let limited: Bool
+    let onQuery: () -> Void
 
-    @State private var hoveredBucket: Date?
-    @State private var group = "all"
-    @State private var excluded = Set<String>()
-    @State private var separateScrolling = true
+    @State private var mode = "all"
+    #if DEBUG
+    @State private var hidden: Set<String> = CommandLine.arguments.contains("--nexus-preview-filter")
+        ? ["ordinary"] : []
+    #else
+    @State private var hidden = Set<String>()
+    #endif
+    @State private var focused = true
+    @State private var hoveredStartMS: Int64?
+    @State private var hoveredChart: String?
+    @State private var hoverX: CGFloat = 0
 
-    private let categories = ["ordinary", "keyboard", "modifier", "system",
-                              "shortcut", "mouse", "scroll"]
-    private var calendar: Calendar { InputTrendResolution.bucketCalendar }
+    private let keyboardCategories = ["ordinary", "keyboard", "modifier", "system", "shortcut"]
+    private let mouseCategories = ["mouse", "scroll"]
 
-    private var categoriesForGroup: [String] {
-        switch group {
-        case "keyboard": return ["ordinary", "keyboard", "modifier", "system", "shortcut"]
-        case "mouse": return ["mouse", "scroll"]
-        default: return categories
+    private var categories: [String] {
+        switch mode {
+        case "keyboard": keyboardCategories
+        case "mouse": mouseCategories
+        default: keyboardCategories + mouseCategories
         }
     }
 
-    private var visibleBuckets: [InputTrendBucket] {
-        let visible = Set(categoriesForGroup).subtracting(excluded)
-        return buckets.filter { visible.contains($0.category) }
+    private var display: InputTrendDisplayData {
+        InputTrendDisplayData(
+            buckets: buckets, resolution: resolution,
+            visibleCategories: Set(categories).subtracting(hidden)
+        )
     }
 
-    private var primaryBuckets: [InputTrendBucket] {
-        visibleBuckets.filter { !separateScrolling || $0.category != "scroll" }
+    private var domainDisplay: InputTrendDisplayData {
+        InputTrendDisplayData(buckets: buckets, resolution: resolution,
+                              visibleCategories: Set(categories))
     }
 
-    private var scrollingBuckets: [InputTrendBucket] {
-        separateScrolling ? visibleBuckets.filter { $0.category == "scroll" } : []
-    }
+    private var primary: [String] { categories.filter { $0 != "scroll" && !hidden.contains($0) } }
+    private var scrollVisible: Bool { categories.contains("scroll") && !hidden.contains("scroll") }
 
-    private var hoveredDetails: [InputTrendBucket] {
-        guard let hoveredBucket else { return [] }
-        let timeMS = Int64(hoveredBucket.timeIntervalSince1970 * 1000)
-        return visibleBuckets.filter { $0.startMS == timeMS }
-            .sorted { $0.category < $1.category }
-    }
-
-    private var domain: ClosedRange<Date> {
-        let start = calendar.dateInterval(of: resolution.calendarComponent, for: range.lowerBound)?.start
-            ?? range.lowerBound
-        let end = calendar.dateInterval(of: resolution.calendarComponent, for: range.upperBound)?.end
-            ?? range.upperBound
-        if resolution == .second || resolution == .minute || resolution == .hour,
-           let first = visibleBuckets.map(\.startMS).min(),
-           let last = visibleBuckets.map(\.startMS).max() {
-            let padding: TimeInterval = resolution == .second ? 20 : (resolution == .minute ? 120 : 1800)
-            let focusedStart = max(start, Date(timeIntervalSince1970: TimeInterval(first) / 1000 - padding))
-            let focusedEnd = min(end, Date(timeIntervalSince1970: TimeInterval(last) / 1000 + padding))
-            if focusedStart < focusedEnd { return focusedStart...focusedEnd }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            header
+            summary
+            Divider()
+            controls
+            if limited {
+                Label(localized(resolution == .second
+                    ? "This chart shows the last 15 minutes of the selected range."
+                    : "This chart shows the last 48 hours of the selected range."),
+                    systemImage: "info.circle")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            if resolution == .second && buckets.contains(where: { $0.category == "ordinary" }) {
+                Text(localized("Ordinary typing is counted by minute."))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            if display.visible.isEmpty {
+                VStack(spacing: 8) {
+                    Image(systemName: "chart.xyaxis.line")
+                        .font(.title2).foregroundStyle(.tertiary)
+                    Text(localized("No input events in this chart range"))
+                        .font(.subheadline.weight(.medium))
+                    Text(localized("Try a wider time range or enable a category."))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, minHeight: 180)
+            } else {
+                if !primary.isEmpty && display.visible.contains(where: { $0.category != "scroll" }) {
+                    chartHeading(localized("Input activity"), detail: localized("Events per interval"))
+                    trendChart(categories: primary, chartID: "primary", height: 208)
+                }
+                if scrollVisible && display.visible.contains(where: { $0.category == "scroll" }) {
+                    chartHeading(localized("Scroll events"), detail: localized("Independent scale"))
+                    trendChart(categories: ["scroll"], chartID: "scroll", height: 104)
+                }
+            }
+            if categories.contains(where: { display.total(for: $0) > 0 }) {
+                VStack(alignment: .leading, spacing: 9) {
+                    Text(localized("Categories")).font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 118), spacing: 8)],
+                              alignment: .leading, spacing: 8) {
+                        ForEach(categories.filter { display.total(for: $0) > 0 }, id: \.self) { category in
+                            legendItem(category)
+                        }
+                    }
+                }
+            }
         }
-        return start...end
+        .padding(18)
+        .background(.quaternary.opacity(0.16), in: RoundedRectangle(cornerRadius: 14))
+        .onChange(of: mode) { _ in hoveredStartMS = nil }
+        .onChange(of: hidden) { _ in hoveredStartMS = nil }
+        .onChange(of: focused) { _ in hoveredStartMS = nil }
+        .onChange(of: resolution) { _ in hoveredStartMS = nil }
+        .onChange(of: range) { _ in hoveredStartMS = nil }
+        #if DEBUG
+        .onAppear {
+            if CommandLine.arguments.contains("--nexus-preview-hover") {
+                hoveredStartMS = display.starts.first
+                hoveredChart = "primary"
+                hoverX = 130
+            }
+        }
+        #endif
     }
 
-    private var axisFormat: Date.FormatStyle {
+    private var header: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: 16) {
+                title
+                Spacer(minLength: 12)
+                resolutionPicker
+            }
+            VStack(alignment: .leading, spacing: 10) {
+                title
+                resolutionPicker
+            }
+        }
+    }
+
+    private var title: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(localized("Time trend")).font(.title3.weight(.semibold))
+            Text(localized("Selected time range")).font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    private var resolutionPicker: some View {
+        Picker(localized("Resolution"), selection: $resolution) {
+            Text(localized("Per second")).tag(InputTrendResolution.second)
+            Text(localized("Per minute")).tag(InputTrendResolution.minute)
+            Text(localized("Hourly")).tag(InputTrendResolution.hour)
+            Text(localized("Daily")).tag(InputTrendResolution.day)
+            Text(localized("Weekly")).tag(InputTrendResolution.week)
+            Text(localized("Monthly")).tag(InputTrendResolution.month)
+        }
+        .frame(maxWidth: 170)
+        .controlSize(.small)
+        .onChange(of: resolution) { _ in onQuery() }
+    }
+
+    private var summary: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 130), spacing: 12)],
+                  alignment: .leading, spacing: 12) {
+            summaryItem(localized("Total events"),
+                        overview.keyboard + overview.mouse + overview.shortcuts + overview.scrolls)
+            summaryItem(localized("Keyboard events"), overview.keyboard + overview.shortcuts)
+            summaryItem(localized("Mouse events"), overview.mouse)
+            summaryItem(localized("Scroll events"), overview.scrolls)
+        }
+    }
+
+    private func summaryItem(_ title: String, _ count: Int64) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+            Text(count.formatted()).font(.title2.weight(.semibold)).monospacedDigit()
+                .contentTransition(.numericText())
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var controls: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 12) { modePicker; Spacer(minLength: 6); rangePicker; timeZoneLabel }
+            VStack(alignment: .leading, spacing: 9) {
+                modePicker
+                HStack(spacing: 12) { rangePicker; Spacer(minLength: 0); timeZoneLabel }
+            }
+        }
+    }
+
+    private var modePicker: some View {
+        Picker(localized("Chart focus"), selection: $mode) {
+            Text(localized("Overview")).tag("all")
+            Text(localized("Keyboard")).tag("keyboard")
+            Text(localized("Mouse")).tag("mouse")
+        }
+        .pickerStyle(.segmented)
+        .frame(maxWidth: 270)
+        .controlSize(.small)
+    }
+
+    private var rangePicker: some View {
+        HStack(spacing: 7) {
+            Text(localized("Chart range")).font(.caption)
+                .fixedSize(horizontal: true, vertical: false)
+            Picker("", selection: $focused) {
+                Text(localized("Focus on data")).tag(true)
+                Text(localized("Full range")).tag(false)
+            }
+            .labelsHidden()
+            .frame(width: 130)
+            .controlSize(.small)
+        }
+    }
+
+    private var timeZoneLabel: some View {
+        let startZone = TimeZone.current.abbreviation(for: range.lowerBound)
+            ?? TimeZone.current.identifier
+        let endZone = TimeZone.current.abbreviation(for: range.upperBound)
+            ?? TimeZone.current.identifier
+        let zone = startZone == endZone ? startZone : "\(startZone)/\(endZone)"
+        return Text("\(localized("Local time")) · \(zone)")
+            .font(.caption2).foregroundStyle(.tertiary).lineLimit(1)
+    }
+
+    private func chartHeading(_ name: String, detail: String) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(name).font(.subheadline.weight(.medium))
+            Spacer()
+            Text(detail).font(.caption2).foregroundStyle(.secondary)
+        }
+    }
+
+    private func legendItem(_ category: String) -> some View {
+        let isHidden = hidden.contains(category)
+        return Button {
+            if isHidden { hidden.remove(category) } else { hidden.insert(category) }
+        } label: {
+            HStack(spacing: 6) {
+                Circle().fill(color(for: category)).frame(width: 7, height: 7)
+                Text(categoryLabel(category)).lineLimit(1)
+                Spacer(minLength: 2)
+                Text(display.total(for: category).formatted())
+                    .monospacedDigit().foregroundStyle(.secondary)
+            }
+            .font(.caption)
+            .opacity(isHidden ? 0.38 : 1)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(categoryLabel(category)), \(display.total(for: category).formatted())")
+        .accessibilityAddTraits(isHidden ? [] : [.isSelected])
+    }
+
+    private func color(for category: String) -> Color {
+        switch category {
+        case "ordinary": Color(red: 0.29, green: 0.49, blue: 0.73)
+        case "keyboard": Color(red: 0.25, green: 0.68, blue: 0.76)
+        case "modifier": Color(red: 0.57, green: 0.49, blue: 0.74)
+        case "system": Color(red: 0.77, green: 0.58, blue: 0.33)
+        case "shortcut": Color(red: 0.40, green: 0.64, blue: 0.45)
+        case "mouse": Color(red: 0.83, green: 0.46, blue: 0.44)
+        default: Color(red: 0.58, green: 0.47, blue: 0.72)
+        }
+    }
+
+    private func categoryLabel(_ category: String) -> String {
+        switch category {
+        case "ordinary": localized("Typing")
+        case "keyboard": localized("Function keys")
+        case "modifier": localized("Modifier keys")
+        case "system": localized("System keys")
+        case "shortcut": localized("Shortcuts")
+        case "mouse": localized("Mouse clicks")
+        default: localized("Scrolling")
+        }
+    }
+
+    private func trendChart(categories plotted: [String], chartID: String,
+                            height: CGFloat) -> some View {
+        let data = display
+        let domain = domainDisplay.domain(in: range, focused: focused)
+        let peak = max(1, data.visible.filter { plotted.contains($0.category) }.map(\.count).max() ?? 1)
+        let ceiling = Double(peak) * 1.12
+        return HStack(alignment: .top, spacing: 8) {
+            VStack(alignment: .trailing) {
+                Text(peak.formatted(.number.notation(.compactName)))
+                Spacer()
+                Text("0")
+            }
+            .font(.caption2.monospacedDigit())
+            .foregroundStyle(.tertiary)
+            .frame(width: 42, height: height - 23, alignment: .trailing)
+            GeometryReader { geometry in
+                Chart {
+                    RuleMark(y: .value(localized("Count"), Double(peak) / 2))
+                        .lineStyle(StrokeStyle(lineWidth: 0.5))
+                        .foregroundStyle(Color.gray.opacity(0.18))
+                    ForEach(plotted, id: \.self) { category in
+                        ForEach(Array(data.runs(for: category).enumerated()), id: \.offset) { index, run in
+                            if data.starts.count <= 12 {
+                                ForEach(run) { bucket in
+                                    BarMark(
+                                        x: .value(localized("Time"), date(for: bucket.startMS)),
+                                        y: .value(localized("Count"), bucket.count),
+                                        width: .fixed(3)
+                                    )
+                                    .position(by: .value(localized("Category"), category))
+                                    .cornerRadius(2)
+                                    .foregroundStyle(color(for: category).opacity(0.58))
+                                }
+                            }
+                            if run.count > 1 {
+                                ForEach(run) { bucket in
+                                    LineMark(
+                                        x: .value(localized("Time"), date(for: bucket.startMS)),
+                                        y: .value(localized("Count"), bucket.count),
+                                        series: .value(localized("Category"), "\(category)-\(index)")
+                                    )
+                                    .interpolationMethod(.linear)
+                                    .lineStyle(StrokeStyle(lineWidth: 1.7, lineCap: .round))
+                                    .foregroundStyle(color(for: category))
+                                }
+                            }
+                            if data.starts.count <= 80 || run.count == 1 {
+                                ForEach(run) { bucket in
+                                    PointMark(
+                                        x: .value(localized("Time"), date(for: bucket.startMS)),
+                                        y: .value(localized("Count"), bucket.count)
+                                    )
+                                    .symbolSize(26)
+                                    .foregroundStyle(color(for: category))
+                                }
+                            }
+                        }
+                    }
+                    if let hoveredStartMS, data.details(at: hoveredStartMS).contains(where: { plotted.contains($0.category) }) {
+                        RuleMark(x: .value(localized("Time"), date(for: hoveredStartMS)))
+                            .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                            .foregroundStyle(.secondary)
+                        ForEach(data.details(at: hoveredStartMS).filter { plotted.contains($0.category) }) { bucket in
+                            PointMark(
+                                x: .value(localized("Time"), date(for: bucket.startMS)),
+                                y: .value(localized("Count"), bucket.count)
+                            )
+                            .symbolSize(70)
+                            .foregroundStyle(color(for: bucket.category))
+                        }
+                    }
+                }
+                .chartXScale(domain: domain)
+                .chartYScale(domain: 0...ceiling)
+                .chartYAxis(.hidden)
+                .chartLegend(.hidden)
+                .chartXAxis {
+                    AxisMarks(values: axisTicks(in: domain, width: geometry.size.width)) {
+                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [2, 4]))
+                            .foregroundStyle(Color.gray.opacity(0.12))
+                        AxisValueLabel(format: axisFormat(for: domain).locale(locale))
+                            .font(.caption2)
+                    }
+                }
+                .chartOverlay { proxy in
+                    GeometryReader { chartGeometry in
+                        Rectangle().fill(.clear).contentShape(Rectangle())
+                            .onContinuousHover { phase in
+                                guard case .active(let point) = phase else {
+                                    hoveredStartMS = nil
+                                    hoveredChart = nil
+                                    return
+                                }
+                                let plot = chartGeometry[proxy.plotAreaFrame]
+                                guard plot.contains(point),
+                                      let _: Date = proxy.value(atX: point.x - plot.minX) else {
+                                    hoveredStartMS = nil
+                                    hoveredChart = nil
+                                    return
+                                }
+                                let nearest = data.nearestStart(to: point.x - plot.minX) { start in
+                                    proxy.position(forX: self.date(for: start))
+                                }
+                                guard let nearest,
+                                      data.details(at: nearest).contains(where: { plotted.contains($0.category) }),
+                                      let position = proxy.position(forX: self.date(for: nearest)) else {
+                                    hoveredStartMS = nil
+                                    hoveredChart = nil
+                                    return
+                                }
+                                hoveredStartMS = nearest
+                                hoveredChart = chartID
+                                hoverX = plot.minX + position
+                            }
+                    }
+                }
+                .overlay(alignment: .topLeading) {
+                    if hoveredChart == chartID, let hoveredStartMS,
+                       data.details(at: hoveredStartMS).contains(where: { plotted.contains($0.category) }) {
+                        hoverCard(startMS: hoveredStartMS)
+                            .frame(width: min(218, geometry.size.width - 8), alignment: .leading)
+                            .offset(
+                                x: max(0, min(geometry.size.width - 222, hoverX + 12)),
+                                y: min(5, height - CGFloat(70 + 20 * data.details(at: hoveredStartMS).count))
+                            )
+                            .allowsHitTesting(false)
+                    }
+                }
+            }
+            .frame(height: height)
+        }
+        .frame(height: height)
+    }
+
+    private func axisFormat(for domain: ClosedRange<Date>) -> Date.FormatStyle {
         switch resolution {
         case .second: .dateTime.hour().minute().second()
         case .minute, .hour:
-            range.upperBound.timeIntervalSince(range.lowerBound) >= 86_400
-                ? .dateTime.month(.abbreviated).day().hour().minute() : .dateTime.hour().minute()
+            domain.upperBound.timeIntervalSince(domain.lowerBound) < 86_400
+                ? .dateTime.hour().minute()
+                : .dateTime.month(.abbreviated).day().hour()
         case .day, .week: .dateTime.month(.abbreviated).day()
         case .month: .dateTime.year().month(.abbreviated)
         }
     }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Picker(localized("Chart focus"), selection: $group) {
-                Text(localized("Overview")).tag("all")
-                Text(localized("Keyboard")).tag("keyboard")
-                Text(localized("Mouse")).tag("mouse")
-            }
-            .pickerStyle(.segmented)
-
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 115), spacing: 6)],
-                      alignment: .leading, spacing: 6) {
-                ForEach(categoriesForGroup, id: \.self) { category in
-                    Button {
-                        if excluded.contains(category) {
-                            excluded.remove(category)
-                        } else {
-                            excluded.insert(category)
-                        }
-                    } label: {
-                        Label(localized(category),
-                              systemImage: excluded.contains(category) ? "circle" : "checkmark.circle.fill")
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .lineLimit(1)
-                    }
-                    .buttonStyle(.bordered)
-                }
-            }
-
-            if categoriesForGroup.contains("scroll") {
-                Toggle(localized("Separate scroll-event scale"), isOn: $separateScrolling)
-                    .toggleStyle(.checkbox)
-                    .font(.caption)
-            }
-            if limited {
-                Text(localized(resolution == .second
-                    ? "This chart shows the last 15 minutes of the selected range."
-                    : "This chart shows the last 48 hours of the selected range."))
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            if resolution == .second, visibleBuckets.contains(where: { $0.category == "ordinary" }) {
-                Text(localized("Ordinary typing is counted by minute."))
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-
-            if visibleBuckets.isEmpty {
-                Label(localized("No input events in this chart range"), systemImage: "chart.bar")
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, minHeight: 150)
-            } else {
-                if !primaryBuckets.isEmpty {
-                    Text(localized("Input events")).font(.caption.weight(.semibold))
-                    chart(primaryBuckets, height: 215)
-                }
-                if !scrollingBuckets.isEmpty {
-                    Text(localized("Scroll events")).font(.caption.weight(.semibold))
-                    chart(scrollingBuckets, height: 120)
-                    Text(localized("Scrolling uses a separate count axis so large scroll totals do not hide other events."))
-                        .font(.caption2).foregroundStyle(.secondary)
-                }
-
-                if let hoveredBucket {
-                    let total = hoveredDetails.reduce(Int64(0)) { $0 + $1.count }
-                    VStack(alignment: .leading, spacing: 7) {
-                        HStack {
-                            Text(hoveredBucket.formatted(axisFormat)).fontWeight(.semibold)
-                            Spacer()
-                            Text(total.formatted()).monospacedDigit()
-                        }
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 130), spacing: 6)],
-                                  alignment: .leading, spacing: 6) {
-                            ForEach(hoveredDetails) { detail in
-                                HStack {
-                                    Text(localized(detail.category)).lineLimit(1)
-                                    Spacer()
-                                    Text(detail.count.formatted()).monospacedDigit()
-                                }
-                                .font(.caption)
-                            }
-                        }
-                    }
-                    .padding(10)
-                    .background(.quaternary.opacity(0.35),
-                                in: RoundedRectangle(cornerRadius: 10))
-                } else {
-                    Text(localized("Point at the chart to see the time and event count."))
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-            }
-        }
-        .onChange(of: resolution) { _ in hoveredBucket = nil }
-        .onChange(of: group) { _ in hoveredBucket = nil }
-        .onChange(of: excluded) { _ in hoveredBucket = nil }
-        .onChange(of: separateScrolling) { _ in hoveredBucket = nil }
+    private func axisTicks(in domain: ClosedRange<Date>, width: CGFloat) -> [Date] {
+        let count = width < 480 ? 3 : 5
+        let span = domain.upperBound.timeIntervalSince(domain.lowerBound)
+        let calendar = InputTrendResolution.bucketCalendar
+        return Array(Set((1...count).compactMap { position -> Date? in
+            let approximate = domain.lowerBound.addingTimeInterval(
+                span * Double(position) / Double(count + 1)
+            )
+            return calendar.dateInterval(of: resolution.calendarComponent, for: approximate)?.start
+        })).sorted()
     }
 
-    private func chart(_ plotted: [InputTrendBucket], height: CGFloat) -> some View {
-        Chart {
-            ForEach(plotted) { bucket in
-                BarMark(
-                    x: .value(localized("Time"),
-                              Date(timeIntervalSince1970: TimeInterval(bucket.startMS) / 1000),
-                              unit: resolution.calendarComponent, calendar: calendar),
-                    y: .value(localized("Count"), bucket.count)
-                )
-                .foregroundStyle(by: .value(localized("Category"), localized(bucket.category)))
+    private func date(for ms: Int64) -> Date {
+        Date(timeIntervalSince1970: Double(ms) / 1000)
+    }
+
+    private func hoverCard(startMS: Int64) -> some View {
+        let details = display.details(at: startMS)
+        let startDate = date(for: startMS)
+        let endDate = date(for: display.bucketEnd(after: startMS))
+        let zone = TimeZone.current.abbreviation(for: startDate) ?? TimeZone.current.identifier
+        return VStack(alignment: .leading, spacing: 5) {
+            Text(startDate.formatted(.dateTime.month(.abbreviated).day().hour().minute().locale(locale))
+                 + " – " + endDate.formatted(.dateTime.hour().minute().locale(locale)) + " " + zone)
+                .font(.caption2.weight(.medium)).fixedSize(horizontal: false, vertical: true)
+            HStack {
+                Text(localized("Total events"))
+                Spacer()
+                Text(details.reduce(Int64(0)) { $0 + $1.count }.formatted()).monospacedDigit()
             }
-            if let hoveredBucket {
-                RuleMark(x: .value(localized("Time"), hoveredBucket))
-                    .foregroundStyle(.secondary.opacity(0.6))
+            .font(.caption.weight(.semibold))
+            Divider()
+            ForEach(details) { bucket in
+                HStack(spacing: 6) {
+                    Circle().fill(color(for: bucket.category)).frame(width: 6, height: 6)
+                    Text(categoryLabel(bucket.category)).lineLimit(1)
+                    Spacer(minLength: 2)
+                    Text(bucket.count.formatted()).monospacedDigit()
+                }
+                .font(.caption2)
             }
         }
-        .chartXScale(domain: domain)
-        .chartXAxis {
-            if resolution == .day || resolution == .week || resolution == .month {
-                AxisMarks(values: .stride(by: resolution == .month ? .month : .day, count: 1)) {
-                    AxisGridLine()
-                    AxisValueLabel(format: axisFormat)
-                }
-            } else {
-                AxisMarks(values: .automatic(desiredCount: 4)) {
-                    AxisGridLine()
-                    AxisValueLabel(format: axisFormat)
-                }
-            }
+        .padding(10)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 9))
+        .overlay(RoundedRectangle(cornerRadius: 9).stroke(.quaternary, lineWidth: 0.5))
+        .shadow(color: .black.opacity(0.13), radius: 10, y: 4)
+    }
+}
+
+#if DEBUG
+/// A real macOS window with deterministic chart fixtures for visual review.
+struct InputTrendPreviewApp: App {
+    var body: some Scene {
+        WindowGroup(localized("Time trend")) {
+            InputTrendPreviewView()
         }
-        .chartLegend(.hidden)
-        .frame(height: height)
-        .chartOverlay { proxy in
-            GeometryReader { geometry in
-                Rectangle().fill(.clear).contentShape(Rectangle())
-                    .onContinuousHover { phase in
-                        guard case .active(let location) = phase,
-                              geometry[proxy.plotAreaFrame].contains(location),
-                              let date: Date = proxy.value(
-                                atX: location.x - geometry[proxy.plotAreaFrame].minX
-                              )
-                        else {
-                            hoveredBucket = nil
-                            return
-                        }
-                        hoveredBucket = calendar.dateInterval(
-                            of: resolution.calendarComponent, for: date
-                        )?.start
-                    }
+        .defaultSize(
+            width: CommandLine.arguments.contains("--nexus-preview-small") ? 440 : 940,
+            height: 760
+        )
+    }
+}
+
+private struct InputTrendPreviewView: View {
+    @State private var resolution: InputTrendResolution = .hour
+    private let scenario = CommandLine.arguments.first { $0.hasPrefix("--nexus-preview-scenario=") }?
+        .split(separator: "=").last.map(String.init) ?? "sparse"
+    private let language = CommandLine.arguments.first { $0.hasPrefix("--nexus-preview-language=") }?
+        .split(separator: "=").last.map(String.init) ?? "en"
+
+    private var startMS: Int64 { 1_795_392_000_000 } // 2026-11-23 00:00 UTC
+    private var endMS: Int64 { startMS + (scenario == "dense" ? 48 : 24) * 3_600_000 }
+
+    private var buckets: [InputTrendBucket] {
+        switch scenario {
+        case "empty": []
+        case "dense":
+            (0..<48).flatMap { hour -> [InputTrendBucket] in
+                let time = startMS + Int64(hour) * 3_600_000
+                return [
+                    .init(startMS: time, category: "ordinary", count: Int64(17 + (hour * 7) % 49)),
+                    .init(startMS: time, category: "shortcut", count: Int64(2 + hour % 8)),
+                    .init(startMS: time, category: "mouse", count: Int64(8 + (hour * 3) % 27)),
+                    .init(startMS: time, category: "scroll", count: Int64(11 + (hour * 11) % 64)),
+                ]
             }
+        case "scroll":
+            [
+                .init(startMS: startMS + 4 * 3_600_000, category: "ordinary", count: 7),
+                .init(startMS: startMS + 5 * 3_600_000, category: "ordinary", count: 12),
+                .init(startMS: startMS + 6 * 3_600_000, category: "mouse", count: 4),
+                .init(startMS: startMS + 4 * 3_600_000, category: "scroll", count: 2_400),
+                .init(startMS: startMS + 5 * 3_600_000, category: "scroll", count: 5_200),
+                .init(startMS: startMS + 6 * 3_600_000, category: "scroll", count: 3_100),
+            ]
+        default:
+            [
+                .init(startMS: startMS + 3 * 3_600_000, category: "ordinary", count: 12),
+                .init(startMS: startMS + 3 * 3_600_000, category: "mouse", count: 3),
+                .init(startMS: startMS + 9 * 3_600_000, category: "shortcut", count: 2),
+                .init(startMS: startMS + 18 * 3_600_000, category: "ordinary", count: 8),
+                .init(startMS: startMS + 18 * 3_600_000, category: "scroll", count: 47),
+            ]
+        }
+    }
+
+    private var overview: InputStatisticsOverview {
+        func total(_ category: String) -> Int64 {
+            buckets.filter { $0.category == category }.reduce(0) { $0 + $1.count }
+        }
+        return InputStatisticsOverview(
+            keyboard: total("ordinary") + total("keyboard") + total("modifier") + total("system"),
+            mouse: total("mouse"), specialKeys: 0, shortcuts: total("shortcut"),
+            scrolls: total("scroll"), firstEventMS: buckets.map(\.startMS).min()
+        )
+    }
+
+    var body: some View {
+        ScrollView {
+            InputTrendSection(
+                overview: overview, buckets: buckets,
+                range: Date(timeIntervalSince1970: Double(startMS) / 1000)
+                    ... Date(timeIntervalSince1970: Double(endMS) / 1000),
+                resolution: $resolution, limited: false, onQuery: {}
+            )
+            .padding(20)
+            .frame(maxWidth: .infinity)
+        }
+        .frame(minWidth: 420, minHeight: 540)
+        .background(Color(nsColor: .windowBackgroundColor))
+        .environment(\.locale, Locale(identifier: language))
+        .preferredColorScheme(CommandLine.arguments.contains("--nexus-preview-dark") ? .dark : .light)
+        .onAppear {
+            NSApplication.shared.activate(ignoringOtherApps: true)
         }
     }
 }
+#endif

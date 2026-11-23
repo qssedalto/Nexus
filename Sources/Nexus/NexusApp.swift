@@ -4,6 +4,13 @@ import SwiftUI
 enum NexusEntryPoint {
     @MainActor
     static func main() {
+        #if DEBUG
+        if CommandLine.arguments.contains("--nexus-trend-preview") {
+            NSApplication.shared.setActivationPolicy(.regular)
+            InputTrendPreviewApp.main()
+            return
+        }
+        #endif
         if CommandLine.arguments.dropFirst().first == NexusAppRelauncher.helperArgument {
             NexusAppRelauncher.runHelper()
         } else {

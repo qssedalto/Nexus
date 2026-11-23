@@ -29,6 +29,12 @@ public struct InputTrendBucket: Sendable, Identifiable, Equatable {
     public let category: String
     public let count: Int64
     public var id: String { "\(startMS):\(category)" }
+
+    public init(startMS: Int64, category: String, count: Int64) {
+        self.startMS = startMS
+        self.category = category
+        self.count = count
+    }
 }
 
 public enum InputTrendResolution: String, CaseIterable, Identifiable, Sendable {
